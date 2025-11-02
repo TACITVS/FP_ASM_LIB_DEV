@@ -301,8 +301,8 @@ This project demonstrates that functional programming and systems-level performa
 
 ## 📞 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/fp-asm/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/fp-asm/discussions)
+- **Issues**: [GitHub Issues](https://github.com/TACITVS/FP_ASM_LIB_DEV/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/TACITVS/FP_ASM_LIB_DEV/discussions)
 - **Documentation**: [docs/](docs/)
 
 ---
@@ -311,6 +311,6 @@ This project demonstrates that functional programming and systems-level performa
 
 **Made with ⚡ by passionate functional programmers who refuse to compromise on performance**
 
-[⭐ Star this repo](https://github.com/yourusername/fp-asm) • [🐛 Report Bug](https://github.com/yourusername/fp-asm/issues) • [💡 Request Feature](https://github.com/yourusername/fp-asm/issues)
+[⭐ Star this repo](https://github.com/TACITVS/FP_ASM_LIB_DEV) • [🐛 Report Bug](https://github.com/TACITVS/FP_ASM_LIB_DEV/issues) • [💡 Request Feature](https://github.com/TACITVS/FP_ASM_LIB_DEV/issues)
 
 </div>

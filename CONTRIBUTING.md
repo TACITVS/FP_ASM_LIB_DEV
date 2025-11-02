@@ -15,7 +15,7 @@ FP-ASM aims to provide:
 ### Reporting Bugs
 
 **Before submitting a bug report:**
-- Check existing [GitHub Issues](https://github.com/yourusername/fp-asm/issues)
+- Check existing [GitHub Issues](https://github.com/TACITVS/FP_ASM_LIB_DEV/issues)
 - Verify the bug exists in the latest version
 - Test with minimal reproduction case
 

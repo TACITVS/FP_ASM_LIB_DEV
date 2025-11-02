@@ -282,8 +282,8 @@ Special thanks to:
 ## 📞 Get Involved
 
 - **⭐ Star this repo** - Help others discover FP-ASM
-- **🐛 Report bugs** - [GitHub Issues](https://github.com/yourusername/fp-asm/issues)
-- **💡 Request features** - [GitHub Discussions](https://github.com/yourusername/fp-asm/discussions)
+- **🐛 Report bugs** - [GitHub Issues](https://github.com/TACITVS/FP_ASM_LIB_DEV/issues)
+- **💡 Request features** - [GitHub Discussions](https://github.com/TACITVS/FP_ASM_LIB_DEV/discussions)
 - **📖 Improve docs** - Submit PRs for documentation
 - **🚀 Share your projects** - Show us what you build!
 
@@ -293,9 +293,9 @@ Special thanks to:
 
 ## 🎉 FP-ASM v1.0.0: TRUE Functional Programming Meets Assembly Performance 🎉
 
-**Download**: [GitHub Releases](https://github.com/yourusername/fp-asm/releases/tag/v1.0.0)
+**Download**: [GitHub Releases](https://github.com/TACITVS/FP_ASM_LIB_DEV/releases/tag/v1.0.0)
 
-**Documentation**: [https://github.com/yourusername/fp-asm](https://github.com/yourusername/fp-asm)
+**Documentation**: [https://github.com/TACITVS/FP_ASM_LIB_DEV](https://github.com/TACITVS/FP_ASM_LIB_DEV)
 
 Made with ⚡ by functional programmers who refuse to compromise on performance
 
