@@ -1,4 +1,4 @@
-# FP-ASM: Functional Programming for C with Assembly Performance
+# fp_asm_lib_dev: Functional Programming for C with Assembly Performance
 
 [![Language](https://img.shields.io/badge/language-C%20%2B%20x64%20Assembly-blue.svg)](https://github.com/TACITVS/FP_ASM_LIB_DEV)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)](https://github.com/TACITVS/FP_ASM_LIB_DEV)
@@ -9,9 +9,9 @@
 
 ---
 
-## 🎯 What is FP-ASM?
+## 🎯 What is fp_asm_lib_dev?
 
-FP-ASM bridges the gap between high-level functional programming and low-level systems performance. It provides:
+fp_asm_lib_dev bridges the gap between high-level functional programming and low-level systems performance. It provides:
 
 - ✅ **100% FP Language Equivalence** - Complete Haskell Prelude, Common Lisp, and ML/OCaml compatibility
 - ⚡ **Assembly Performance** - Hand-optimized x64 AVX2 SIMD implementations (1.5-3.5x faster than `gcc -O3`)
@@ -29,7 +29,7 @@ FP-ASM bridges the gap between high-level functional programming and low-level s
 
 ```bash
 git clone https://github.com/tacitvs/fp_asm_lib_dev.git
-cd fp-asm
+cd fp_asm_lib_dev
 ```
 
 ### Example: Simple Reduction
@@ -104,7 +104,7 @@ fp_sma_f64(), fp_ema_f64()     // Moving averages for time series
 
 ### 3. Performance Benchmarks
 
-| Operation | Naive C | FP-ASM (Assembly) | Speedup |
+| Operation | Naive C | fp_asm_lib_dev (Assembly) | Speedup |
 |-----------|---------|-------------------|---------|
 | Sum (f64) | 100ms | 55ms | **1.8x** |
 | Dot Product (f64) | 120ms | 96ms | **1.25x** (FMA) |
@@ -120,7 +120,7 @@ fp_sma_f64(), fp_ema_f64()     // Moving averages for time series
 
 ### Dual-Layer Design
 
-FP-ASM provides **BOTH** approaches for maximum flexibility:
+fp_asm_lib_dev provides **BOTH** approaches for maximum flexibility:
 
 #### Layer 1: General Higher-Order Functions
 - **Purpose**: 100% FP language equivalence
@@ -141,7 +141,7 @@ FP-ASM provides **BOTH** approaches for maximum flexibility:
   int64_t sum = fp_reduce_add_i64(data, n);  // Hand-optimized assembly
   ```
 
-**You choose based on your needs - FP-ASM provides both!**
+**You choose based on your needs - fp_asm_lib_dev provides both!**
 
 ---
 
@@ -256,7 +256,7 @@ All tests validate:
 
 ## 🌟 Unique Achievements
 
-### What Makes FP-ASM Special?
+### What Makes fp_asm_lib_dev Special?
 
 1. **First library to achieve 100% FP equivalence in C** - Complete Haskell/Lisp/ML compatibility
 2. **Dual architecture** - General HOFs + specialized optimizations in ONE library
@@ -301,8 +301,8 @@ This project demonstrates that functional programming and systems-level performa
 
 ## 📞 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/fp-asm/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/fp-asm/discussions)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/fp_asm_lib_dev/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/fp_asm_lib_dev/discussions)
 - **Documentation**: [docs/](docs/)
 
 ---
@@ -311,6 +311,6 @@ This project demonstrates that functional programming and systems-level performa
 
 **Made with ⚡ by passionate functional programmers who refuse to compromise on performance**
 
-[⭐ Star this repo](https://github.com/yourusername/fp-asm) • [🐛 Report Bug](https://github.com/yourusername/fp-asm/issues) • [💡 Request Feature](https://github.com/yourusername/fp-asm/issues)
+[⭐ Star this repo](https://github.com/yourusername/fp_asm_lib_dev) • [🐛 Report Bug](https://github.com/yourusername/fp_asm_lib_dev/issues) • [💡 Request Feature](https://github.com/yourusername/fp_asm_lib_dev/issues)
 
 </div>
