@@ -28,7 +28,7 @@ FP-ASM bridges the gap between high-level functional programming and low-level s
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/fp-asm.git
+git clone https://github.com/tacitvs/fp_asm_lib_dev.git
 cd fp-asm
 ```
 
