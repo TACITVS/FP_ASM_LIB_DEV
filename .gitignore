@@ -1,0 +1,92 @@
+# Compiled Object files
+*.o
+*.obj
+*.slo
+*.lo
+*.ko
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Static and dynamic libraries
+*.dll
+*.so
+*.so.*
+*.dylib
+*.lib
+*.a
+*.la
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled assembly
+*.s
+*.asm.bak
+
+# Build directories
+build/bin/
+build/obj/
+build/tmp/
+.build/
+
+# IDE and editor files
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Test outputs
+test_*.exe
+bench_*.exe
+demo_*.exe
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Assembly listing files
+*.lst
+
+# NASM specific
+*.list
+
+# Core dumps
+core
+core.*
+
+# Node modules (if using any JS tooling)
+node_modules/
+
+# Python cache (if using any Python tooling)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Keep important build artifacts
+!build/obj/.gitkeep
+!build/bin/.gitkeep
+# ...other ignored files...
+nul

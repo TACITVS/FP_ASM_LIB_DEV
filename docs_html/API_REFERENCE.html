@@ -1,0 +1,3693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FP-ASM Library: Complete API Reference - FP-ASM Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            color: #3498db;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .sidebar nav ul {
+            list-style: none;
+        }
+
+        .sidebar nav li {
+            margin: 8px 0;
+        }
+
+        .sidebar nav a {
+            color: #ecf0f1;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .sidebar nav a:hover {
+            background: #34495e;
+            color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .sidebar nav a.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .sidebar .badge {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            padding: 40px 60px;
+            overflow-y: auto;
+        }
+
+        .content h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .content h2 {
+            color: #34495e;
+            font-size: 2em;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+
+        .content h3 {
+            color: #34495e;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+
+        .content h4 {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .content p {
+            margin: 15px 0;
+            line-height: 1.8;
+        }
+
+        .content ul, .content ol {
+            margin: 15px 0 15px 30px;
+        }
+
+        .content li {
+            margin: 8px 0;
+        }
+
+        /* Code Blocks */
+        .content pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+        }
+
+        .content code {
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+
+        .content pre code {
+            background: transparent;
+            padding: 0;
+            color: #ecf0f1;
+        }
+
+        /* Tables */
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .content th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .content td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .content tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Badges */
+        .badge-green {
+            background: #27ae60;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-blue {
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-orange {
+            background: #e67e22;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        /* Blockquotes */
+        .content blockquote {
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            background: #ecf0f1;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        /* Links */
+        .content a {
+            color: #3498db;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .content a:hover {
+            border-bottom-color: #3498db;
+        }
+
+        /* Horizontal Rules */
+        .content hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 40px 0;
+        }
+
+        /* Emoji support */
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        /* Top banner */
+        .banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 60px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .banner h1 {
+            color: white;
+            border: none;
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .banner p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+
+        /* Function signature boxes */
+        .signature {
+            background: #f8f9fa;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Performance badges */
+        .perf-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin: 5px 5px 5px 0;
+        }
+
+        .perf-excellent { background: #27ae60; color: white; }
+        .perf-good { background: #2ecc71; color: white; }
+        .perf-okay { background: #f39c12; color: white; }
+        .perf-competitive { background: #3498db; color: white; }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .banner {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">
+        <h1>🚀 FP-ASM Library Documentation</h1>
+        <p>Complete Functional Programming Toolkit for C • 100% FP Coverage • 36 Functions • Production Ready</p>
+    </div>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>📚 Documentation</h2>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="">🏠 Home</a></li>
+                    <li><a href="README.html" class="">📖 Overview</a></li>
+                    <li><a href="QUICK_START.html" class="">🚀 Quick Start</a></li>
+                    <li><a href="API_REFERENCE.html" class="active">📘 API Reference <span class="badge">36 funcs</span></a></li>
+                    <li><a href="COMPLETE_LIBRARY_REPORT.html" class="">🎉 Journey Report</a></li>
+                    <li><a href="TIER1_COMPLETENESS_REPORT.html" class="">📊 TIER 1 Report</a></li>
+                    <li><a href="TIER2_COMPLETENESS_REPORT.html" class="">📊 TIER 2 Report</a></li>
+                    <li><a href="TIER3_COMPLETENESS_REPORT.html" class="">📊 TIER 3 Report</a></li>
+                    <li><a href="ACHIEVEMENT_SUMMARY.html" class="">🏆 Achievement</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="content">
+            <h1>FP-ASM Library: Complete API Reference</h1>
+
+<strong>Version</strong>: 1.0.0 (COMPLETE)
+<strong>Date</strong>: October 28, 2025
+<strong>Operations</strong>: 36 functions across 10 modules
+<strong>Target</strong>: Windows x64, AVX2-capable CPUs
+
+<hr>
+
+<h2>Table of Contents</h2>
+
+<li><a href="#module-1-simple-folds-reductions">Module 1: Simple Folds (Reductions)</a></li>
+<li><a href="#module-2-fused-folds-map-reduce">Module 2: Fused Folds (Map-Reduce)</a></li>
+<li><a href="#module-3-fused-maps-blas-level-1">Module 3: Fused Maps (BLAS Level 1)</a></li>
+<li><a href="#module-4-simple-maps-transformers">Module 4: Simple Maps (Transformers)</a></li>
+<li><a href="#module-5-scans-prefix-operations">Module 5: Scans (Prefix Operations)</a></li>
+<li><a href="#module-6-predicates-boolean-tests">Module 6: Predicates (Boolean Tests)</a></li>
+<li><a href="#module-7-compaction-filterpartition">Module 7: Compaction (Filter/Partition)</a></li>
+<li><a href="#module-8-essentials-list-operations">Module 8: Essentials (List Operations)</a></li>
+<li><a href="#module-9-sorting--sets-tier-2">Module 9: Sorting & Sets (TIER 2)</a></li>
+<li><a href="#module-10-advanced-operations-tier-3">Module 10: Advanced Operations (TIER 3)</a></li>
+
+<hr>
+
+<h1>Module 1: Simple Folds (Reductions)</h1>
+
+Basic reduction operations that collapse arrays into single values.
+
+<hr>
+
+<h2>fp_reduce_add_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_reduce_add_i64(const int64_t* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Computes the sum of all elements in an integer array. Implements the fold/reduce pattern with addition as the combining function.
+
+<strong>Parameters</strong>:
+<ul><li><code>array</code> <em>(const int64_t\</em>)* - Input array of signed 64-bit integers</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in the array</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Sum of all array elements. Returns 0 for empty arrays.
+
+<strong>Algorithm</strong>:
+Uses scalar implementation with multiple accumulators and loop unrolling to exploit instruction-level parallelism. Processes 4 elements per iteration with independent accumulators to avoid false dependencies.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.02x vs GCC -O3 (scalar optimization wins due to lack of AVX2 64-bit integer multiply)
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>foldl (+) 0 list
+-- or
+sum list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {1, 2, 3, 4, 5};
+int64_t result = fp_reduce_add_i64(data, 5);
+// result = 15
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reduce_add_f64</code> - Double-precision version</li>
+<li><code>fp_fold_sumsq_i64</code> - Sum of squares</li>
+
+<hr>
+
+<h2>fp_reduce_add_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>double fp_reduce_add_f64(const double* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Computes the sum of all elements in a double-precision floating-point array using AVX2 SIMD acceleration.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const double\</em>)* - Input array of double-precision floats</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in the array</li>
+
+<strong>Returns</strong>:
+<em>(double)</em> - Sum of all array elements. Returns 0.0 for empty arrays.
+
+<strong>Algorithm</strong>:
+SIMD vectorized reduction processing 4 doubles per iteration using YMM registers. Uses horizontal addition for final reduction. Handles tail elements with scalar loop.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.5-1.8x vs GCC -O3 (GCC fails to vectorize consistently)
+
+<strong>Floating-Point Notes</strong>:
+<li>Summation order differs from scalar (parallel reduction), may cause small differences (~1e-12 relative error)</li>
+<li>Not compensated summation (no Kahan algorithm)</li>
+<li>Handles NaN/Inf according to IEEE 754</li>
+
+<strong>Example</strong>:
+<pre><code>double data[] = {1.5, 2.7, 3.2, 4.1, 5.9};
+double result = fp_reduce_add_f64(data, 5);
+// result ≈ 17.4
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reduce_add_i64</code> - Integer version</li>
+<li><code>fp_fold_dotp_f64</code> - Dot product (sum of products)</li>
+
+<hr>
+
+<h2>fp_reduce_max_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_reduce_max_i64(const int64_t* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Finds the maximum value in an integer array.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const int64_t\</em>)* - Input array of signed 64-bit integers</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in the array</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Maximum value found. Returns INT64_MIN for empty arrays.
+
+<strong>Algorithm</strong>:
+Scalar implementation with multiple accumulators. Processes 4 elements per iteration. AVX2 lacks 64-bit integer min/max instructions (requires AVX-512).
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3 (both use scalar implementation)
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {3, 7, 2, 9, 4};
+int64_t result = fp_reduce_max_i64(data, 5);
+// result = 9
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reduce_max_f64</code> - Double version with SIMD</li>
+
+<hr>
+
+<h2>fp_reduce_max_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>double fp_reduce_max_f64(const double* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Finds the maximum value in a double-precision array using SIMD acceleration.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const double\</em>)* - Input array of double-precision floats</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in the array</li>
+
+<strong>Returns</strong>:
+<em>(double)</em> - Maximum value found. Returns -INFINITY for empty arrays.
+
+<strong>Algorithm</strong>:
+SIMD vectorized using <code>vmaxpd</code> instruction. Processes 4 doubles per iteration. Horizontal maximum extraction for final result.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.5x vs GCC -O3
+
+<strong>Floating-Point Notes</strong>:
+<li>NaN propagation follows IEEE 754</li>
+<li>Handles +/-INFINITY correctly</li>
+<li>-0.0 and +0.0 are treated as equal</li>
+
+<strong>Example</strong>:
+<pre><code>double data[] = {3.5, 7.2, 2.1, 9.8, 4.3};
+double result = fp_reduce_max_f64(data, 5);
+// result = 9.8
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reduce_max_i64</code> - Integer version</li>
+
+<hr>
+
+<h1>Module 2: Fused Folds (Map-Reduce)</h1>
+
+Combined map-then-reduce operations that eliminate intermediate arrays.
+
+<hr>
+
+<h2>fp_fold_sumsq_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_fold_sumsq_i64(const int64_t* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Computes the sum of squares: Σ(xᵢ²). Fuses the map (square) and reduce (sum) operations into a single pass.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const int64_t\</em>)* - Input array of signed 64-bit integers</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in the array</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Sum of squared elements. Returns 0 for empty arrays.
+
+<strong>Algorithm</strong>:
+Scalar implementation with multiple accumulators. Uses <code>imul</code> for squaring. Processes 4 elements per iteration with independent accumulators.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1) - no intermediate array</li>
+
+<strong>Performance</strong>:
+~1.1x vs separate map + reduce (eliminates memory traffic)
+
+<strong>Overflow Warning</strong>:
+Can overflow for large values. Consider using <code>fp_fold_sumsq_f64</code> for large datasets.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>foldl (\acc x -> acc + x*x) 0 list
+-- or
+sum $ map (\x -> x*x) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {1, 2, 3, 4, 5};
+int64_t result = fp_fold_sumsq_i64(data, 5);
+// result = 1 + 4 + 9 + 16 + 25 = 55
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Variance calculation: variance = (sumsq / n) - mean²</li>
+<li>Euclidean norm: ||v|| = √(sumsq)</li>
+<li>Least squares fitting</li>
+
+<strong>See Also</strong>:
+<li><code>fp_fold_dotp_i64</code> - Dot product (sum of element products)</li>
+
+<hr>
+
+<h2>fp_fold_dotp_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_fold_dotp_i64(const int64_t<em> array_a, const int64_t</em> array_b, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Computes the dot product (inner product) of two integer vectors: Σ(aᵢ × bᵢ). Fuses element-wise multiplication with summation.
+
+<strong>Parameters</strong>:
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First input array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements (must be same for both arrays)</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Dot product. Returns 0 for empty arrays.
+
+<strong>Algorithm</strong>:
+Scalar with multiple accumulators. Processes 4 pairs per iteration. No AVX2 64-bit multiply instruction available.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.1x vs separate operations
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>sum $ zipWith (*) list_a list_b
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {1, 2, 3, 4};
+int64_t b[] = {5, 6, 7, 8};
+int64_t result = fp_fold_dotp_i64(a, b, 4);
+// result = 1×5 + 2×6 + 3×7 + 4×8 = 5 + 12 + 21 + 32 = 70
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Vector similarity (cosine similarity)</li>
+<li>Linear algebra operations</li>
+<li>Machine learning (feature dot product)</li>
+<li>Signal correlation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_fold_dotp_f64</code> - Double version with FMA</li>
+
+<hr>
+
+<h2>fp_fold_dotp_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>double fp_fold_dotp_f64(const double<em> array_a, const double</em> array_b, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Computes the dot product of two double-precision vectors using AVX2 SIMD with FMA (Fused Multiply-Add) instructions.
+
+<strong>Parameters</strong>:
+<li><code>array_a</code> <em>(const double\</em>)* - First input array</li>
+<li><code>array_b</code> <em>(const double\</em>)* - Second input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in each array</li>
+
+<strong>Returns</strong>:
+<em>(double)</em> - Dot product. Returns 0.0 for empty arrays.
+
+<strong>Algorithm</strong>:
+SIMD vectorized using <code>vfmadd231pd</code> (multiply-add). Processes 4 pairs per iteration. Horizontal addition for final reduction.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.25x vs GCC -O3 (FMA provides 2× throughput)
+
+<strong>Floating-Point Notes</strong>:
+<li>FMA provides better accuracy than separate multiply-add</li>
+<li>Rounding only occurs once per FMA operation</li>
+<li>Order differs from scalar summation</li>
+
+<strong>Example</strong>:
+<pre><code>double a[] = {1.0, 2.0, 3.0, 4.0};
+double b[] = {0.5, 1.5, 2.5, 3.5};
+double result = fp_fold_dotp_f64(a, b, 4);
+// result = 1.0×0.5 + 2.0×1.5 + 3.0×2.5 + 4.0×3.5 = 25.0
+</code></pre>
+
+<strong>Applications</strong>:
+<li>BLAS Level 1 operation (ddot)</li>
+<li>Neural network forward pass</li>
+<li>Physics simulations (work = F·d)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_fold_dotp_i64</code> - Integer version</li>
+<li><code>fp_map_axpy_f64</code> - Related BLAS operation (y = αx + y)</li>
+
+<hr>
+
+<h2>fp_fold_sad_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_fold_sad_i64(const int64_t<em> array_a, const int64_t</em> array_b, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Computes Sum of Absolute Differences: Σ|aᵢ - bᵢ|. Fuses subtraction, absolute value, and summation.
+
+<strong>Parameters</strong>:
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First input array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in each array</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Sum of absolute differences. Returns 0 for empty arrays.
+
+<strong>Algorithm</strong>:
+Scalar with multiple accumulators. Uses conditional move (<code>cmov</code>) for efficient absolute value. Processes 4 pairs per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.03x vs GCC -O3
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>sum $ zipWith (\a b -> abs (a - b)) list_a list_b
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {10, 20, 30, 40};
+int64_t b[] = {15, 18, 35, 38};
+int64_t result = fp_fold_sad_i64(a, b, 4);
+// result = |10-15| + |20-18| + |30-35| + |40-38|
+//        = 5 + 2 + 5 + 2 = 14
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Image/video compression (motion estimation)</li>
+<li>Template matching</li>
+<li>Similarity metrics (L1 distance)</li>
+<li>Anomaly detection</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_abs_i64</code> - Absolute value operation</li>
+
+<hr>
+
+<h1>Module 3: Fused Maps (BLAS Level 1)</h1>
+
+Element-wise operations combining scalar multiplication, addition, and array operations.
+
+<hr>
+
+<h2>fp_map_axpy_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_axpy_i64(int64_t<em> y, const int64_t</em> x, int64_t alpha, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+BLAS AXPY operation: <strong>y = α·x + y</strong>. Scales vector <code>x</code> by scalar <code>alpha</code> and adds to vector <code>y</code> in-place.
+
+<strong>Parameters</strong>:
+<li><code>y</code> <em>(int64_t\</em>)* - Input/output array (modified in-place)</li>
+<li><code>x</code> <em>(const int64_t\</em>)* - Input array (read-only)</li>
+<li><code>alpha</code> <em>(int64_t)</em> - Scalar multiplier</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in each array</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>y</code> array
+
+<strong>Algorithm</strong>:
+Scalar with multiple accumulators and loop unrolling. Processes 4 elements per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3 (memory-bound operation)
+
+<strong>In-Place Modification</strong>:
+The <code>y</code> array is modified directly. Pass a copy if original must be preserved.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>zipWith (\yi xi -> alpha * xi + yi) y x
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t y[] = {1, 2, 3, 4};
+int64_t x[] = {10, 20, 30, 40};
+fp_map_axpy_i64(y, x, 2, 4);
+// y = [1 + 2×10, 2 + 2×20, 3 + 2×30, 4 + 2×40]
+//   = [21, 42, 63, 84]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Linear algebra (vector addition with scaling)</li>
+<li>Gradient descent updates: weights += learning_rate × gradient</li>
+<li>Physics simulations: position += velocity × dt</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_axpy_f64</code> - Double version with FMA</li>
+<li><code>fp_map_scale_i64</code> - Scalar multiplication only</li>
+
+<hr>
+
+<h2>fp_map_axpy_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_axpy_f64(double<em> y, const double</em> x, double alpha, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+BLAS AXPY for double-precision: <strong>y = α·x + y</strong>. Uses AVX2 SIMD with FMA instructions.
+
+<strong>Parameters</strong>:
+<li><code>y</code> <em>(double\</em>)* - Input/output array (modified in-place)</li>
+<li><code>x</code> <em>(const double\</em>)* - Input array (read-only)</li>
+<li><code>alpha</code> <em>(double)</em> - Scalar multiplier</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in each array</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>y</code> array
+
+<strong>Algorithm</strong>:
+SIMD vectorized using <code>vfmadd231pd</code>. Broadcasts <code>alpha</code> to YMM register. Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3 (memory bandwidth saturated)
+
+<strong>Floating-Point Notes</strong>:
+<li>Uses FMA for better accuracy</li>
+<li>Results may differ slightly from scalar due to operation order</li>
+
+<strong>Example</strong>:
+<pre><code>double y[] = {1.0, 2.0, 3.0, 4.0};
+double x[] = {0.5, 1.0, 1.5, 2.0};
+fp_map_axpy_f64(y, x, 2.5, 4);
+// y = [1.0 + 2.5×0.5, 2.0 + 2.5×1.0, 3.0 + 2.5×1.5, 4.0 + 2.5×2.0]
+//   = [2.25, 4.5, 6.75, 9.0]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>BLAS Level 1 operation</li>
+<li>Neural network weight updates</li>
+<li>ODE solvers (Runge-Kutta methods)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_axpy_i64</code> - Integer version</li>
+<li><code>fp_fold_dotp_f64</code> - Dot product</li>
+
+<hr>
+
+<h2>fp_map_scale_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_scale_i64(int64_t<em> output, const int64_t</em> input, int64_t scalar, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Scalar multiplication: <strong>output[i] = input[i] × scalar</strong>. Scales each element by a constant.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (can be same as input for in-place)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>scalar</code> <em>(int64_t)</em> - Multiplier</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Scalar implementation with loop unrolling. Processes 4 elements per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3
+
+<strong>In-Place Allowed</strong>:
+Can pass same pointer for <code>input</code> and <code>output</code>.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>map (* scalar) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 2, 3, 4, 5};
+int64_t output[5];
+fp_map_scale_i64(output, input, 10, 5);
+// output = [10, 20, 30, 40, 50]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Unit conversion (e.g., meters to millimeters)</li>
+<li>Scaling in graphics/physics</li>
+<li>Amplification in signal processing</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_scale_f64</code> - Double version</li>
+<li><code>fp_map_offset_i64</code> - Scalar addition</li>
+
+<hr>
+
+<h2>fp_map_scale_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_scale_f64(double<em> output, const double</em> input, double scalar, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Scalar multiplication for doubles using SIMD: <strong>output[i] = input[i] × scalar</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array (can be same as input)</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>scalar</code> <em>(double)</em> - Multiplier</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+SIMD with <code>vmulpd</code>. Broadcasts scalar to YMM register. Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3 (memory-bound)
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.5, 2.5, 3.5, 4.5};
+double output[4];
+fp_map_scale_f64(output, input, 0.5, 4);
+// output = [0.75, 1.25, 1.75, 2.25]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Normalization (divide by max: multiply by 1/max)</li>
+<li>Percentage calculation</li>
+<li>BLAS SCAL operation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_scale_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_map_offset_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_offset_i64(int64_t<em> output, const int64_t</em> input, int64_t offset, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Scalar addition: <strong>output[i] = input[i] + offset</strong>. Adds constant to each element.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (can be same as input)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>offset</code> <em>(int64_t)</em> - Value to add to each element</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Scalar with loop unrolling. Processes 4 elements per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>map (+ offset) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {10, 20, 30, 40};
+int64_t output[4];
+fp_map_offset_i64(output, input, 5, 4);
+// output = [15, 25, 35, 45]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Bias addition in neural networks</li>
+<li>Temperature conversion (Celsius to Kelvin: +273.15)</li>
+<li>Time shifting</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_offset_f64</code> - Double version</li>
+
+<hr>
+
+<h2>fp_map_offset_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_offset_f64(double<em> output, const double</em> input, double offset, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Scalar addition for doubles using SIMD: <strong>output[i] = input[i] + offset</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array (can be same as input)</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>offset</code> <em>(double)</em> - Value to add</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+SIMD with <code>vaddpd</code>. Broadcasts offset to YMM register. Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.0, 2.0, 3.0, 4.0};
+double output[4];
+fp_map_offset_f64(output, input, 0.5, 4);
+// output = [1.5, 2.5, 3.5, 4.5]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Mean centering: x - mean</li>
+<li>DC offset removal</li>
+<li>Coordinate transformation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_offset_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_zip_add_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_zip_add_i64(int64_t<em> output, const int64_t</em> array_a, const int64_t* array_b, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Element-wise addition: <strong>output[i] = a[i] + b[i]</strong>. Adds corresponding elements from two arrays.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (can alias one input for in-place)</li>
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First input array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in each array</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Scalar with loop unrolling. Processes 4 pairs per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>zipWith (+) list_a list_b
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {1, 2, 3, 4};
+int64_t b[] = {10, 20, 30, 40};
+int64_t output[4];
+fp_zip_add_i64(output, a, b, 4);
+// output = [11, 22, 33, 44]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Vector addition</li>
+<li>Combining signals</li>
+<li>Accumulating increments</li>
+
+<strong>See Also</strong>:
+<li><code>fp_zip_add_f64</code> - Double version</li>
+
+<hr>
+
+<h2>fp_zip_add_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_zip_add_f64(double<em> output, const double</em> array_a, const double* array_b, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Element-wise addition for doubles using SIMD: <strong>output[i] = a[i] + b[i]</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>array_a</code> <em>(const double\</em>)* - First input array</li>
+<li><code>array_b</code> <em>(const double\</em>)* - Second input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+SIMD with <code>vaddpd</code>. Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3 (memory-bound)
+
+<strong>Example</strong>:
+<pre><code>double a[] = {1.5, 2.5, 3.5, 4.5};
+double b[] = {0.5, 1.0, 1.5, 2.0};
+double output[4];
+fp_zip_add_f64(output, a, b, 4);
+// output = [2.0, 3.5, 5.0, 6.5]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Vector addition in physics</li>
+<li>Combining feature vectors</li>
+<li>Financial calculations (total = revenue + adjustment)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_zip_add_i64</code> - Integer version</li>
+
+<hr>
+
+<h1>Module 4: Simple Maps (Transformers)</h1>
+
+Element-wise transformation operations.
+
+<hr>
+
+<h2>fp_map_abs_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_abs_i64(int64_t<em> output, const int64_t</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Absolute value: <strong>output[i] = |input[i]|</strong>. Computes absolute value of each element.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (can be same as input)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Scalar using conditional move (<code>cmov</code>) for branchless absolute value. Processes 4 elements per iteration. AVX2 lacks <code>vpabsq</code> (requires AVX-512).
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3
+
+<strong>Special Case</strong>:
+INT64_MIN has no positive representation, result is INT64_MIN (undefined behavior in signed overflow).
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>map abs list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {-5, 3, -8, 0, 7};
+int64_t output[5];
+fp_map_abs_i64(output, input, 5);
+// output = [5, 3, 8, 0, 7]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Distance calculations (unsigned magnitude)</li>
+<li>Error metrics</li>
+<li>Rectification in signal processing</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_abs_f64</code> - Double version with SIMD</li>
+<li><code>fp_fold_sad_i64</code> - Sum of absolute differences</li>
+
+<hr>
+
+<h2>fp_map_abs_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_abs_f64(double<em> output, const double</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Absolute value for doubles using SIMD: <strong>output[i] = |input[i]|</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+SIMD using bitwise AND with sign-bit mask (0x7FFFFFFFFFFFFFFF). Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.2x vs GCC -O3
+
+<strong>Floating-Point Notes</strong>:
+<li>Works for NaN (returns positive NaN)</li>
+<li>abs(-0.0) = +0.0</li>
+<li>abs(±INFINITY) = +INFINITY</li>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {-3.5, 2.1, -0.0, -7.8};
+double output[4];
+fp_map_abs_f64(output, input, 4);
+// output = [3.5, 2.1, 0.0, 7.8]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Magnitude computation</li>
+<li>Rectified Linear Unit (ReLU) variant</li>
+<li>Error calculation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_abs_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_map_sqrt_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_sqrt_f64(double<em> output, const double</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Square root: <strong>output[i] = √input[i]</strong>. Computes square root of each element using SIMD.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array (must be non-negative)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+SIMD using <code>vsqrtpd</code> instruction. Processes 4 doubles per iteration. Hardware-accurate square root.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.5x vs GCC -O3
+
+<strong>Floating-Point Notes</strong>:
+<li>sqrt(-x) = NaN for x > 0</li>
+<li>sqrt(+INFINITY) = +INFINITY</li>
+<li>sqrt(+0.0) = +0.0</li>
+<li>sqrt(-0.0) = -0.0</li>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {4.0, 9.0, 16.0, 25.0};
+double output[4];
+fp_map_sqrt_f64(output, input, 4);
+// output = [2.0, 3.0, 4.0, 5.0]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Euclidean distance: sqrt(sum of squares)</li>
+<li>Standard deviation calculation</li>
+<li>Physics: velocity = sqrt(2 * energy / mass)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_fold_sumsq_i64</code> - Sum of squares (for norm calculation)</li>
+
+<hr>
+
+<h2>fp_map_clamp_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_clamp_i64(int64_t<em> output, const int64_t</em> input, int64_t min_val, int64_t max_val, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Clamp values to range: <strong>output[i] = max(min_val, min(input[i], max_val))</strong>. Constrains each element to [min_val, max_val].
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (can be same as input)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>min_val</code> <em>(int64_t)</em> - Minimum allowed value</li>
+<li><code>max_val</code> <em>(int64_t)</em> - Maximum allowed value</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Scalar using conditional moves (<code>cmov</code>). Processes 4 elements per iteration. AVX2 lacks 64-bit min/max instructions.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3
+
+<strong>Precondition</strong>:
+Requires <code>min_val <= max_val</code>. Behavior undefined if violated.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>map (\x -> max min_val (min x max_val)) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {-5, 3, 15, 8, 20};
+int64_t output[5];
+fp_map_clamp_i64(output, input, 0, 10, 5);
+// output = [0, 3, 10, 8, 10]
+//           ^clipped  ^clipped
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Saturation arithmetic</li>
+<li>Range limiting (e.g., percentage 0-100)</li>
+<li>Pixel value clipping (0-255)</li>
+<li>Outlier suppression</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_clamp_f64</code> - Double version with SIMD</li>
+
+<hr>
+
+<h2>fp_map_clamp_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_map_clamp_f64(double<em> output, const double</em> input, double min_val, double max_val, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Clamp doubles to range using SIMD: <strong>output[i] = max(min_val, min(input[i], max_val))</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>min_val</code> <em>(double)</em> - Minimum allowed value</li>
+<li><code>max_val</code> <em>(double)</em> - Maximum allowed value</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+SIMD using <code>vminpd</code> and <code>vmaxpd</code>. Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.5x vs GCC -O3
+
+<strong>Floating-Point Notes</strong>:
+<li>NaN propagates through min/max</li>
+<li>Works correctly with ±0.0</li>
+<li>Can clamp to ±INFINITY</li>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {-1.5, 0.5, 1.5, 2.5};
+double output[4];
+fp_map_clamp_f64(output, input, 0.0, 1.0, 4);
+// output = [0.0, 0.5, 1.0, 1.0]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Activation function clipping</li>
+<li>Normalization to [0,1]</li>
+<li>Color value saturation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_map_clamp_i64</code> - Integer version</li>
+
+<hr>
+
+<h1>Module 5: Scans (Prefix Operations)</h1>
+
+Cumulative operations that produce arrays of partial results.
+
+<hr>
+
+<h2>fp_scan_add_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_scan_add_i64(int64_t<em> output, const int64_t</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Prefix sum (cumulative sum): <strong>output[i] = Σ(input[0..i])</strong>. Each output element is the sum of all inputs up to and including that position.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (must be different from input)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Sequential scan (inherently serial). Uses running accumulator. Simple scalar loop.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) - cannot be parallelized trivially</li>
+<li>Space: O(1) auxiliary</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3 (memory-bound, serial dependency)
+
+<strong>No In-Place</strong>:
+Output must be separate from input due to dependency chain.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>scanl1 (+) list
+-- or
+tail $ scanl (+) 0 list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 2, 3, 4, 5};
+int64_t output[5];
+fp_scan_add_i64(output, input, 5);
+// output = [1, 3, 6, 10, 15]
+//           1, 1+2, 1+2+3, 1+2+3+4, 1+2+3+4+5
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Running totals</li>
+<li>Cumulative probability</li>
+<li>Index calculation for ragged arrays</li>
+<li>Parallel prefix sum (building block for parallel algorithms)</li>
+<li>Range sum queries (with preprocessing)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_scan_add_f64</code> - Double version</li>
+<li><code>fp_reduce_add_i64</code> - Final sum only</li>
+
+<hr>
+
+<h2>fp_scan_add_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_scan_add_f64(double<em> output, const double</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Prefix sum for doubles: <strong>output[i] = Σ(input[0..i])</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array (must be different from input)</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> array
+
+<strong>Algorithm</strong>:
+Sequential scalar scan with running accumulator.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3 (serial operation)
+
+<strong>Floating-Point Notes</strong>:
+<li>Accumulates left-to-right</li>
+<li>Rounding errors accumulate</li>
+<li>Not compensated (no Kahan summation)</li>
+<li>For high accuracy over large arrays, consider compensated algorithms</li>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.0, 2.5, 3.2, 4.1};
+double output[4];
+fp_scan_add_f64(output, input, 4);
+// output = [1.0, 3.5, 6.7, 10.8]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Cumulative distribution functions</li>
+<li>Running averages (scan / n)</li>
+<li>Integration approximation (Riemann sum)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_scan_add_i64</code> - Integer version</li>
+
+<hr>
+
+<h1>Module 6: Predicates (Boolean Tests)</h1>
+
+Boolean test operations that return true/false based on array contents.
+
+<hr>
+
+<h2>fp_pred_all_eq_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>bool fp_pred_all_eq_i64(const int64_t* array, size_t n, int64_t value);
+</code></pre>
+
+<strong>Description</strong>:
+Tests if all elements equal a given value: <strong>∀i: array[i] == value</strong>.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+<li><code>value</code> <em>(int64_t)</em> - Value to compare against</li>
+
+<strong>Returns</strong>:
+<em>(bool)</em> - <code>true</code> if all elements equal <code>value</code>, <code>false</code> otherwise. Returns <code>true</code> for empty arrays (vacuous truth).
+
+<strong>Algorithm</strong>:
+Scalar with early exit. Uses comparison and conditional jump. Stops at first mismatch.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case (early exit)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3 (branch prediction critical)
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>all (== value) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data1[] = {5, 5, 5, 5};
+int64_t data2[] = {5, 5, 7, 5};
+
+bool r1 = fp_pred_all_eq_i64(data1, 4, 5);  // true
+bool r2 = fp_pred_all_eq_i64(data2, 4, 5);  // false
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Constant array verification</li>
+<li>Sentinel checking</li>
+<li>Validation (all flags set)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_pred_any_gt_i64</code> - Existential test</li>
+<li><code>fp_reduce_and_bool</code> - General boolean AND</li>
+
+<hr>
+
+<h2>fp_pred_any_gt_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>bool fp_pred_any_gt_i64(const int64_t* array, size_t n, int64_t threshold);
+</code></pre>
+
+<strong>Description</strong>:
+Tests if any element exceeds threshold: <strong>∃i: array[i] > threshold</strong>.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+<li><code>threshold</code> <em>(int64_t)</em> - Comparison threshold</li>
+
+<strong>Returns</strong>:
+<em>(bool)</em> - <code>true</code> if at least one element > threshold, <code>false</code> otherwise. Returns <code>false</code> for empty arrays.
+
+<strong>Algorithm</strong>:
+Scalar with early exit. Stops at first element > threshold.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>any (> threshold) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {3, 7, 2, 9, 4};
+
+bool r1 = fp_pred_any_gt_i64(data, 5, 10);  // false (none > 10)
+bool r2 = fp_pred_any_gt_i64(data, 5, 5);   // true (7 and 9 > 5)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Outlier detection</li>
+<li>Threshold exceedance</li>
+<li>Anomaly flagging</li>
+
+<strong>See Also</strong>:
+<li><code>fp_pred_all_eq_i64</code> - Universal test</li>
+<li><code>fp_reduce_or_bool</code> - General boolean OR</li>
+
+<hr>
+
+<h2>fp_pred_all_gt_zip_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>bool fp_pred_all_gt_zip_i64(const int64_t<em> array_a, const int64_t</em> array_b, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Tests if all elements of <code>a</code> are greater than corresponding elements of <code>b</code>: <strong>∀i: a[i] > b[i]</strong>.
+
+<strong>Parameters</strong>:
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements in each array</li>
+
+<strong>Returns</strong>:
+<em>(bool)</em> - <code>true</code> if all a[i] > b[i], <code>false</code> otherwise. Returns <code>true</code> for empty arrays.
+
+<strong>Algorithm</strong>:
+Scalar pairwise comparison with early exit.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>and $ zipWith (>) list_a list_b
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {10, 20, 30, 40};
+int64_t b[] = {5, 15, 25, 35};
+int64_t c[] = {5, 25, 20, 35};  // b[1]=25 > a[1]=20
+
+bool r1 = fp_pred_all_gt_zip_i64(a, b, 4);  // true
+bool r2 = fp_pred_all_gt_zip_i64(a, c, 4);  // false
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Monotonicity checking (array_a = values, array_b = shifted values)</li>
+<li>Dominance testing</li>
+<li>Quality comparison (all metrics better)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_pred_any_gt_i64</code> - Single array threshold test</li>
+
+<hr>
+
+<h1>Module 7: Compaction (Filter/Partition)</h1>
+
+Operations that select or split elements based on predicates.
+
+<hr>
+
+<h2>fp_filter_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_filter_i64(const int64_t<em> input, int64_t</em> output, size_t n,
+                     bool (*predicate)(int64_t));
+</code></pre>
+
+<strong>Description</strong>:
+Selects elements that satisfy a predicate: <strong>output = [x | x ← input, predicate(x)]</strong>. Copies only matching elements to output.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (must have space for n elements)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of input elements</li>
+<li><code>predicate</code> <em>(bool (\</em>)(int64_t))* - Function pointer: returns true to keep element</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements in output (0 ≤ result ≤ n)
+
+<strong>Algorithm</strong>:
+Sequential scan with conditional copy. Output size depends on predicate selectivity.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) + n×O(predicate)</li>
+<li>Space: O(1) auxiliary (output provided by caller)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3 (predicate call dominates)
+
+<strong>Memory Requirement</strong>:
+Output must have space for n elements (worst case: all match).
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>filter predicate list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>bool is_positive(int64_t x) { return x > 0; }
+
+int64_t input[] = {-3, 5, -1, 8, 0, 2};
+int64_t output[6];
+size_t count = fp_filter_i64(input, output, 6, is_positive);
+// output = [5, 8, 2], count = 3
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Data cleaning (remove invalid values)</li>
+<li>Selection (e.g., find positive numbers)</li>
+<li>Conditional sampling</li>
+
+<strong>See Also</strong>:
+<li><code>fp_filter_f64</code> - Double version</li>
+<li><code>fp_partition_i64</code> - Split into matching/non-matching</li>
+
+<hr>
+
+<h2>fp_filter_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_filter_f64(const double<em> input, double</em> output, size_t n,
+                     bool (*predicate)(double));
+</code></pre>
+
+<strong>Description</strong>:
+Filters double array based on predicate.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>output</code> <em>(double\</em>)* - Output array (space for n elements)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of input elements</li>
+<li><code>predicate</code> <em>(bool (\</em>)(double))* - Selection function</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements in output
+
+<strong>Algorithm</strong>:
+Sequential scan with conditional copy.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) + n×O(predicate)</li>
+<li>Space: O(1)</li>
+
+<strong>Example</strong>:
+<pre><code>bool is_large(double x) { return x > 5.0; }
+
+double input[] = {3.5, 7.2, 2.1, 9.8, 4.3};
+double output[5];
+size_t count = fp_filter_f64(input, output, 5, is_large);
+// output = [7.2, 9.8], count = 2
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Outlier removal (filter abs(x - mean) > 3*sigma)</li>
+<li>Threshold filtering</li>
+<li>Data subsetting</li>
+
+<strong>See Also</strong>:
+<li><code>fp_filter_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_partition_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_partition_i64(const int64_t<em> input, int64_t</em> true_output,
+                        int64_t* false_output, size_t n,
+                        bool (*predicate)(int64_t));
+</code></pre>
+
+<strong>Description</strong>:
+Splits array into two groups: elements that satisfy predicate and those that don't. <strong>One-pass filter into two outputs simultaneously.</strong>
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>true_output</code> <em>(int64_t\</em>)* - Output for matching elements (space for n)</li>
+<li><code>false_output</code> <em>(int64_t\</em>)* - Output for non-matching elements (space for n)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of input elements</li>
+<li><code>predicate</code> <em>(bool (\</em>)(int64_t))* - Classification function</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements in <code>true_output</code>. Number in <code>false_output</code> = n - result.
+
+<strong>Algorithm</strong>:
+Single pass with dual outputs. Each element goes to exactly one output.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) + n×O(predicate)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs separate filter calls (but only one pass over input)
+
+<strong>Memory Requirement</strong>:
+Both outputs must have space for n elements (worst case: all go to one side).
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>partition predicate list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>bool is_even(int64_t x) { return (x % 2) == 0; }
+
+int64_t input[] = {1, 2, 3, 4, 5, 6};
+int64_t evens[6], odds[6];
+size_t n_evens = fp_partition_i64(input, evens, odds, 6, is_even);
+// evens = [2, 4, 6], n_evens = 3
+// odds = [1, 3, 5], n_odds = 6 - 3 = 3
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Quicksort partitioning</li>
+<li>Binary classification</li>
+<li>Separating valid/invalid data</li>
+<li>Two-way split for parallel processing</li>
+
+<strong>See Also</strong>:
+<li><code>fp_filter_i64</code> - Single output filter</li>
+
+<hr>
+
+<h2>fp_partition_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_partition_f64(const double<em> input, double</em> true_output,
+                        double* false_output, size_t n,
+                        bool (*predicate)(double));
+</code></pre>
+
+<strong>Description</strong>:
+Partitions double array into matching and non-matching groups.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>true_output</code> <em>(double\</em>)* - Matching elements (space for n)</li>
+<li><code>false_output</code> <em>(double\</em>)* - Non-matching elements (space for n)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of input elements</li>
+<li><code>predicate</code> <em>(bool (\</em>)(double))* - Classification function</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number in <code>true_output</code>
+
+<strong>Example</strong>:
+<pre><code>bool is_positive(double x) { return x > 0.0; }
+
+double input[] = {-2.5, 3.7, -1.2, 5.8, 0.0};
+double pos[5], neg[5];
+size_t n_pos = fp_partition_f64(input, pos, neg, 5, is_positive);
+// pos = [3.7, 5.8], n_pos = 2
+// neg = [-2.5, -1.2, 0.0], n_neg = 3
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Signal separation (positive/negative)</li>
+<li>Data splitting for cross-validation</li>
+<li>Separating inliers/outliers</li>
+
+<strong>See Also</strong>:
+<li><code>fp_partition_i64</code> - Integer version</li>
+
+<hr>
+
+<h1>Module 8: Essentials (List Operations)</h1>
+
+Fundamental list manipulation operations from functional programming.
+
+<hr>
+
+<h2>fp_reverse_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_reverse_i64(int64_t<em> output, const int64_t</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Reverses array order: <strong>output[i] = input[n-1-i]</strong>. Copies elements in reverse order.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (can be same as input for in-place)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+Simple index reversal. In-place uses swap for first half.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3
+
+<strong>In-Place Allowed</strong>:
+Can pass same pointer for input and output.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>reverse list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 2, 3, 4, 5};
+int64_t output[5];
+fp_reverse_i64(output, input, 5);
+// output = [5, 4, 3, 2, 1]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Time series reversal</li>
+<li>Stack operations</li>
+<li>Palindrome checking</li>
+
+<strong>See Also</strong>:
+<li><code>fp_reverse_f64</code> - Double version</li>
+
+<hr>
+
+<h2>fp_reverse_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_reverse_f64(double<em> output, const double</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Reverses double array: <strong>output[i] = input[n-1-i]</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array (can be same as input)</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.0, 2.0, 3.0, 4.0};
+double output[4];
+fp_reverse_f64(output, input, 4);
+// output = [4.0, 3.0, 2.0, 1.0]
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reverse_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_replicate_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_replicate_i64(int64_t* output, size_t n, int64_t value);
+</code></pre>
+
+<strong>Description</strong>:
+Fills array with single value: <strong>output[i] = value</strong> for all i. Creates array of n copies.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements to create</li>
+<li><code>value</code> <em>(int64_t)</em> - Value to replicate</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+Simple loop. Loop unrolling with 4 copies per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0-1.1x vs GCC -O3 (memory-bound)
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>replicate n value
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t output[5];
+fp_replicate_i64(output, 5, 42);
+// output = [42, 42, 42, 42, 42]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Array initialization</li>
+<li>Constant vector creation</li>
+<li>Padding/fill operations</li>
+
+<strong>See Also</strong>:
+<li><code>fp_replicate_f64</code> - Double version (SIMD optimized)</li>
+
+<hr>
+
+<h2>fp_concat_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_concat_i64(int64_t<em> output, const int64_t</em> array_a, size_t len_a,
+                   const int64_t* array_b, size_t len_b);
+</code></pre>
+
+<strong>Description</strong>:
+Concatenates two arrays: <strong>output = array_a ++ array_b</strong>. Copies first array, then second array.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (must have space for len_a + len_b)</li>
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First array</li>
+<li><code>len_a</code> <em>(size_t)</em> - Length of first array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second array</li>
+<li><code>len_b</code> <em>(size_t)</em> - Length of second array</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+Two sequential memcpy-style operations.
+
+<strong>Complexity</strong>:
+<li>Time: O(len_a + len_b)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3
+
+<strong>Memory Requirement</strong>:
+Output must have space for len_a + len_b elements.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>list_a ++ list_b
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {1, 2, 3};
+int64_t b[] = {4, 5};
+int64_t output[5];
+fp_concat_i64(output, a, 3, b, 2);
+// output = [1, 2, 3, 4, 5]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Combining datasets</li>
+<li>Building result from parts</li>
+<li>Joining time series segments</li>
+
+<strong>See Also</strong>:
+<li><code>fp_concat_f64</code> - Double version</li>
+
+<hr>
+
+<h2>fp_concat_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_concat_f64(double<em> output, const double</em> array_a, size_t len_a,
+                   const double* array_b, size_t len_b);
+</code></pre>
+
+<strong>Description</strong>:
+Concatenates two double arrays.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array (space for len_a + len_b)</li>
+<li><code>array_a</code> <em>(const double\</em>)* - First array</li>
+<li><code>len_a</code> <em>(size_t)</em> - Length of first array</li>
+<li><code>array_b</code> <em>(const double\</em>)* - Second array</li>
+<li><code>len_b</code> <em>(size_t)</em> - Length of second array</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Example</strong>:
+<pre><code>double a[] = {1.0, 2.0};
+double b[] = {3.0, 4.0, 5.0};
+double output[5];
+fp_concat_f64(output, a, 2, b, 3);
+// output = [1.0, 2.0, 3.0, 4.0, 5.0]
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_concat_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_take_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_take_i64(int64_t<em> output, const int64_t</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Takes first n elements: <strong>output = input[0..n-1]</strong>. Copies the initial portion of array.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements to take</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+Simple forward copy.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>take n list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 2, 3, 4, 5};
+int64_t output[3];
+fp_take_i64(output, input, 3);
+// output = [1, 2, 3]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Head extraction</li>
+<li>Truncation</li>
+<li>Sampling first n items</li>
+
+<strong>See Also</strong>:
+<li><code>fp_drop_i64</code> - Skip first n</li>
+<li><code>fp_slice_i64</code> - Extract arbitrary range</li>
+<li><code>fp_take_while_i64</code> - Conditional take</li>
+
+<hr>
+
+<h2>fp_take_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_take_f64(double<em> output, const double</em> input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Takes first n doubles.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number to take</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.0, 2.0, 3.0, 4.0};
+double output[2];
+fp_take_f64(output, input, 2);
+// output = [1.0, 2.0]
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_take_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_drop_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_drop_i64(int64_t<em> output, const int64_t</em> input, size_t n, size_t total);
+</code></pre>
+
+<strong>Description</strong>:
+Drops first n elements, copies rest: <strong>output = input[n..total-1]</strong>. Skips initial portion.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements to skip</li>
+<li><code>total</code> <em>(size_t)</em> - Total number of elements in input</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> (total - n elements)
+
+<strong>Algorithm</strong>:
+Copy from offset n to end.
+
+<strong>Complexity</strong>:
+<li>Time: O(total - n)</li>
+<li>Space: O(1)</li>
+
+<strong>Precondition</strong>:
+n ≤ total
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>drop n list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 2, 3, 4, 5};
+int64_t output[3];
+fp_drop_i64(output, input, 2, 5);
+// output = [3, 4, 5]  (skipped first 2)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Header removal</li>
+<li>Tail extraction</li>
+<li>Skipping initial samples</li>
+
+<strong>See Also</strong>:
+<li><code>fp_take_i64</code> - Take first n</li>
+<li><code>fp_drop_while_i64</code> - Conditional drop</li>
+
+<hr>
+
+<h2>fp_drop_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_drop_f64(double<em> output, const double</em> input, size_t n, size_t total);
+</code></pre>
+
+<strong>Description</strong>:
+Drops first n doubles, copies rest.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number to skip</li>
+<li><code>total</code> <em>(size_t)</em> - Total input elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.0, 2.0, 3.0, 4.0};
+double output[2];
+fp_drop_f64(output, input, 2, 4);
+// output = [3.0, 4.0]
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_drop_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_slice_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_slice_i64(int64_t<em> output, const int64_t</em> input, size_t start, size_t end);
+</code></pre>
+
+<strong>Description</strong>:
+Extracts subarray: <strong>output = input[start..end-1]</strong>. Copies elements from start (inclusive) to end (exclusive).
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>start</code> <em>(size_t)</em> - Start index (inclusive)</li>
+<li><code>end</code> <em>(size_t)</em> - End index (exclusive)</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code> (end - start elements)
+
+<strong>Algorithm</strong>:
+Copy from input[start] to input[end-1].
+
+<strong>Complexity</strong>:
+<li>Time: O(end - start)</li>
+<li>Space: O(1)</li>
+
+<strong>Precondition</strong>:
+start ≤ end
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>take (end - start) $ drop start list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {10, 20, 30, 40, 50};
+int64_t output[3];
+fp_slice_i64(output, input, 1, 4);
+// output = [20, 30, 40]  (indices 1, 2, 3)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Windowing</li>
+<li>Extracting subranges</li>
+<li>Array indexing operations</li>
+
+<strong>See Also</strong>:
+<li><code>fp_take_i64</code> - From start only</li>
+<li><code>fp_drop_i64</code> - To end only</li>
+
+<hr>
+
+<h2>fp_slice_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_slice_f64(double<em> output, const double</em> input, size_t start, size_t end);
+</code></pre>
+
+<strong>Description</strong>:
+Extracts subarray of doubles.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>input</code> <em>(const double\</em>)* - Input array</li>
+<li><code>start</code> <em>(size_t)</em> - Start index (inclusive)</li>
+<li><code>end</code> <em>(size_t)</em> - End index (exclusive)</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Example</strong>:
+<pre><code>double input[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+double output[2];
+fp_slice_f64(output, input, 2, 4);
+// output = [3.0, 4.0]
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_slice_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_take_while_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_take_while_i64(int64_t<em> output, const int64_t</em> input, size_t n,
+                         bool (*predicate)(int64_t));
+</code></pre>
+
+<strong>Description</strong>:
+Takes elements while predicate holds: <strong>output = [x | x ← input, stop at first false]</strong>. Copies elements until predicate returns false.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for n elements)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Input length</li>
+<li><code>predicate</code> <em>(bool (\</em>)(int64_t))* - Continuation test</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements copied (0 ≤ result ≤ n)
+
+<strong>Algorithm</strong>:
+Sequential scan, stop at first predicate failure.
+
+<strong>Complexity</strong>:
+<li>Time: O(result) + result×O(predicate) - early termination</li>
+<li>Space: O(1)</li>
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>takeWhile predicate list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>bool is_small(int64_t x) { return x < 10; }
+
+int64_t input[] = {1, 3, 5, 12, 7, 9};
+int64_t output[6];
+size_t count = fp_take_while_i64(output, input, 6, is_small);
+// output = [1, 3, 5], count = 3
+// Stopped at 12 (first element ≥ 10)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Take until condition</li>
+<li>Extracting monotonic prefix</li>
+<li>Consuming valid header</li>
+
+<strong>See Also</strong>:
+<li><code>fp_take_i64</code> - Fixed count</li>
+<li><code>fp_drop_while_i64</code> - Complement operation</li>
+
+<hr>
+
+<h2>fp_drop_while_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_drop_while_i64(int64_t<em> output, const int64_t</em> input, size_t n,
+                         bool (*predicate)(int64_t));
+</code></pre>
+
+<strong>Description</strong>:
+Drops elements while predicate holds, copies rest: <strong>output = drop leading prefix where predicate true</strong>. Skips elements until predicate fails.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for n elements)</li>
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Input length</li>
+<li><code>predicate</code> <em>(bool (\</em>)(int64_t))* - Skip condition</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements in output
+
+<strong>Algorithm</strong>:
+Find first element where predicate fails, copy from there to end.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) + k×O(predicate) where k = drop count</li>
+<li>Space: O(1)</li>
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>dropWhile predicate list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>bool is_small(int64_t x) { return x < 10; }
+
+int64_t input[] = {1, 3, 5, 12, 7, 9};
+int64_t output[6];
+size_t count = fp_drop_while_i64(output, input, 6, is_small);
+// output = [12, 7, 9], count = 3
+// Dropped [1, 3, 5], started at 12
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Skip header/preamble</li>
+<li>Find first valid element and continue</li>
+<li>Remove leading zeros/whitespace analog</li>
+
+<strong>See Also</strong>:
+<li><code>fp_take_while_i64</code> - Complement</li>
+<li><code>fp_drop_i64</code> - Fixed count</li>
+
+<hr>
+
+<h2>fp_find_index_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_find_index_i64(const int64_t* array, size_t n, int64_t target);
+</code></pre>
+
+<strong>Description</strong>:
+Finds first occurrence of value: <strong>returns index i where array[i] == target</strong>. Linear search.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Array length</li>
+<li><code>target</code> <em>(int64_t)</em> - Value to find</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Index of first occurrence (0-based), or -1 if not found.
+
+<strong>Algorithm</strong>:
+Sequential search with early exit.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.0x vs GCC -O3
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>elemIndex target list
+-- or
+findIndex (== target) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {10, 20, 30, 40, 50};
+
+int64_t idx1 = fp_find_index_i64(data, 5, 30);  // 2
+int64_t idx2 = fp_find_index_i64(data, 5, 99);  // -1 (not found)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Finding element position</li>
+<li>Lookup in unsorted array</li>
+<li>First occurrence search</li>
+
+<strong>See Also</strong>:
+<li><code>fp_find_index_f64</code> - Double version</li>
+<li><code>fp_contains_i64</code> - Boolean membership test</li>
+
+<hr>
+
+<h2>fp_find_index_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>int64_t fp_find_index_f64(const double* array, size_t n, double target);
+</code></pre>
+
+<strong>Description</strong>:
+Finds first occurrence in double array.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const double\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Array length</li>
+<li><code>target</code> <em>(double)</em> - Value to find</li>
+
+<strong>Returns</strong>:
+<em>(int64_t)</em> - Index or -1 if not found
+
+<strong>Floating-Point Notes</strong>:
+<li>Uses exact equality (==), problematic for floating-point</li>
+<li>Consider using tolerance-based search for robust FP comparison</li>
+
+<strong>Example</strong>:
+<pre><code>double data[] = {1.5, 2.7, 3.2, 4.1};
+int64_t idx = fp_find_index_f64(data, 4, 3.2);  // 2
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_find_index_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_contains_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>bool fp_contains_i64(const int64_t* array, size_t n, int64_t value);
+</code></pre>
+
+<strong>Description</strong>:
+Membership test: <strong>returns true if value ∈ array</strong>. Checks if value exists anywhere in array.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Array length</li>
+<li><code>value</code> <em>(int64_t)</em> - Value to search for</li>
+
+<strong>Returns</strong>:
+<em>(bool)</em> - <code>true</code> if found, <code>false</code> otherwise
+
+<strong>Algorithm</strong>:
+Linear search with early exit.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case</li>
+<li>Space: O(1)</li>
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>elem value list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {10, 20, 30, 40, 50};
+
+bool found1 = fp_contains_i64(data, 5, 30);  // true
+bool found2 = fp_contains_i64(data, 5, 99);  // false
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Membership checking</li>
+<li>Validation (is value in whitelist?)</li>
+<li>Existence testing</li>
+
+<strong>See Also</strong>:
+<li><code>fp_find_index_i64</code> - Returns position instead of boolean</li>
+
+<hr>
+
+<h1>Module 9: Sorting & Sets (TIER 2)</h1>
+
+Sorting and set-theoretic operations on arrays.
+
+<hr>
+
+<h2>fp_sort_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_sort_i64(int64_t* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Sorts array in-place in ascending order using optimized quicksort. <strong>Modifies input array directly.</strong>
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(int64_t\</em>)* - Array to sort (modified in-place)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Array sorted in-place
+
+<strong>Algorithm</strong>:
+Hybrid quicksort with optimizations:
+<li><strong>Median-of-three pivot selection</strong> - Reduces worst-case probability</li>
+<li><strong>Insertion sort for small subarrays</strong> (n < 16) - Better for small data</li>
+<li><strong>Tail recursion optimization</strong> - Stack depth O(log n) instead of O(n)</li>
+<li><strong>In-place partitioning</strong> - No extra memory</li>
+
+<strong>Complexity</strong>:
+<li>Time: O(n log n) average, O(n²) worst case (rare with median-of-3)</li>
+<li>Space: O(log n) stack (tail recursion)</li>
+
+<strong>Performance</strong>:
+~1.0-1.2x vs C stdlib <code>qsort</code> (fewer function call overheads)
+
+<strong>In-Place Modification</strong>:
+Original array is modified. Pass a copy if needed.
+
+<strong>Stability</strong>:
+Not stable (equal elements may be reordered).
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>sort list  -- from Data.List
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {5, 2, 8, 1, 9, 3, 7};
+fp_sort_i64(data, 7);
+// data = [1, 2, 3, 5, 7, 8, 9]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>General-purpose sorting</li>
+<li>Preprocessing for median/percentiles</li>
+<li>Preprocessing for set operations</li>
+<li>Binary search preparation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_sort_f64</code> - Double version</li>
+<li><code>fp_unique_i64</code> - Remove duplicates (requires sorted input)</li>
+
+<hr>
+
+<h2>fp_sort_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_sort_f64(double* array, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Sorts double array in-place using optimized quicksort.
+
+<strong>Parameters</strong>:
+<li><code>array</code> <em>(double\</em>)* - Array to sort (modified in-place)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Array sorted in-place
+
+<strong>Algorithm</strong>:
+Same hybrid quicksort as i64 version. Uses SSE scalar comparisons (<code>vcomisd</code>) for correct floating-point semantics.
+
+<strong>Complexity</strong>:
+<li>Time: O(n log n) average</li>
+<li>Space: O(log n) stack</li>
+
+<strong>Performance</strong>:
+~1.0-1.2x vs C qsort
+
+<strong>Floating-Point Notes</strong>:
+<li>NaN values sort to end (unspecified relative order among NaNs)</li>
+<li>-0.0 and +0.0 compare equal</li>
+<li>Handles ±INFINITY correctly</li>
+
+<strong>Example</strong>:
+<pre><code>double data[] = {3.5, 1.2, 7.8, 2.1, 9.3};
+fp_sort_f64(data, 5);
+// data = [1.2, 2.1, 3.5, 7.8, 9.3]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Statistical analysis (median, quartiles)</li>
+<li>Percentile calculation</li>
+<li>Outlier detection (after sorting)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_sort_i64</code> - Integer version</li>
+
+<hr>
+
+<h2>fp_unique_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_unique_i64(const int64_t<em> input, int64_t</em> output, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Removes consecutive duplicates: <strong>output = nub(input)</strong>. Requires sorted input for full deduplication.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array (should be sorted)</li>
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for n elements)</li>
+<li><code>n</code> <em>(size_t)</em> - Input length</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of unique elements (1 ≤ result ≤ n for n > 0)
+
+<strong>Algorithm</strong>:
+Single pass, compare consecutive elements. Copy when different.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1) auxiliary</li>
+
+<strong>Performance</strong>:
+~2.0-3.0x vs C++ <code>std::unique</code>
+
+<strong>Precondition for Full Dedup</strong>:
+Input must be sorted. Otherwise only removes consecutive duplicates.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>nub list  -- from Data.List (on sorted list)
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 1, 2, 2, 2, 3, 4, 4, 5};
+int64_t output[9];
+size_t count = fp_unique_i64(input, output, 9);
+// output = [1, 2, 3, 4, 5], count = 5
+</code></pre>
+
+<strong>Typical Usage</strong>:
+<pre><code>// Full deduplication
+fp_sort_i64(data, n);  // Sort first
+size_t unique_count = fp_unique_i64(data, result, n);
+</code></pre>
+
+<strong>Applications</strong>:
+<li>DISTINCT in SQL</li>
+<li>Finding unique elements</li>
+<li>Deduplication</li>
+<li>Counting distinct values</li>
+
+<strong>See Also</strong>:
+<li><code>fp_sort_i64</code> - Required preprocessing</li>
+<li><code>fp_group_i64</code> - Group consecutive equals with counts</li>
+
+<hr>
+
+<h2>fp_union_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_union_i64(const int64_t<em> array_a, const int64_t</em> array_b,
+                    int64_t* output, size_t len_a, size_t len_b);
+</code></pre>
+
+<strong>Description</strong>:
+Set union: <strong>output = A ∪ B</strong> (with deduplication). Merges two sorted arrays, removing duplicates. <strong>Requires both inputs to be sorted.</strong>
+
+<strong>Parameters</strong>:
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First sorted array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second sorted array</li>
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for len_a + len_b)</li>
+<li><code>len_a</code> <em>(size_t)</em> - Length of array_a</li>
+<li><code>len_b</code> <em>(size_t)</em> - Length of array_b</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements in output (≤ len_a + len_b)
+
+<strong>Algorithm</strong>:
+Two-pointer merge with deduplication:
+<li>Take smaller element from A or B</li>
+<li>If equal, take once and advance both</li>
+<li>Linear time complexity</li>
+
+<strong>Complexity</strong>:
+<li>Time: O(len_a + len_b)</li>
+<li>Space: O(1) auxiliary</li>
+
+<strong>Performance</strong>:
+~1.5-2.0x vs C++ <code>std::set_union</code>
+
+<strong>Precondition</strong>:
+Both inputs MUST be sorted in ascending order.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>union list_a list_b  -- from Data.List
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {1, 3, 5, 7, 9};
+int64_t b[] = {2, 3, 5, 8};
+int64_t output[9];
+
+size_t count = fp_union_i64(a, b, output, 5, 4);
+// output = [1, 2, 3, 5, 7, 8, 9], count = 7
+// Note: 3 and 5 appear only once (deduplication)
+</code></pre>
+
+<strong>Typical Usage</strong>:
+<pre><code>// Ensure inputs are sorted
+fp_sort_i64(a, len_a);
+fp_sort_i64(b, len_b);
+size_t union_size = fp_union_i64(a, b, result, len_a, len_b);
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Set union in databases (SQL UNION)</li>
+<li>Combining datasets without duplicates</li>
+<li>Merging sorted lists</li>
+<li>Finding all unique elements from two sources</li>
+
+<strong>See Also</strong>:
+<li><code>fp_intersect_i64</code> - Set intersection</li>
+<li><code>fp_unique_i64</code> - Remove duplicates from single array</li>
+
+<hr>
+
+<h2>fp_intersect_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_intersect_i64(const int64_t<em> array_a, const int64_t</em> array_b,
+                        int64_t* output, size_t len_a, size_t len_b);
+</code></pre>
+
+<strong>Description</strong>:
+Set intersection: <strong>output = A ∩ B</strong>. Finds common elements from two sorted arrays. <strong>Requires both inputs to be sorted.</strong>
+
+<strong>Parameters</strong>:
+<li><code>array_a</code> <em>(const int64_t\</em>)* - First sorted array</li>
+<li><code>array_b</code> <em>(const int64_t\</em>)* - Second sorted array</li>
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for min(len_a, len_b))</li>
+<li><code>len_a</code> <em>(size_t)</em> - Length of array_a</li>
+<li><code>len_b</code> <em>(size_t)</em> - Length of array_b</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of common elements (0 ≤ result ≤ min(len_a, len_b))
+
+<strong>Algorithm</strong>:
+Two-pointer merge:
+<li>Advance smaller value's pointer</li>
+<li>When equal, add to output and advance both</li>
+<li>Linear time</li>
+
+<strong>Complexity</strong>:
+<li>Time: O(len_a + len_b)</li>
+<li>Space: O(1) auxiliary</li>
+
+<strong>Performance</strong>:
+~1.5-2.0x vs C++ <code>std::set_intersection</code>
+
+<strong>Precondition</strong>:
+Both inputs MUST be sorted.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>intersect list_a list_b  -- from Data.List
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t a[] = {1, 3, 5, 7, 9};
+int64_t b[] = {2, 3, 5, 8, 9};
+int64_t output[5];
+
+size_t count = fp_intersect_i64(a, b, output, 5, 5);
+// output = [3, 5, 9], count = 3
+// Common elements only
+</code></pre>
+
+<strong>Typical Usage</strong>:
+<pre><code>// Ensure sorted
+fp_sort_i64(a, len_a);
+fp_sort_i64(b, len_b);
+size_t common = fp_intersect_i64(a, b, result, len_a, len_b);
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Database JOIN (INNER JOIN on IDs)</li>
+<li>Finding common elements</li>
+<li>Set intersection in data analysis</li>
+<li>Collaborative filtering (common items)</li>
+
+<strong>See Also</strong>:
+<li><code>fp_union_i64</code> - Set union</li>
+<li><code>fp_sort_i64</code> - Required preprocessing</li>
+
+<hr>
+
+<h1>Module 10: Advanced Operations (TIER 3)</h1>
+
+Advanced functional programming operations: grouping, unfold, boolean reductions, and utilities.
+
+<hr>
+
+<h2>fp_group_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_group_i64(const int64_t<em> input, int64_t</em> groups_out,
+                    int64_t* counts_out, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Groups consecutive equal elements. <strong>Haskell's <code>group</code> function.</strong> Returns representatives and counts in parallel arrays.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>groups_out</code> <em>(int64_t\</em>)* - Output array of group representative values (space for n)</li>
+<li><code>counts_out</code> <em>(int64_t\</em>)* - Output array of group sizes (space for n)</li>
+<li><code>n</code> <em>(size_t)</em> - Input length</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of groups (1 ≤ result ≤ n for n > 0)
+
+<strong>Algorithm</strong>:
+Single pass comparing consecutive elements. Start new group on value change.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1) auxiliary</li>
+
+<strong>Why Parallel Arrays</strong>:
+C cannot return list-of-lists like Haskell. Parallel arrays provide same information.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>group [1,1,2,2,2,3] → [[1,1],[2,2,2],[3]]
+-- FP-ASM returns: groups=[1,2,3], counts=[2,3,1]
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {1, 1, 2, 2, 2, 3, 4, 4};
+int64_t groups[8], counts[8];
+
+size_t n_groups = fp_group_i64(input, groups, counts, 8);
+// n_groups = 4
+// groups = [1, 2, 3, 4]
+// counts = [2, 3, 1, 2]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Run-length encoding</li>
+<li>Frequency counting (after sorting)</li>
+<li>Finding mode (most frequent value)</li>
+<li>Histogram computation</li>
+
+<strong>Typical Usage for Mode</strong>:
+<pre><code>fp_sort_i64(data, n);  // Sort first
+int64_t groups[n], counts[n];
+size_t ng = fp_group_i64(data, groups, counts, n);
+
+// Find index of maximum count
+size_t max_idx = fp_find_index_i64(counts, ng,
+    fp_reduce_max_i64(counts, ng));
+int64_t mode = groups[max_idx];
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_run_length_encode_i64</code> - Alternative interleaved format</li>
+<li><code>fp_sort_i64</code> - Preprocessing for frequency analysis</li>
+
+<hr>
+
+<h2>fp_run_length_encode_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_run_length_encode_i64(const int64_t<em> input, int64_t</em> output, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Run-length encoding: compresses consecutive runs. <strong>Alternative to group with interleaved output format.</strong>
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for 2×n)</li>
+<li><code>n</code> <em>(size_t)</em> - Input length</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of output elements = 2 × (number of runs)
+
+<strong>Output Format</strong>:
+Interleaved: <code>[value1, count1, value2, count2, ...]</code>
+
+<strong>Algorithm</strong>:
+Single pass, emit (value, count) pairs.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1) auxiliary</li>
+
+<strong>Performance</strong>:
+More cache-friendly than parallel arrays for some applications.
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {5, 5, 5, 2, 2, 7, 7, 7, 7};
+int64_t output[18];  // Worst case: 2×9
+
+size_t output_len = fp_run_length_encode_i64(input, output, 9);
+// output_len = 6
+// output = [5, 3,  2, 2,  7, 4]
+//          value count value count value count
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Data compression (especially for images/video)</li>
+<li>Sparse data encoding</li>
+<li>Protocol encoding</li>
+<li>Efficient storage of repetitive data</li>
+
+<strong>Compression Ratio</strong>:
+<pre><code>size_t runs = output_len / 2;
+double compression_ratio = (double)n / runs;
+printf("Compressed to %.1f%% of original\n",
+       (runs <em> 2.0 / n) </em> 100);
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_group_i64</code> - Parallel array format</li>
+
+<hr>
+
+<h2>fp_iterate_add_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_iterate_add_i64(int64_t* output, size_t n, int64_t start, int64_t step);
+</code></pre>
+
+<strong>Description</strong>:
+Generates arithmetic sequence: <strong>output[i] = start + i × step</strong>. Unfold operation with addition.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements to generate</li>
+<li><code>start</code> <em>(int64_t)</em> - Initial value</li>
+<li><code>step</code> <em>(int64_t)</em> - Increment per element</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+Simple loop with accumulator.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>take n $ iterate (+ step) start
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t output[10];
+fp_iterate_add_i64(output, 10, 5, 3);
+// output = [5, 8, 11, 14, 17, 20, 23, 26, 29, 32]
+//          start, start+step, start+2*step, ...
+</code></pre>
+
+<strong>Special Cases</strong>:
+<pre><code>// Counting sequence [0, 1, 2, ...]
+fp_iterate_add_i64(output, n, 0, 1);
+
+// Countdown
+fp_iterate_add_i64(output, n, 100, -1);
+// [100, 99, 98, ...]
+
+// Even numbers
+fp_iterate_add_i64(output, n, 0, 2);
+// [0, 2, 4, 6, ...]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Test data generation</li>
+<li>Index arrays</li>
+<li>Time series (linear trend)</li>
+<li>Coordinate generation</li>
+
+<strong>See Also</strong>:
+<li><code>fp_iterate_mul_i64</code> - Geometric sequence</li>
+<li><code>fp_range_i64</code> - Range [start..end)</li>
+
+<hr>
+
+<h2>fp_iterate_mul_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_iterate_mul_i64(int64_t* output, size_t n, int64_t start, int64_t factor);
+</code></pre>
+
+<strong>Description</strong>:
+Generates geometric sequence: <strong>output[i] = start × factor^i</strong>. Unfold with multiplication.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements to generate</li>
+<li><code>start</code> <em>(int64_t)</em> - Initial value</li>
+<li><code>factor</code> <em>(int64_t)</em> - Multiplier per step</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+Loop with multiplication accumulator.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Overflow Warning</strong>:
+Can overflow quickly for large factors or many iterations.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>take n $ iterate (* factor) start
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t output[6];
+fp_iterate_mul_i64(output, 6, 2, 3);
+// output = [2, 6, 18, 54, 162, 486]
+//          2, 2×3, 2×3², 2×3³, ...
+</code></pre>
+
+<strong>Special Cases</strong>:
+<pre><code>// Powers of 2
+fp_iterate_mul_i64(output, 10, 1, 2);
+// [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+
+// Powers of 10
+fp_iterate_mul_i64(output, 5, 1, 10);
+// [1, 10, 100, 1000, 10000]
+
+// Repeated doubling
+fp_iterate_mul_i64(output, 8, 1, 2);
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Exponential growth modeling</li>
+<li>Powers generation</li>
+<li>Bit manipulation patterns (powers of 2)</li>
+<li>Geometric progressions</li>
+
+<strong>See Also</strong>:
+<li><code>fp_iterate_add_i64</code> - Arithmetic sequence</li>
+
+<hr>
+
+<h2>fp_range_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_range_i64(int64_t* output, int64_t start, int64_t end);
+</code></pre>
+
+<strong>Description</strong>:
+Generates integer range <strong>[start, end)</strong>: start inclusive, end exclusive. <strong>Haskell's [start..end-1]</strong>.
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for at least end - start)</li>
+<li><code>start</code> <em>(int64_t)</em> - Start value (inclusive)</li>
+<li><code>end</code> <em>(int64_t)</em> - End value (exclusive)</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of elements = max(0, end - start)
+
+<strong>Algorithm</strong>:
+Simple counting loop.
+
+<strong>Complexity</strong>:
+<li>Time: O(end - start)</li>
+<li>Space: O(1)</li>
+
+<strong>Empty Range</strong>:
+Returns 0 if start ≥ end.
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>[start..end-1]
+-- or
+[start..(end-1)]
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t output[20];
+
+size_t n = fp_range_i64(output, 5, 15);
+// n = 10
+// output = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+
+// Empty range
+n = fp_range_i64(output, 10, 5);
+// n = 0 (start > end)
+</code></pre>
+
+<strong>Common Uses</strong>:
+<pre><code>// Index array [0, 1, 2, ..., n-1]
+fp_range_i64(indices, 0, n);
+
+// Days of month [1..31]
+fp_range_i64(days, 1, 32);
+
+// Countdown (use iterate_add instead)
+// For descending, use fp_iterate_add_i64(out, n, high, -1)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Index generation</li>
+<li>Enumeration</li>
+<li>Loop-free iteration patterns</li>
+<li>Test data</li>
+
+<strong>See Also</strong>:
+<li><code>fp_iterate_add_i64</code> - More flexible (supports step)</li>
+
+<hr>
+
+<h2>fp_reduce_and_bool</h2>
+
+<strong>Signature</strong>:
+<pre><code>bool fp_reduce_and_bool(const int64_t* input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Logical AND of all values (non-zero = true): <strong>returns true iff all elements non-zero</strong>. SIMD-accelerated with early exit.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array (0 = false, non-zero = true)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(bool)</em> - <code>true</code> if all non-zero, <code>false</code> if any zero. Returns <code>true</code> for empty arrays (vacuous truth).
+
+<strong>Algorithm</strong>:
+SIMD processes 4 elements per iteration. Uses <code>vpcmpeqq</code> to check for zeros. Early exit on first zero found.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case (early exit)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~2.0-4.0x vs scalar (SIMD + early exit)
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>and $ map (/= 0) list
+-- or
+all (/= 0) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t all_true[] = {1, 5, -3, 100};
+int64_t has_false[] = {1, 5, 0, 100};
+
+bool r1 = fp_reduce_and_bool(all_true, 4);   // true
+bool r2 = fp_reduce_and_bool(has_false, 4);  // false (0 at index 2)
+
+// Empty array
+bool r3 = fp_reduce_and_bool(NULL, 0);  // true (vacuous)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Validation (all checks passed?)</li>
+<li>Logical conjunction</li>
+<li>"All conditions met" test</li>
+<li>Bit flags (all set?)</li>
+
+<strong>Typical Validation Pattern</strong>:
+<pre><code>// Check if all values are positive
+int64_t checks[n];
+for (size_t i = 0; i < n; i++) {
+    checks[i] = (data[i] > 0) ? 1 : 0;
+}
+bool all_positive = fp_reduce_and_bool(checks, n);
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reduce_or_bool</code> - Logical OR</li>
+<li><code>fp_pred_all_eq_i64</code> - Universal equality test</li>
+
+<hr>
+
+<h2>fp_reduce_or_bool</h2>
+
+<strong>Signature</strong>:
+<pre><code>bool fp_reduce_or_bool(const int64_t* input, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Logical OR of all values: <strong>returns true if any element non-zero</strong>. SIMD-accelerated with early exit.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array (0 = false, non-zero = true)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+
+<strong>Returns</strong>:
+<em>(bool)</em> - <code>true</code> if any non-zero, <code>false</code> if all zero. Returns <code>false</code> for empty arrays.
+
+<strong>Algorithm</strong>:
+SIMD processes 4 elements per iteration. Early exit on first non-zero.
+
+<strong>Complexity</strong>:
+<li>Time: O(n) worst case, O(1) best case</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~2.0-4.0x vs scalar
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>or $ map (/= 0) list
+-- or
+any (/= 0) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t all_false[] = {0, 0, 0, 0};
+int64_t has_true[] = {0, 0, 5, 0};
+
+bool r1 = fp_reduce_or_bool(all_false, 4);  // false
+bool r2 = fp_reduce_or_bool(has_true, 4);   // true (5 at index 2)
+
+// Empty array
+bool r3 = fp_reduce_or_bool(NULL, 0);  // false
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Existence check (any value satisfies?)</li>
+<li>Logical disjunction</li>
+<li>"At least one" test</li>
+<li>Error detection (any errors occurred?)</li>
+
+<strong>Typical Pattern</strong>:
+<pre><code>// Check if any values exceed threshold
+int64_t flags[n];
+for (size_t i = 0; i < n; i++) {
+    flags[i] = (data[i] > THRESHOLD) ? 1 : 0;
+}
+bool has_anomaly = fp_reduce_or_bool(flags, n);
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_reduce_and_bool</code> - Logical AND</li>
+<li><code>fp_pred_any_gt_i64</code> - Direct threshold test</li>
+
+<hr>
+
+<h2>fp_zip_with_index_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_zip_with_index_i64(const int64_t<em> input, int64_t</em> output, size_t n);
+</code></pre>
+
+<strong>Description</strong>:
+Pairs each element with its index: <strong>output = [(0, input[0]), (1, input[1]), ...]</strong>. Interleaved format.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>output</code> <em>(int64_t\</em>)* - Output array (space for 2×n)</li>
+<li><code>n</code> <em>(size_t)</em> - Number of input elements</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Output length = 2×n
+
+<strong>Output Format</strong>:
+Interleaved: <code>[idx0, val0, idx1, val1, idx2, val2, ...]</code>
+
+<strong>Algorithm</strong>:
+Simple loop emitting index-value pairs.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>zip [0..] list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t input[] = {100, 200, 300, 400};
+int64_t output[8];
+
+size_t out_len = fp_zip_with_index_i64(input, output, 4);
+// out_len = 8
+// output = [0, 100,  1, 200,  2, 300,  3, 400]
+//          idx val  idx val  idx val  idx val
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Enumeration (track original positions)</li>
+<li>Creating (index, value) pairs for sorting</li>
+<li>Maintaining correspondence after transformations</li>
+<li>Preparing for grouped operations</li>
+
+<strong>Example - Sort by value, keep indices</strong>:
+<pre><code>int64_t data[] = {50, 20, 80, 10};
+int64_t pairs[8];
+
+fp_zip_with_index_i64(data, pairs, 4);
+// pairs = [0,50, 1,20, 2,80, 3,10]
+
+// Sort pairs by value (custom comparator on odd indices)
+// After sort: [3,10, 1,20, 0,50, 2,80]
+// Can retrieve original indices
+</code></pre>
+
+<strong>See Also</strong>:
+<li><code>fp_range_i64</code> - Generate index array only</li>
+
+<hr>
+
+<h2>fp_replicate_f64</h2>
+
+<strong>Signature</strong>:
+<pre><code>void fp_replicate_f64(double* output, size_t n, double value);
+</code></pre>
+
+<strong>Description</strong>:
+Fills array with single double value using SIMD: <strong>output[i] = value</strong> for all i. <strong>Optimized broadcast.</strong>
+
+<strong>Parameters</strong>:
+<li><code>output</code> <em>(double\</em>)* - Output array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements to fill</li>
+<li><code>value</code> <em>(double)</em> - Value to replicate</li>
+
+<strong>Returns</strong>:
+<em>(void)</em> - Result stored in <code>output</code>
+
+<strong>Algorithm</strong>:
+SIMD with <code>vbroadcastsd</code> and <code>vmovupd</code>. Processes 4 doubles per iteration.
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.5x vs scalar (SIMD broadcast advantage)
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>replicate n value
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>double output[5];
+fp_replicate_f64(output, 5, 3.14);
+// output = [3.14, 3.14, 3.14, 3.14, 3.14]
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Array initialization</li>
+<li>Constant vector creation</li>
+<li>Bias initialization in neural networks</li>
+<li>Fill operations</li>
+
+<strong>See Also</strong>:
+<li><code>fp_replicate_i64</code> - Integer version (Module 8)</li>
+
+<hr>
+
+<h2>fp_count_i64</h2>
+
+<strong>Signature</strong>:
+<pre><code>size_t fp_count_i64(const int64_t* input, size_t n, int64_t target);
+</code></pre>
+
+<strong>Description</strong>:
+Counts occurrences of value: <strong>returns |{i : input[i] == target}|</strong>. SIMD-optimized with POPCNT.
+
+<strong>Parameters</strong>:
+<li><code>input</code> <em>(const int64_t\</em>)* - Input array</li>
+<li><code>n</code> <em>(size_t)</em> - Number of elements</li>
+<li><code>target</code> <em>(int64_t)</em> - Value to count</li>
+
+<strong>Returns</strong>:
+<em>(size_t)</em> - Number of occurrences (0 ≤ result ≤ n)
+
+<strong>Algorithm</strong>:
+SIMD with <code>vpcmpeqq</code> (compare 4 values), <code>vmovmskpd</code> (extract mask), <code>popcnt</code> (count set bits).
+
+<strong>Complexity</strong>:
+<li>Time: O(n)</li>
+<li>Space: O(1)</li>
+
+<strong>Performance</strong>:
+~1.5-2.0x vs scalar (SIMD + POPCNT)
+
+<strong>Haskell Equivalent</strong>:
+<pre><code>length $ filter (== target) list
+</code></pre>
+
+<strong>Example</strong>:
+<pre><code>int64_t data[] = {1, 5, 3, 5, 7, 5, 9};
+size_t count = fp_count_i64(data, 7, 5);
+// count = 3  (three occurrences of 5)
+</code></pre>
+
+<strong>Applications</strong>:
+<li>Frequency counting</li>
+<li>Membership counting</li>
+<li>Histogram bin counting</li>
+<li>Error/event counting</li>
+
+<strong>See Also</strong>:
+<li><code>fp_contains_i64</code> - Boolean existence check</li>
+<li><code>fp_group_i64</code> - Count all unique values (after sorting)</li>
+
+<hr>
+
+<h2>Quick Reference Tables</h2>
+
+<h3>Performance Summary</h3>
+
+<table>
+<tr><th>Operation Type</th><th>Expected Speedup</th><th>Key Technique</th></tr>
+<tr><td>Simple Reductions (f64)</td><td>1.5-1.8x</td><td>SIMD, FMA</td></tr>
+<tr><td>Simple Reductions (i64)</td><td>1.0-1.02x</td><td>Scalar optimization</td></tr>
+<tr><td>Fused Folds</td><td>1.1-1.25x</td><td>Eliminate intermediate arrays</td></tr>
+<tr><td>BLAS Level 1</td><td>1.0-1.1x</td><td>Memory bandwidth saturated</td></tr>
+<tr><td>Simple Maps</td><td>1.0-1.5x</td><td>SIMD where available</td></tr>
+<tr><td>Predicates</td><td>1.0x</td><td>Early exit, branch prediction</td></tr>
+<tr><td>Sorting</td><td>1.0-1.2x</td><td>Optimized quicksort</td></tr>
+<tr><td>Set Operations</td><td>1.5-2.0x</td><td>Linear merge algorithms</td></tr>
+<tr><td>Boolean Reductions</td><td>2.0-4.0x</td><td>SIMD + early exit</td></tr>
+<tr><td>Unfold/Utilities</td><td>1.0-2.0x</td><td>Tight loops, SIMD broadcasts</td></tr>
+</table>
+<h3>Data Type Availability</h3>
+
+<table>
+<tr><th>Category</th><th>i64</th><th>f64</th><th>Notes</th></tr>
+<tr><td><strong>Reductions</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>Fused Folds</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td>f64 uses FMA</td></tr>
+<tr><td><strong>BLAS Ops</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>Maps</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>Scans</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>Predicates</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">❌</span></td><td>i64 only</td></tr>
+<tr><td><strong>Filter/Partition</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>List Ops</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>Sorting</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">✅</span></td><td></td></tr>
+<tr><td><strong>Set Ops</strong></td><td><span class="emoji">✅</span></td><td><span class="emoji">❌</span></td><td>i64 only</td></tr>
+<tr><td><strong>Advanced (TIER 3)</strong></td><td><span class="emoji">✅</span></td><td>partial</td><td>See individual functions</td></tr>
+</table>
+<h3>Complexity Reference</h3>
+
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Notes</th></tr>
+<tr><td><strong>Map</strong></td><td>O(n)</td><td>O(1)</td><td>Element-wise</td></tr>
+<tr><td><strong>Fold</strong></td><td>O(n)</td><td>O(1)</td><td>Reduction</td></tr>
+<tr><td><strong>Scan</strong></td><td>O(n)</td><td>O(1)</td><td>Sequential dependency</td></tr>
+<tr><td><strong>Filter</strong></td><td>O(n)</td><td>O(1)</td><td>Output size variable</td></tr>
+<tr><td><strong>Sort</strong></td><td>O(n log n) avg</td><td>O(log n)</td><td>Quicksort</td></tr>
+<tr><td><strong>Set Ops</strong></td><td>O(n+m)</td><td>O(1)</td><td>On sorted inputs</td></tr>
+<tr><td><strong>Search</strong></td><td>O(n)</td><td>O(1)</td><td>Early exit possible</td></tr>
+<tr><td><strong>Group</strong></td><td>O(n)</td><td>O(1)</td><td>Single pass</td></tr>
+</table>
+<hr>
+
+<h2>Integration Examples</h2>
+
+<h3>Example 1: Complete Statistical Analysis</h3>
+
+<pre><code>#include "fp_core.h"
+#include <stdio.h>
+#include <math.h>
+
+void analyze_dataset(double* data, size_t n) {
+    // Make a copy for sorting (preserve original)
+    double sorted[n];
+    memcpy(sorted, data, n * sizeof(double));
+
+    // 1. Basic statistics
+    double sum = fp_reduce_add_f64(data, n);
+    double mean = sum / n;
+    printf("Mean: %.2f\n", mean);
+
+    // 2. Sum of squares for variance
+    double sumsq = fp_fold_sumsq_f64(data, n);  // Note: Use f64 version
+    double variance = (sumsq / n) - (mean * mean);
+    printf("Variance: %.2f\n", variance);
+    printf("Std Dev: %.2f\n", sqrt(variance));
+
+    // 3. Percentiles (requires sorting)
+    fp_sort_f64(sorted, n);
+    printf("Min: %.2f\n", sorted[0]);
+    printf("Q1 (25%%): %.2f\n", sorted[n/4]);
+    printf("Median: %.2f\n", sorted[n/2]);
+    printf("Q3 (75%%): %.2f\n", sorted[3*n/4]);
+    printf("Max: %.2f\n", sorted[n-1]);
+
+    // 4. Outlier detection (IQR method)
+    double q1 = sorted[n/4];
+    double q3 = sorted[3*n/4];
+    double iqr = q3 - q1;
+    double lower = q1 - 1.5 * iqr;
+    double upper = q3 + 1.5 * iqr;
+
+    size_t outliers = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (data[i] < lower || data[i] > upper) outliers++;
+    }
+    printf("Outliers: %zu (%.1f%%)\n", outliers, (outliers * 100.0) / n);
+}
+</code></pre>
+
+<h3>Example 2: Set Operations Pipeline</h3>
+
+<pre><code>void find_common_customers(int64_t* store_a, size_t na,
+                          int64_t* store_b, size_t nb) {
+    // Sort both lists
+    fp_sort_i64(store_a, na);
+    fp_sort_i64(store_b, nb);
+
+    // Remove duplicates
+    int64_t unique_a[na], unique_b[nb];
+    size_t n_a = fp_unique_i64(store_a, unique_a, na);
+    size_t n_b = fp_unique_i64(store_b, unique_b, nb);
+
+    // Find intersection (common customers)
+    int64_t common[n_a];
+    size_t n_common = fp_intersect_i64(unique_a, unique_b, common, n_a, n_b);
+
+    // Find union (all customers)
+    int64_t all[n_a + n_b];
+    size_t n_all = fp_union_i64(unique_a, unique_b, all, n_a, n_b);
+
+    printf("Store A: %zu unique customers\n", n_a);
+    printf("Store B: %zu unique customers\n", n_b);
+    printf("Common: %zu customers\n", n_common);
+    printf("Total: %zu unique customers\n", n_all);
+}
+</code></pre>
+
+<h3>Example 3: Data Validation Pipeline</h3>
+
+<pre><code>bool validate_sensor_data(double* readings, size_t n) {
+    // 1. Check all values are positive
+    int64_t positive_checks[n];
+    for (size_t i = 0; i < n; i++) {
+        positive_checks[i] = (readings[i] > 0.0) ? 1 : 0;
+    }
+    bool all_positive = fp_reduce_and_bool(positive_checks, n);
+
+    if (!all_positive) {
+        printf("ERROR: Found negative readings\n");
+        return false;
+    }
+
+    // 2. Check if any exceed maximum threshold
+    int64_t exceed_checks[n];
+    for (size_t i = 0; i < n; i++) {
+        exceed_checks[i] = (readings[i] > MAX_READING) ? 1 : 0;
+    }
+    bool has_exceed = fp_reduce_or_bool(exceed_checks, n);
+
+    if (has_exceed) {
+        size_t count = fp_count_i64(exceed_checks, n, 1);
+        printf("WARNING: %zu readings exceed maximum\n", count);
+    }
+
+    // 3. Validate range
+    double min = fp_reduce_min_f64(readings, n);  // Note: Use min variant
+    double max = fp_reduce_max_f64(readings, n);
+    printf("Range: [%.2f, %.2f]\n", min, max);
+
+    return true;
+}
+</code></pre>
+
+<hr>
+
+<h2>Conclusion</h2>
+
+This API reference documents all 36 functions in the FP-ASM library, providing complete information for production use. Each function includes:
+
+<li>Complete signature</li>
+<li>Detailed parameter descriptions</li>
+<li>Return value semantics</li>
+<li>Algorithm description</li>
+<li>Complexity analysis</li>
+<li>Performance expectations</li>
+<li>Haskell equivalents</li>
+<li>Working examples</li>
+<li>Real-world applications</li>
+<li>Cross-references</li>
+
+<strong>The FP-ASM library provides a complete, high-performance functional programming toolkit for C, enabling expressive code with measurable performance advantages.</strong>
+
+For questions or issues, refer to:
+<li><code>COMPLETE_LIBRARY_REPORT.md</code> - Overall library documentation</li>
+<li><code>TIER2_COMPLETENESS_REPORT.md</code> - TIER 2 operations details</li>
+<li>Individual module assembly files for implementation details</li></ul>
+
+<hr>
+
+<em>API Reference Version: 1.0.0</em>
+<em>Last Updated: October 28, 2025</em>
+<em>Library Completeness: 100%</em>
+
+        </main>
+    </div>
+</body>
+</html>
