@@ -65,7 +65,12 @@
       "Bash(./build_test_corr.bat)",
       "Bash(./build_test_corr_simple.bat)",
       "Bash(./build_test_correlation.bat)",
-      "Bash(./build_test_outliers.bat)"
+      "Bash(./build_test_outliers.bat)",
+      "Bash(./build_test_i32.bat)",
+      "Bash(./build_test_u32_comprehensive.bat)",
+      "Bash(./test_i8_comprehensive.exe:*)",
+      "Bash(./test_u8_minimal.exe:*)",
+      "Bash(./test_u8_comprehensive.exe)"
     ],
     "deny": [],
     "ask": []

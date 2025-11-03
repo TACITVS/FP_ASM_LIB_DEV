@@ -58,20 +58,105 @@ extern "C" {
 /* ============================================================================
  * Category 1: Fused Folds (Module 2)
  * ============================================================================ */
+
+/* i64 fused folds (4 elements per YMM register) */
 int64_t fp_fold_sumsq_i64(const int64_t* in, size_t n);
 int64_t fp_fold_dotp_i64(const int64_t* a, const int64_t* b, size_t n);
-double  fp_fold_dotp_f64(const double* a, const double* b, size_t n);
 int64_t fp_fold_sad_i64(const int64_t* a, const int64_t* b, size_t n);
+
+/* f64 fused folds (4 elements per YMM register) */
+double  fp_fold_dotp_f64(const double* a, const double* b, size_t n);
+
+/* i32 fused folds (8 elements per YMM register - 2X throughput!) */
+int32_t fp_fold_sumsq_i32(const int32_t* in, size_t n);
+int32_t fp_fold_dotp_i32(const int32_t* a, const int32_t* b, size_t n);
+int32_t fp_fold_sad_i32(const int32_t* a, const int32_t* b, size_t n);
+
+/* f32 fused folds (8 elements per YMM register - 2X throughput!) */
+float   fp_fold_sumsq_f32(const float* in, size_t n);
+float   fp_fold_dotp_f32(const float* a, const float* b, size_t n);
+float   fp_fold_sad_f32(const float* a, const float* b, size_t n);
+
+/* u32 fused folds (8 elements per YMM register - 2X throughput!) */
+uint32_t fp_fold_sumsq_u32(const uint32_t* in, size_t n);
+uint32_t fp_fold_dotp_u32(const uint32_t* a, const uint32_t* b, size_t n);
+uint32_t fp_fold_sad_u32(const uint32_t* a, const uint32_t* b, size_t n);
+
+/* u64 fused folds (4 elements per YMM register) */
+uint64_t fp_fold_sumsq_u64(const uint64_t* in, size_t n);
+uint64_t fp_fold_dotp_u64(const uint64_t* a, const uint64_t* b, size_t n);
+uint64_t fp_fold_sad_u64(const uint64_t* a, const uint64_t* b, size_t n);
+
+/* i16 fused folds (16 elements per YMM register - 4X throughput!) */
+int16_t fp_fold_sumsq_i16(const int16_t* in, size_t n);
+int16_t fp_fold_dotp_i16(const int16_t* a, const int16_t* b, size_t n);
+int16_t fp_fold_sad_i16(const int16_t* a, const int16_t* b, size_t n);
+
+/* u16 fused folds (16 elements per YMM register - 4X throughput!) */
+uint16_t fp_fold_sumsq_u16(const uint16_t* in, size_t n);
+uint16_t fp_fold_dotp_u16(const uint16_t* a, const uint16_t* b, size_t n);
+uint16_t fp_fold_sad_u16(const uint16_t* a, const uint16_t* b, size_t n);
+
+/* i8 fused folds (32 elements per YMM register - 8X throughput! BUT no vpmullb) */
+int8_t fp_fold_sumsq_i8(const int8_t* in, size_t n);
+int8_t fp_fold_dotp_i8(const int8_t* a, const int8_t* b, size_t n);
+int8_t fp_fold_sad_i8(const int8_t* a, const int8_t* b, size_t n);
 
 /* ============================================================================
  * Category 2: Simple Folds (Module 1)
  * ============================================================================ */
+
+/* i64 reductions (4 elements per YMM register) */
 int64_t fp_reduce_add_i64(const int64_t* in, size_t n);
-double  fp_reduce_add_f64(const double* in, size_t n);
 int64_t fp_reduce_max_i64(const int64_t* in, size_t n);
-double  fp_reduce_max_f64(const double* in, size_t n);
 int64_t fp_reduce_min_i64(const int64_t* in, size_t n);
+
+/* f64 reductions (4 elements per YMM register) */
+double  fp_reduce_add_f64(const double* in, size_t n);
+double  fp_reduce_max_f64(const double* in, size_t n);
 double  fp_reduce_min_f64(const double* in, size_t n);
+
+/* i32 reductions (8 elements per YMM register - 2X throughput!) */
+int32_t fp_reduce_add_i32(const int32_t* in, size_t n);
+int32_t fp_reduce_mul_i32(const int32_t* in, size_t n);
+int32_t fp_reduce_min_i32(const int32_t* in, size_t n);
+int32_t fp_reduce_max_i32(const int32_t* in, size_t n);
+
+/* f32 reductions (8 elements per YMM register - 2X throughput!) */
+float   fp_reduce_add_f32(const float* in, size_t n);
+float   fp_reduce_mul_f32(const float* in, size_t n);
+float   fp_reduce_min_f32(const float* in, size_t n);
+float   fp_reduce_max_f32(const float* in, size_t n);
+
+/* u32 reductions (8 elements per YMM register - 2X throughput!) */
+uint32_t fp_reduce_add_u32(const uint32_t* in, size_t n);
+uint32_t fp_reduce_mul_u32(const uint32_t* in, size_t n);
+uint32_t fp_reduce_min_u32(const uint32_t* in, size_t n);
+uint32_t fp_reduce_max_u32(const uint32_t* in, size_t n);
+
+/* u64 reductions (4 elements per YMM register) */
+uint64_t fp_reduce_add_u64(const uint64_t* in, size_t n);
+uint64_t fp_reduce_mul_u64(const uint64_t* in, size_t n);
+uint64_t fp_reduce_min_u64(const uint64_t* in, size_t n);
+uint64_t fp_reduce_max_u64(const uint64_t* in, size_t n);
+
+/* i16 reductions (16 elements per YMM register - 4X throughput!) */
+int16_t fp_reduce_add_i16(const int16_t* in, size_t n);
+int16_t fp_reduce_mul_i16(const int16_t* in, size_t n);
+int16_t fp_reduce_min_i16(const int16_t* in, size_t n);
+int16_t fp_reduce_max_i16(const int16_t* in, size_t n);
+
+/* u16 reductions (16 elements per YMM register - 4X throughput!) */
+uint16_t fp_reduce_add_u16(const uint16_t* in, size_t n);
+uint16_t fp_reduce_mul_u16(const uint16_t* in, size_t n);
+uint16_t fp_reduce_min_u16(const uint16_t* in, size_t n);
+uint16_t fp_reduce_max_u16(const uint16_t* in, size_t n);
+
+/* i8 reductions (32 elements per YMM register - 8X throughput! BUT no vpmullb) */
+int8_t fp_reduce_add_i8(const int8_t* in, size_t n);
+int8_t fp_reduce_mul_i8(const int8_t* in, size_t n);
+int8_t fp_reduce_min_i8(const int8_t* in, size_t n);
+int8_t fp_reduce_max_i8(const int8_t* in, size_t n);
 
 /* ============================================================================
  * Category 3: Fused Maps (Module 3)
@@ -83,34 +168,77 @@ double  fp_reduce_min_f64(const double* in, size_t n);
 /**
  * FP: out = zipWith (+) (map (*c) x) y  (Classic AXPY)
  * C:  for(i) { out[i] = c * x[i] + y[i]; }
- * Win: SIMD (FMA) for f64, Scalar unroll for i64.
+ * Win: SIMD (FMA) for f64, Scalar unroll for i64, vpmulld+vpaddd for i32
  */
 void fp_map_axpy_f64(const double* x, const double* y, double* out, size_t n, double c);
 void fp_map_axpy_i64(const int64_t* x, const int64_t* y, int64_t* out, size_t n, int64_t c);
+void fp_map_axpy_i32(const int32_t* x, const int32_t* y, int32_t* out, size_t n, int32_t c);
+void fp_map_axpy_f32(const float* x, const float* y, float* out, size_t n, float c);
+void fp_map_axpy_u32(const uint32_t* x, const uint32_t* y, uint32_t* out, size_t n, uint32_t c);
+void fp_map_axpy_u64(const uint64_t* x, const uint64_t* y, uint64_t* out, size_t n, uint64_t c);
+void fp_map_axpy_i16(const int16_t* x, const int16_t* y, int16_t* out, size_t n, int16_t c);
+void fp_map_axpy_u16(const uint16_t* x, const uint16_t* y, uint16_t* out, size_t n, uint16_t c);
+void fp_map_axpy_i8(const int8_t* x, const int8_t* y, int8_t* out, size_t n, int8_t c);
 
 /**
  * FP: out = map (*c) in
  * C:  for(i) { out[i] = c * in[i]; }
- * Win: Scalar unroll (i64), Guaranteed SIMD (f64)
+ * Win: Scalar unroll (i64), Guaranteed SIMD (f64), 8-wide SIMD (i32/f32)
  */
 void fp_map_scale_i64(const int64_t* in, int64_t* out, size_t n, int64_t c);
 void fp_map_scale_f64(const double* in, double* out, size_t n, double c);
+void fp_map_scale_i32(const int32_t* in, int32_t* out, size_t n, int32_t c);
+void fp_map_scale_f32(const float* in, float* out, size_t n, float c);
+void fp_map_scale_u32(const uint32_t* in, uint32_t* out, size_t n, uint32_t c);
+void fp_map_scale_u64(const uint64_t* in, uint64_t* out, size_t n, uint64_t c);
+void fp_map_scale_i16(const int16_t* in, int16_t* out, size_t n, int16_t c);
+void fp_map_scale_u16(const uint16_t* in, uint16_t* out, size_t n, uint16_t c);
+void fp_map_scale_i8(const int8_t* in, int8_t* out, size_t n, int8_t c);
 
 /**
  * FP: out = map (+c) in
  * C:  for(i) { out[i] = in[i] + c; }
- * Win: Guaranteed SIMD.
+ * Win: Guaranteed SIMD (all types), 8-wide for i32/f32
  */
 void fp_map_offset_i64(const int64_t* in, int64_t* out, size_t n, int64_t c);
 void fp_map_offset_f64(const double* in, double* out, size_t n, double c);
+void fp_map_offset_i32(const int32_t* in, int32_t* out, size_t n, int32_t c);
+void fp_map_offset_f32(const float* in, float* out, size_t n, float c);
+void fp_map_offset_u32(const uint32_t* in, uint32_t* out, size_t n, uint32_t c);
+void fp_map_offset_u64(const uint64_t* in, uint64_t* out, size_t n, uint64_t c);
+void fp_map_offset_i16(const int16_t* in, int16_t* out, size_t n, int16_t c);
+void fp_map_offset_u16(const uint16_t* in, uint16_t* out, size_t n, uint16_t c);
+void fp_map_offset_i8(const int8_t* in, int8_t* out, size_t n, int8_t c);
 
 /**
  * FP: out = zipWith (+) a b
  * C:  for(i) { out[i] = a[i] + b[i]; }
- * Win: Guaranteed SIMD.
+ * Win: Guaranteed SIMD (all types), 8-wide for i32/f32
  */
 void fp_zip_add_i64(const int64_t* a, const int64_t* b, int64_t* out, size_t n);
 void fp_zip_add_f64(const double* a, const double* b, double* out, size_t n);
+void fp_zip_add_i32(const int32_t* a, const int32_t* b, int32_t* out, size_t n);
+void fp_zip_add_f32(const float* a, const float* b, float* out, size_t n);
+void fp_zip_add_u32(const uint32_t* a, const uint32_t* b, uint32_t* out, size_t n);
+void fp_zip_add_u64(const uint64_t* a, const uint64_t* b, uint64_t* out, size_t n);
+void fp_zip_add_i16(const int16_t* a, const int16_t* b, int16_t* out, size_t n);
+void fp_zip_add_u16(const uint16_t* a, const uint16_t* b, uint16_t* out, size_t n);
+void fp_zip_add_i8(const int8_t* a, const int8_t* b, int8_t* out, size_t n);
+void fp_zip_add_u8(const uint8_t* a, const uint8_t* b, uint8_t* out, size_t n);
+void fp_map_offset_u8(const uint8_t* in, uint8_t* out, size_t n, uint8_t c);
+void fp_map_scale_u8(const uint8_t* in, uint8_t* out, size_t n, uint8_t c);
+void fp_map_axpy_u8(const uint8_t* x, const uint8_t* y, uint8_t* out, size_t n, uint8_t c);
+uint8_t fp_fold_sad_u8(const uint8_t* a, const uint8_t* b, size_t n);
+uint8_t fp_fold_dotp_u8(const uint8_t* a, const uint8_t* b, size_t n);
+uint8_t fp_fold_sumsq_u8(const uint8_t* in, size_t n);
+uint8_t fp_reduce_max_u8(const uint8_t* in, size_t n);
+uint8_t fp_reduce_min_u8(const uint8_t* in, size_t n);
+uint8_t fp_reduce_mul_u8(const uint8_t* in, size_t n);
+uint8_t fp_reduce_add_u8(const uint8_t* in, size_t n);
+
+/* u8 fused maps (32 elements per YMM register - 8X throughput! BUT no vpmullb) */
+/* u8 reductions (32 elements per YMM register - 8X throughput! BUT no vpmullb) */
+/* u8 fused folds (32 elements per YMM register - 8X throughput! BUT no vpmullb) */
 
 
 /* ============================================================================
