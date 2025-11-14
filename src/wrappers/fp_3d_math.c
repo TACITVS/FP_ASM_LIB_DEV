@@ -46,37 +46,30 @@ static void transform_to_matrix(const Transform* transform, Mat4f* out_matrix) {
     const float m21 = yz - wx;
     const float m22 = 1.0f - (xx + yy);
 
-    m[0] = m00;
-    m[1] = m10;
-    m[2] = m20;
+    const float sx = scale->x;
+    const float sy = scale->y;
+    const float sz = scale->z;
+
+    /* Store rotation*scale columns so downstream kernels can use column-major loads. */
+    m[0] = m00 * sx;
+    m[1] = m10 * sx;
+    m[2] = m20 * sx;
     m[3] = 0.0f;
 
-    m[4] = m01;
-    m[5] = m11;
-    m[6] = m21;
+    m[4] = m01 * sy;
+    m[5] = m11 * sy;
+    m[6] = m21 * sy;
     m[7] = 0.0f;
 
-    m[8] = m02;
-    m[9] = m12;
-    m[10] = m22;
+    m[8] = m02 * sz;
+    m[9] = m12 * sz;
+    m[10] = m22 * sz;
     m[11] = 0.0f;
 
     m[12] = position->x;
     m[13] = position->y;
     m[14] = position->z;
     m[15] = 1.0f;
-
-    m[0] *= scale->x;
-    m[1] *= scale->x;
-    m[2] *= scale->x;
-
-    m[4] *= scale->y;
-    m[5] *= scale->y;
-    m[6] *= scale->y;
-
-    m[8] *= scale->z;
-    m[9] *= scale->z;
-    m[10] *= scale->z;
 }
 
 /* -------------------------------------------------------------------------- */
