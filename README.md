@@ -9,6 +9,10 @@
 
 **The world's most complete functional programming library for C, achieving 100% equivalence with Haskell, Lisp, and ML while delivering assembly-level performance.**
 
+> 📌 **Language Standard Policy**
+>
+> The project is currently standardized on **C99** (`-std=c99`) to match the language features used throughout the codebase. As part of the published roadmap, we intend to migrate to **C11** in the next major update cycle (target: ~12 months) in order to adopt the standard threading and atomic primitives once the parallel execution features land.
+
 ## 🎉 MILESTONE: 120 Functions Complete! (Nov 2025)
 
 **100% Type Coverage Achieved!** All **120 hand-optimized AVX2 assembly functions** are now complete across **10 numeric types** (i64, f64, i32, f32, u32, u64, i16, u16, i8, u8). This represents:
