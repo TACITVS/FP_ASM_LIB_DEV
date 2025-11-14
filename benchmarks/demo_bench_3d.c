@@ -85,17 +85,12 @@ static void fill_vectors(Vec3f* vecs, size_t n, float ax, float ay, float az) {
     }
 }
 
-static bool nearly_equal(float ref, float got, float tol) {
-    const float diff = fabsf(ref - got);
-    const float scale = fmaxf(fabsf(ref), fmaxf(fabsf(got), 1.0f));
-    return diff <= tol * scale;
-}
-
 static bool vec3_arrays_match(const Vec3f* a, const Vec3f* b, size_t n, float tol) {
     for (size_t i = 0; i < n; ++i) {
-        if (!nearly_equal(a[i].x, b[i].x, tol) ||
-            !nearly_equal(a[i].y, b[i].y, tol) ||
-            !nearly_equal(a[i].z, b[i].z, tol)) {
+        const float dx = fabsf(a[i].x - b[i].x);
+        const float dy = fabsf(a[i].y - b[i].y);
+        const float dz = fabsf(a[i].z - b[i].z);
+        if (dx > tol || dy > tol || dz > tol) {
             return false;
         }
     }
@@ -103,7 +98,7 @@ static bool vec3_arrays_match(const Vec3f* a, const Vec3f* b, size_t n, float to
 }
 
 static void ensure_vec3_equal(const Vec3f* ref, const Vec3f* got, size_t n, const char* label) {
-    if (!vec3_arrays_match(ref, got, n, 5e-5f)) {
+    if (!vec3_arrays_match(ref, got, n, 1e-5f)) {
         fprintf(stderr, "%s verification failed.\n", label);
         exit(EXIT_FAILURE);
     }
@@ -148,7 +143,7 @@ int main(int argc, char** argv) {
 
     const float ref_fold = ref_fold_vec3_dot_f32(src_a, src_b, n);
     const float fp_fold = fp_fold_vec3_dot_f32(src_a, src_b, n);
-    if (!nearly_equal(ref_fold, fp_fold, 5e-4f)) {
+    if (fabsf(ref_fold - fp_fold) > 1e-4f) {
         fprintf(stderr, "Dot product verification failed: %.6f vs %.6f\n", ref_fold, fp_fold);
         exit(EXIT_FAILURE);
     }
