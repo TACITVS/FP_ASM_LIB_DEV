@@ -34,19 +34,31 @@ static void transform_to_matrix(const Transform* transform, Mat4f* out_matrix) {
 
     float* m = out_matrix->m;
 
-    m[0] = 1.0f - (yy + zz);
-    m[1] = xy + wz;
-    m[2] = xz - wy;
+    const float m00 = 1.0f - (yy + zz);
+    const float m01 = xy + wz;
+    const float m02 = xz - wy;
+
+    const float m10 = xy - wz;
+    const float m11 = 1.0f - (xx + zz);
+    const float m12 = yz + wx;
+
+    const float m20 = xz + wy;
+    const float m21 = yz - wx;
+    const float m22 = 1.0f - (xx + yy);
+
+    m[0] = m00;
+    m[1] = m10;
+    m[2] = m20;
     m[3] = 0.0f;
 
-    m[4] = xy - wz;
-    m[5] = 1.0f - (xx + zz);
-    m[6] = yz + wx;
+    m[4] = m01;
+    m[5] = m11;
+    m[6] = m21;
     m[7] = 0.0f;
 
-    m[8] = xz + wy;
-    m[9] = yz - wx;
-    m[10] = 1.0f - (xx + yy);
+    m[8] = m02;
+    m[9] = m12;
+    m[10] = m22;
     m[11] = 0.0f;
 
     m[12] = position->x;
