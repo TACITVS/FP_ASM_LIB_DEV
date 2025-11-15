@@ -258,7 +258,7 @@ void fp_rolling_sum_f64_optimized(
     double* output
 ) {
     // Use sliding window trick: sum[i+1] = sum[i] - data[i] + data[i+window]
-    // Like fp_sma_f64 from Algorithm #6!
+    // Like fp_map_sma_f64 from Algorithm #6!
 }
 ```
 

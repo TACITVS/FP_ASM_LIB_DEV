@@ -50,7 +50,7 @@ void benchmark_sum() {
     start = clock();
     for (int iter = 0; iter < ITERATIONS; iter++) {
         int64_t result = 0;
-        fp_foldl_generic(data, N, sizeof(int64_t), &result, generic_sum_i64, NULL);
+        fp_fold_left_generic(data, N, sizeof(int64_t), &result, generic_sum_i64, NULL);
         sink = result;
     }
     end = clock();
@@ -114,7 +114,7 @@ void benchmark_map() {
     /* Test 2: Generic map (pure C with function pointer) */
     start = clock();
     for (int iter = 0; iter < ITERATIONS; iter++) {
-        fp_map_generic(input, output, N, sizeof(int64_t), sizeof(int64_t),
+        fp_map_apply_generic(input, output, N, sizeof(int64_t), sizeof(int64_t),
                        generic_square_i64, NULL);
     }
     end = clock();
@@ -166,7 +166,7 @@ void benchmark_filter() {
     /* Test 2: Generic filter */
     start = clock();
     for (int iter = 0; iter < ITERATIONS; iter++) {
-        fp_filter_generic(input, output, N, sizeof(int64_t),
+        fp_filter_predicate_generic(input, output, N, sizeof(int64_t),
                           generic_filter_gt_i64, &threshold);
     }
     end = clock();

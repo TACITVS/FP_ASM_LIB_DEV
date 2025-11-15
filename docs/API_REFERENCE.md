@@ -1402,11 +1402,11 @@ Operations that select or split elements based on predicates.
 
 ---
 
-## fp_filter_i64
+## fp_filter_predicate_i64
 
 **Signature**:
 ```c
-size_t fp_filter_i64(const int64_t* input, int64_t* output, size_t n,
+size_t fp_filter_predicate_i64(const int64_t* input, int64_t* output, size_t n,
                      bool (*predicate)(int64_t));
 ```
 
@@ -1446,7 +1446,7 @@ bool is_positive(int64_t x) { return x > 0; }
 
 int64_t input[] = {-3, 5, -1, 8, 0, 2};
 int64_t output[6];
-size_t count = fp_filter_i64(input, output, 6, is_positive);
+size_t count = fp_filter_predicate_i64(input, output, 6, is_positive);
 // output = [5, 8, 2], count = 3
 ```
 
@@ -1456,16 +1456,16 @@ size_t count = fp_filter_i64(input, output, 6, is_positive);
 - Conditional sampling
 
 **See Also**:
-- `fp_filter_f64` - Double version
+- `fp_filter_predicate_f64` - Double version
 - `fp_partition_i64` - Split into matching/non-matching
 
 ---
 
-## fp_filter_f64
+## fp_filter_predicate_f64
 
 **Signature**:
 ```c
-size_t fp_filter_f64(const double* input, double* output, size_t n,
+size_t fp_filter_predicate_f64(const double* input, double* output, size_t n,
                      bool (*predicate)(double));
 ```
 
@@ -1494,7 +1494,7 @@ bool is_large(double x) { return x > 5.0; }
 
 double input[] = {3.5, 7.2, 2.1, 9.8, 4.3};
 double output[5];
-size_t count = fp_filter_f64(input, output, 5, is_large);
+size_t count = fp_filter_predicate_f64(input, output, 5, is_large);
 // output = [7.2, 9.8], count = 2
 ```
 
@@ -1504,7 +1504,7 @@ size_t count = fp_filter_f64(input, output, 5, is_large);
 - Data subsetting
 
 **See Also**:
-- `fp_filter_i64` - Integer version
+- `fp_filter_predicate_i64` - Integer version
 
 ---
 
@@ -1566,7 +1566,7 @@ size_t n_evens = fp_partition_i64(input, evens, odds, 6, is_even);
 - Two-way split for parallel processing
 
 **See Also**:
-- `fp_filter_i64` - Single output filter
+- `fp_filter_predicate_i64` - Single output filter
 
 ---
 

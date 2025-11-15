@@ -10,11 +10,11 @@
  *   reimplementing sliding window logic from scratch.
  *
  * Before (Monolithic):
- *   - fp_sma_f64: 120 lines of assembly reimplementing rolling sum
+ *   - fp_map_sma_f64: 120 lines of assembly reimplementing rolling sum
  *   - Code duplication, hard to maintain
  *
  * After (Composition):
- *   - fp_sma_f64: 1-line wrapper to fp_rolling_mean_f64_optimized
+ *   - fp_map_sma_f64: 1-line wrapper to fp_rolling_mean_f64_optimized
  *   - Reuses battle-tested O(1) sliding window optimization
  *   - 99.2% code reduction!
  */
@@ -37,7 +37,7 @@
  * After:  1 line of composition
  */
 
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // ONE LINE!
 }
 
@@ -57,7 +57,7 @@ void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
  * Status: ✅ NOT A VIOLATION (specialized algorithm)
  */
 
-void fp_ema_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_ema_f64(const double* data, size_t n, size_t window, double* output) {
     if (n == 0 || window == 0) return;
 
     // Smoothing factor
@@ -99,7 +99,7 @@ void fp_ema_f64(const double* data, size_t n, size_t window, double* output) {
  * Status: ⚠️ KEEP SPECIALIZED FOR NOW (optimization candidate)
  */
 
-void fp_wma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_wma_f64(const double* data, size_t n, size_t window, double* output) {
     if (n < window || window == 0) return;
 
     size_t out_size = n - window + 1;

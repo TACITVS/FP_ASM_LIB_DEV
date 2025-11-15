@@ -83,25 +83,25 @@ The generic type system enables:
 
 ```c
 /* Generic fold left (reduce) */
-void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
+void fp_fold_left_generic(const void* input, size_t n, size_t elem_size,
                       void* acc,
                       void (*fn)(void* acc, const void* elem, void* ctx),
                       void* context);
 
 /* Generic map (transform) */
-void fp_map_generic(const void* input, void* output, size_t n,
+void fp_map_apply_generic(const void* input, void* output, size_t n,
                     size_t in_size, size_t out_size,
                     void (*fn)(void* out, const void* in, void* ctx),
                     void* context);
 
 /* Generic filter (select) */
-size_t fp_filter_generic(const void* input, void* output, size_t n,
+size_t fp_filter_predicate_generic(const void* input, void* output, size_t n,
                          size_t elem_size,
                          bool (*predicate)(const void* elem, void* ctx),
                          void* context);
 
 /* Generic zipWith (combine two arrays) */
-void fp_zipWith_generic(const void* input_a, const void* input_b, void* output, size_t n,
+void fp_zip_apply_generic(const void* input_a, const void* input_b, void* output, size_t n,
                         size_t size_a, size_t size_b, size_t size_c,
                         void (*fn)(void* out, const void* a, const void* b, void* ctx),
                         void* context);
@@ -288,7 +288,7 @@ int main() {
     };
     double total = 0.0;
 
-    fp_foldl_generic(students, 3, sizeof(Student), &total, sum_scores, NULL);
+    fp_fold_left_generic(students, 3, sizeof(Student), &total, sum_scores, NULL);
 
     /* total = 255.8 */
 }
@@ -337,7 +337,7 @@ int main() {
 
     Employee employees[2];
 
-    fp_zipWith_generic(persons, jobs, employees, 2,
+    fp_zip_apply_generic(persons, jobs, employees, 2,
                        sizeof(Person), sizeof(Job), sizeof(Employee),
                        join_person_job, NULL);
 
@@ -468,10 +468,10 @@ FP_QUICKSORT(int, data, sorted2, 5, compare_ints, NULL);
 
 | Operation | Time Complexity | Space Complexity | Notes |
 |-----------|----------------|------------------|-------|
-| `fp_foldl_generic` | O(n) | O(1) | Single pass |
-| `fp_map_generic` | O(n) | O(n) | Output buffer |
-| `fp_filter_generic` | O(n) | O(n) | Worst case: all pass |
-| `fp_zipWith_generic` | O(n) | O(n) | Output buffer |
+| `fp_fold_left_generic` | O(n) | O(1) | Single pass |
+| `fp_map_apply_generic` | O(n) | O(n) | Output buffer |
+| `fp_filter_predicate_generic` | O(n) | O(n) | Worst case: all pass |
+| `fp_zip_apply_generic` | O(n) | O(n) | Output buffer |
 | `fp_quicksort_generic` | O(n log n) avg, O(n²) worst | O(log n) stack | In-place after copy |
 | `fp_mergesort_generic` | O(n log n) guaranteed | O(n) | Requires temp buffer |
 | `fp_partition_generic` | O(n) | O(n) | Two output buffers |
@@ -537,10 +537,10 @@ Result: PASSED ✓
     fp_quicksort_generic((input), (output), (n), sizeof(TYPE), (cmp), (ctx))
 
 #define FP_MAP(IN_TYPE, OUT_TYPE, input, output, n, fn, ctx) \
-    fp_map_generic((input), (output), (n), sizeof(IN_TYPE), sizeof(OUT_TYPE), (fn), (ctx))
+    fp_map_apply_generic((input), (output), (n), sizeof(IN_TYPE), sizeof(OUT_TYPE), (fn), (ctx))
 
 #define FP_FILTER(TYPE, input, output, n, pred, ctx) \
-    fp_filter_generic((input), (output), (n), sizeof(TYPE), (pred), (ctx))
+    fp_filter_predicate_generic((input), (output), (n), sizeof(TYPE), (pred), (ctx))
 
 #define FP_REVERSE(TYPE, input, output, n) \
     fp_reverse_generic((input), (output), (n), sizeof(TYPE))

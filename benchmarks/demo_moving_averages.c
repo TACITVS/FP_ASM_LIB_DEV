@@ -90,7 +90,7 @@ int test_sma_basic(void) {
     double output_asm[4];
     double output_c[4];
 
-    fp_sma_f64(data, n, window, output_asm);
+    fp_map_sma_f64(data, n, window, output_asm);
     sma_baseline(data, n, window, output_c);
 
     printf("Input: [10, 20, 30, 40, 50, 60], window=3\n");
@@ -123,7 +123,7 @@ int test_ema_responsiveness(void) {
     double output_asm[6];
     double output_c[6];
 
-    fp_ema_f64(data, n, window, output_asm);
+    fp_map_ema_f64(data, n, window, output_asm);
     ema_baseline(data, n, window, output_c);
 
     printf("Input: [100, 100, 100, 110, 110, 110], window=3\n");
@@ -160,7 +160,7 @@ int test_wma_weighting(void) {
     double output_asm[3];
     double output_c[3];
 
-    fp_wma_f64(data, n, window, output_asm);
+    fp_map_wma_f64(data, n, window, output_asm);
     wma_baseline(data, n, window, output_c);
 
     printf("Input: [1, 2, 3, 4, 5], window=3\n");
@@ -212,8 +212,8 @@ void scenario_stock_trend_analysis(void) {
     double sma_short[20];
     double sma_long[20];
 
-    fp_sma_f64(prices, n, short_window, sma_short);
-    fp_sma_f64(prices, n, long_window, sma_long);
+    fp_map_sma_f64(prices, n, short_window, sma_short);
+    fp_map_sma_f64(prices, n, long_window, sma_long);
 
     printf("Day | Price  | SMA-5  | SMA-10 | Signal\n");
     printf("----+--------+--------+--------+------------------\n");
@@ -266,8 +266,8 @@ void scenario_trading_signal_ema(void) {
     double ema_fast[15];
     double ema_slow[15];
 
-    fp_ema_f64(prices, n, fast_window, ema_fast);
-    fp_ema_f64(prices, n, slow_window, ema_slow);
+    fp_map_ema_f64(prices, n, fast_window, ema_fast);
+    fp_map_ema_f64(prices, n, slow_window, ema_slow);
 
     printf("Period | Price    | EMA-5    | EMA-10   | Momentum\n");
     printf("-------+----------+----------+----------+--------------\n");
@@ -313,9 +313,9 @@ void scenario_volatility_comparison(void) {
     double ema[10];
     double wma[10];
 
-    fp_sma_f64(prices, n, window, sma);
-    fp_ema_f64(prices, n, window, ema);
-    fp_wma_f64(prices, n, window, wma);
+    fp_map_sma_f64(prices, n, window, sma);
+    fp_map_ema_f64(prices, n, window, ema);
+    fp_map_wma_f64(prices, n, window, wma);
 
     printf("Day | Price  | SMA-5  | EMA-5  | WMA-5  |\n");
     printf("----+--------+--------+--------+--------+\n");
@@ -356,14 +356,14 @@ void benchmark_sma(size_t n, int iterations) {
     }
 
     // Warmup
-    fp_sma_f64(data, n, window, output);
+    fp_map_sma_f64(data, n, window, output);
     sma_baseline(data, n, window, output);
     sma_baseline_naive(data, n, window, output);
 
     // Benchmark assembly
     clock_t start = clock();
     for (int i = 0; i < iterations; i++) {
-        fp_sma_f64(data, n, window, output);
+        fp_map_sma_f64(data, n, window, output);
     }
     clock_t end = clock();
     double time_asm = (double)(end - start) / CLOCKS_PER_SEC;
@@ -408,13 +408,13 @@ void benchmark_ema(size_t n, int iterations) {
     }
 
     // Warmup
-    fp_ema_f64(data, n, window, output);
+    fp_map_ema_f64(data, n, window, output);
     ema_baseline(data, n, window, output);
 
     // Benchmark assembly
     clock_t start = clock();
     for (int i = 0; i < iterations; i++) {
-        fp_ema_f64(data, n, window, output);
+        fp_map_ema_f64(data, n, window, output);
     }
     clock_t end = clock();
     double time_asm = (double)(end - start) / CLOCKS_PER_SEC;
@@ -449,13 +449,13 @@ void benchmark_wma(size_t n, int iterations) {
     }
 
     // Warmup
-    fp_wma_f64(data, n, window, output);
+    fp_map_wma_f64(data, n, window, output);
     wma_baseline(data, n, window, output);
 
     // Benchmark assembly
     clock_t start = clock();
     for (int i = 0; i < iterations; i++) {
-        fp_wma_f64(data, n, window, output);
+        fp_map_wma_f64(data, n, window, output);
     }
     clock_t end = clock();
     double time_asm = (double)(end - start) / CLOCKS_PER_SEC;

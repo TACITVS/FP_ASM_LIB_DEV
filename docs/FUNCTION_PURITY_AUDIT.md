@@ -248,27 +248,27 @@ size_t fp_detect_outliers_iqr_f64(const double* sorted_data, size_t n,
 
 ### Algorithm #6: Moving Averages
 
-#### ⚠️ `fp_sma_f64` - **DESIGN ISSUE**
+#### ⚠️ `fp_map_sma_f64` - **DESIGN ISSUE**
 ```c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output);
 ```
 - **Input**: `const` (immutable) ✅
 - **Output**: Array pointer (caller-allocated) ⚠️
 - **Mutation**: Fills output array (acceptable in C) ⚠️
 - **Purity**: **QUASI-PURE** ⚠️
 
-#### ⚠️ `fp_ema_f64` - **DESIGN ISSUE**
+#### ⚠️ `fp_map_ema_f64` - **DESIGN ISSUE**
 ```c
-void fp_ema_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_ema_f64(const double* data, size_t n, size_t window, double* output);
 ```
 - **Input**: `const` (immutable) ✅
 - **Output**: Array pointer (caller-allocated) ⚠️
 - **Mutation**: Fills output array (acceptable in C) ⚠️
 - **Purity**: **QUASI-PURE** ⚠️
 
-#### ⚠️ `fp_wma_f64` - **DESIGN ISSUE**
+#### ⚠️ `fp_map_wma_f64` - **DESIGN ISSUE**
 ```c
-void fp_wma_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_wma_f64(const double* data, size_t n, size_t window, double* output);
 ```
 - **Input**: `const` (immutable) ✅
 - **Output**: Array pointer (caller-allocated) ⚠️
@@ -383,7 +383,7 @@ LinearRegression result = fp_linear_regression_f64(x, y, n);  // Direct return
 
 **Current Pattern (Acceptable)**:
 ```c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output);
 ```
 
 **Analysis**:
@@ -403,7 +403,7 @@ void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
 **Document clearly**:
 ```c
 /**
- * fp_sma_f64 - Simple Moving Average
+ * fp_map_sma_f64 - Simple Moving Average
  *
  * @param data   Input array (NEVER modified, guaranteed immutable)
  * @param n      Number of input elements
@@ -413,7 +413,7 @@ void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
  * PURITY: Input data is never modified. Output parameter is caller-owned.
  * THREAD-SAFETY: Safe if output buffers don't overlap between threads.
  */
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output);
 ```
 
 ---
@@ -480,7 +480,7 @@ LinearRegression fp_linear_regression_f64(const double* x,
  * Output: Caller-allocated buffer.
  * Thread-safe: Yes (if output buffers are distinct).
  */
-void fp_sma_f64(const double* data, size_t n,
+void fp_map_sma_f64(const double* data, size_t n,
                 size_t window, double* output);
 ```
 

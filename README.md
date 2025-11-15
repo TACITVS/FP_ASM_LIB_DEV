@@ -60,7 +60,7 @@ int64_t sum = fp_reduce_add_i64(data, 5);  // Result: 15
 int64_t product_fn(int64_t acc, int64_t x, void* ctx) {
     return acc * x;
 }
-int64_t product = fp_foldl_i64(data, 5, 1, product_fn, NULL);  // Result: 120
+int64_t product = fp_fold_left_i64(data, 5, 1, product_fn, NULL);  // Result: 120
 ```
 
 ### Example: Statistical Analysis
@@ -81,7 +81,7 @@ printf("Trend: %.2f per day, R²: %.3f\n", model.slope, model.r_squared);
 
 // Moving averages
 double sma[3];
-fp_sma_f64(prices, 5, 3, sma);  // 3-day simple moving average
+fp_map_sma_f64(prices, 5, 3, sma);  // 3-day simple moving average
 ```
 
 ---
@@ -92,10 +92,10 @@ fp_sma_f64(prices, 5, 3, sma);  // 3-day simple moving average
 
 **General Higher-Order Functions:**
 ```c
-fp_foldl_i64/f64      // Haskell: foldl
-fp_map_i64/f64        // Haskell: map
-fp_filter_i64/f64     // Haskell: filter
-fp_zipWith_i64/f64    // Haskell: zipWith
+fp_fold_left_i64/f64      // Haskell: foldl
+fp_map_apply_i64/f64        // Haskell: map
+fp_filter_predicate_i64/f64     // Haskell: filter
+fp_zip_apply_i64/f64    // Haskell: zipWith
 ```
 
 **Specialized Optimized Functions:**
@@ -115,7 +115,7 @@ fp_correlation_f64()           // Pearson correlation coefficient
 fp_linear_regression_f64()     // Slope, intercept, R², std error
 fp_quartiles_f64()             // Q1, median, Q3, IQR
 fp_detect_outliers_zscore_f64() // Z-score outlier detection
-fp_sma_f64(), fp_ema_f64()     // Moving averages for time series
+fp_map_sma_f64(), fp_map_ema_f64()     // Moving averages for time series
 ```
 
 ### 3. Performance Benchmarks
@@ -145,7 +145,7 @@ fp_asm_lib_dev provides **BOTH** approaches for maximum flexibility:
 - **Example**:
   ```c
   bool is_even(int64_t x, void* ctx) { return x % 2 == 0; }
-  size_t count = fp_filter_i64(data, output, n, is_even, NULL);
+  size_t count = fp_filter_predicate_i64(data, output, n, is_even, NULL);
   ```
 
 #### Layer 2: Specialized Optimized Functions

@@ -292,7 +292,7 @@ void test_foldl_sum_field() {
     double total = 0.0;
 
     /* Sum all scores using generic foldl */
-    fp_foldl_generic(students, n, sizeof(Student), &total, sum_scores, NULL);
+    fp_fold_left_generic(students, n, sizeof(Student), &total, sum_scores, NULL);
 
     printf("Total score: %.1f\n", total);
 
@@ -356,7 +356,7 @@ void test_zipwith_join() {
     size_t n = 3;
 
     /* Join persons and jobs into employees */
-    fp_zipWith_generic(persons, jobs, employees, n,
+    fp_zip_apply_generic(persons, jobs, employees, n,
                        sizeof(Person), sizeof(Job), sizeof(Employee),
                        join_person_job, NULL);
 

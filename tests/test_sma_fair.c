@@ -33,13 +33,13 @@ int main(void) {
     }
 
     // Warmup
-    fp_sma_f64(data, n, window, output);
+    fp_map_sma_f64(data, n, window, output);
     sma_c_optimized(data, n, window, output);
 
     // Benchmark ASM
     clock_t start = clock();
     for (int i = 0; i < iterations; i++) {
-        fp_sma_f64(data, n, window, output);
+        fp_map_sma_f64(data, n, window, output);
     }
     clock_t end = clock();
     double time_asm = (double)(end - start) / CLOCKS_PER_SEC;

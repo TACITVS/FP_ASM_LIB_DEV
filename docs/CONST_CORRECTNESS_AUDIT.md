@@ -212,9 +212,9 @@
 
 | Function | Signature | Status |
 |----------|-----------|--------|
-| `fp_sma_f64` | `(const double* data, size_t n, size_t window, double* output)` | ✅ CORRECT |
-| `fp_ema_f64` | `(const double* data, size_t n, size_t window, double* output)` | ✅ CORRECT |
-| `fp_wma_f64` | `(const double* data, size_t n, size_t window, double* output)` | ✅ CORRECT |
+| `fp_map_sma_f64` | `(const double* data, size_t n, size_t window, double* output)` | ✅ CORRECT |
+| `fp_map_ema_f64` | `(const double* data, size_t n, size_t window, double* output)` | ✅ CORRECT |
+| `fp_map_wma_f64` | `(const double* data, size_t n, size_t window, double* output)` | ✅ CORRECT |
 
 **Analysis:** Input data const, output array non-const. Perfect.
 

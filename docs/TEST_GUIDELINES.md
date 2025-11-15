@@ -12,7 +12,7 @@
 
 ```c
 // Assembly: O(n) optimized sliding window
-void fp_sma_f64(data, n, window, output) {
+void fp_map_sma_f64(data, n, window, output) {
     // Compute initial sum once
     // Then slide: sum = sum - oldest + newest
 }
@@ -37,7 +37,7 @@ void sma_baseline(data, n, window, output) {
 
 ```c
 // Assembly: O(n) optimized sliding window
-void fp_sma_f64(data, n, window, output) {
+void fp_map_sma_f64(data, n, window, output) {
     // Compute initial sum once
     // Then slide: sum = sum - oldest + newest
 }
@@ -560,7 +560,7 @@ for (each position) {
 
 ```c
 // Assembly: O(n) sliding window
-void fp_sma_f64(...) { /* sliding window */ }
+void fp_map_sma_f64(...) { /* sliding window */ }
 
 // C: O(n*window) naive
 void sma_baseline(...) {
@@ -578,7 +578,7 @@ Result: 667x speedup ← WRONG! Mostly algorithmic.
 
 ```c
 // Assembly: O(n) sliding window
-void fp_sma_f64(...) { /* sliding window */ }
+void fp_map_sma_f64(...) { /* sliding window */ }
 
 // C: O(n) sliding window
 void sma_baseline(...) {

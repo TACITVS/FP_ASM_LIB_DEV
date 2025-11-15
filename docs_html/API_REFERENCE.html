@@ -1692,10 +1692,10 @@ Operations that select or split elements based on predicates.
 
 <hr>
 
-<h2>fp_filter_i64</h2>
+<h2>fp_filter_predicate_i64</h2>
 
 <strong>Signature</strong>:
-<pre><code>size_t fp_filter_i64(const int64_t<em> input, int64_t</em> output, size_t n,
+<pre><code>size_t fp_filter_predicate_i64(const int64_t<em> input, int64_t</em> output, size_t n,
                      bool (*predicate)(int64_t));
 </code></pre>
 
@@ -1733,7 +1733,7 @@ Output must have space for n elements (worst case: all match).
 
 int64_t input[] = {-3, 5, -1, 8, 0, 2};
 int64_t output[6];
-size_t count = fp_filter_i64(input, output, 6, is_positive);
+size_t count = fp_filter_predicate_i64(input, output, 6, is_positive);
 // output = [5, 8, 2], count = 3
 </code></pre>
 
@@ -1743,15 +1743,15 @@ size_t count = fp_filter_i64(input, output, 6, is_positive);
 <li>Conditional sampling</li>
 
 <strong>See Also</strong>:
-<li><code>fp_filter_f64</code> - Double version</li>
+<li><code>fp_filter_predicate_f64</code> - Double version</li>
 <li><code>fp_partition_i64</code> - Split into matching/non-matching</li>
 
 <hr>
 
-<h2>fp_filter_f64</h2>
+<h2>fp_filter_predicate_f64</h2>
 
 <strong>Signature</strong>:
-<pre><code>size_t fp_filter_f64(const double<em> input, double</em> output, size_t n,
+<pre><code>size_t fp_filter_predicate_f64(const double<em> input, double</em> output, size_t n,
                      bool (*predicate)(double));
 </code></pre>
 
@@ -1779,7 +1779,7 @@ Sequential scan with conditional copy.
 
 double input[] = {3.5, 7.2, 2.1, 9.8, 4.3};
 double output[5];
-size_t count = fp_filter_f64(input, output, 5, is_large);
+size_t count = fp_filter_predicate_f64(input, output, 5, is_large);
 // output = [7.2, 9.8], count = 2
 </code></pre>
 
@@ -1789,7 +1789,7 @@ size_t count = fp_filter_f64(input, output, 5, is_large);
 <li>Data subsetting</li>
 
 <strong>See Also</strong>:
-<li><code>fp_filter_i64</code> - Integer version</li>
+<li><code>fp_filter_predicate_i64</code> - Integer version</li>
 
 <hr>
 
@@ -1848,7 +1848,7 @@ size_t n_evens = fp_partition_i64(input, evens, odds, 6, is_even);
 <li>Two-way split for parallel processing</li>
 
 <strong>See Also</strong>:
-<li><code>fp_filter_i64</code> - Single output filter</li>
+<li><code>fp_filter_predicate_i64</code> - Single output filter</li>
 
 <hr>
 

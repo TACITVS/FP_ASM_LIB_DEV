@@ -59,7 +59,7 @@ Starting from 40% completeness (10 basic operations), we have systematically imp
 
 #### **Module 7: Compaction - Part of TIER 1** (4 functions)
 
-- `fp_filter_i64/f64` - Select elements by predicate
+- `fp_filter_predicate_i64/f64` - Select elements by predicate
 - `fp_partition_i64` - Split by predicate
 
 #### **Module 8: Essentials - TIER 1** (11 functions)
@@ -526,7 +526,7 @@ int main() {
 
     // 3. Filtering
     int64_t evens[5];
-    size_t n = fp_filter_i64(data, evens, 5, is_even);
+    size_t n = fp_filter_predicate_i64(data, evens, 5, is_even);
 
     // 4. Grouping
     int64_t input[] = {1,1,2,2,2,3};

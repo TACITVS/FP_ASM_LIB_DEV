@@ -49,7 +49,7 @@ Let me be completely transparent about this.
 === SUM (1M elements, 100 iterations) ===
 Specialized assembly (fp_reduce_add_i64):  0.055s  [BASELINE]
 Naive C loop:                              0.100s  (1.8x slower)
-Generic C (fp_foldl_generic):              0.120s  (2.2x slower) ⚠️
+Generic C (fp_fold_left_generic):              0.120s  (2.2x slower) ⚠️
 
 === QUICKSORT (100K elements, 10 iterations) ===
 Standard C qsort:                          0.450s  [BASELINE, but MUTATES]
@@ -184,8 +184,8 @@ FP_QUICKSORT(Employee, employees, sorted, 500, complex_compare, &ctx);
 │  Performance: ~1.0x vs gcc -O3 (maybe slower)              │
 │  Use: Non-numeric types, flexibility, small arrays         │
 │                                                             │
-│  - fp_foldl_generic, fp_map_generic                        │
-│  - fp_filter_generic, fp_zipWith_generic                   │
+│  - fp_fold_left_generic, fp_map_apply_generic                        │
+│  - fp_filter_predicate_generic, fp_zip_apply_generic                   │
 │  - fp_quicksort_generic, fp_mergesort_generic              │
 │  - fp_partition_generic, fp_reverse_generic                │
 │                                                             │

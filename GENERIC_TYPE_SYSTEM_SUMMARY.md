@@ -86,7 +86,7 @@ FP_MAP(Student, double, students, scores, n, extract_score, NULL);
 FP_FILTER(Student, students, filtered, n, predicate, &context);
 
 /* Sum field in struct array */
-fp_foldl_generic(students, n, sizeof(Student), &total, sum_scores, NULL);
+fp_fold_left_generic(students, n, sizeof(Student), &total, sum_scores, NULL);
 ```
 
 ### 3. Functional Composition
@@ -315,9 +315,9 @@ void* context;  /* User can pass threshold, options, etc. */
 
 ### Zero-Heap for HOFs (Mostly)
 
-- `fp_map_generic` - Zero heap, user provides output buffer
-- `fp_filter_generic` - Zero heap, user provides output buffer
-- `fp_foldl_generic` - Zero heap, accumulator provided by user
+- `fp_map_apply_generic` - Zero heap, user provides output buffer
+- `fp_filter_predicate_generic` - Zero heap, user provides output buffer
+- `fp_fold_left_generic` - Zero heap, accumulator provided by user
 - `fp_quicksort_generic` - Single malloc (size = one element) for temp swap buffer
 - `fp_mergesort_generic` - User provides temp buffer (zero heap!)
 
@@ -327,10 +327,10 @@ void* context;  /* User can pass threshold, options, etc. */
 
 ### Category 12: Generic Higher-Order Functions
 
-- `fp_foldl_generic` - Generic fold left (reduce)
-- `fp_map_generic` - Generic map (transform)
-- `fp_filter_generic` - Generic filter (select)
-- `fp_zipWith_generic` - Generic zipWith (combine)
+- `fp_fold_left_generic` - Generic fold left (reduce)
+- `fp_map_apply_generic` - Generic map (transform)
+- `fp_filter_predicate_generic` - Generic filter (select)
+- `fp_zip_apply_generic` - Generic zipWith (combine)
 
 ### Category 13: Generic Sorting
 

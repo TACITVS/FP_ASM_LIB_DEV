@@ -31,9 +31,9 @@ This audit examines all assembly modules in the FP-ASM library to identify viola
 **Status:** ❌ CRITICAL VIOLATION
 
 **Lines of Code:** 308 lines total
-- `fp_sma_f64`: ~120 lines
-- `fp_ema_f64`: ~80 lines
-- `fp_wma_f64`: ~90 lines
+- `fp_map_sma_f64`: ~120 lines
+- `fp_map_ema_f64`: ~80 lines
+- `fp_map_wma_f64`: ~90 lines
 
 ### Current Approach: Monolithic
 
@@ -74,7 +74,7 @@ SMA[i] = (sum of window elements) / window_size
 
 **C Wrapper (should be 1-2 lines!):**
 ```c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // ONE LINE!
 }
 ```
@@ -609,7 +609,7 @@ void fp_rolling_variance_f64(const double* data, size_t n, size_t window, double
 
 | Module | Function | Violation | LOC | Impact |
 |--------|----------|-----------|-----|--------|
-| fp_core_moving_averages.asm | `fp_sma_f64` | Reimplements rolling_sum logic | 120 | Can reduce to 1-line wrapper |
+| fp_core_moving_averages.asm | `fp_map_sma_f64` | Reimplements rolling_sum logic | 120 | Can reduce to 1-line wrapper |
 
 ### High Priority (Fix in Next Sprint)
 
@@ -696,7 +696,7 @@ free(temp);
 
 ```c
 // Thin wrapper around optimized composition
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);
 }
 ```
@@ -712,7 +712,7 @@ void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
 
 ### Immediate Actions (This Week)
 
-1. **Refactor `fp_sma_f64`** (CRITICAL)
+1. **Refactor `fp_map_sma_f64`** (CRITICAL)
    - Replace 120-line assembly with 1-line wrapper to `fp_rolling_mean_f64_optimized`
    - Verify benchmarks show equivalent performance
    - Update documentation

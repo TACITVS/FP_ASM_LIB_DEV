@@ -239,7 +239,7 @@ int main() {
     size_t n = 7;
 
     // Filter for positive numbers
-    size_t count = fp_filter_i64(data, positive, n, is_positive);
+    size_t count = fp_filter_predicate_i64(data, positive, n, is_positive);
 
     printf("Original: ");
     for (size_t i = 0; i < n; i++) printf("%lld ", data[i]);
@@ -660,7 +660,7 @@ size_t unique_count = fp_unique_i64(data, unique, n);
 ```c
 // Worst case: all elements match
 int64_t filtered[n];
-size_t count = fp_filter_i64(input, filtered, n, predicate);
+size_t count = fp_filter_predicate_i64(input, filtered, n, predicate);
 // count ≤ n
 ```
 
@@ -685,7 +685,7 @@ Always allocate enough space for worst case!
 | **Dot product** | `fp_fold_dotp_*` | `dot = fp_fold_dotp_f64(a, b, n)` |
 | **Prefix sum** | `fp_scan_add_*` | `fp_scan_add_i64(in, out, n)` |
 | **Sort** | `fp_sort_*` | `fp_sort_f64(arr, n)` |
-| **Filter** | `fp_filter_*` | `n2 = fp_filter_i64(in, out, n, pred)` |
+| **Filter** | `fp_filter_*` | `n2 = fp_filter_predicate_i64(in, out, n, pred)` |
 | **Group** | `fp_group_*` | `ng = fp_group_i64(in, g, c, n)` |
 | **Range** | `fp_range_*` | `n = fp_range_i64(out, 0, 100)` |
 | **All true** | `fp_reduce_and_bool` | `ok = fp_reduce_and_bool(arr, n)` |

@@ -75,7 +75,7 @@ void benchmark_foldl_vs_reduce(int64_t* data, size_t n) {
     // Benchmark general foldl
     double start = get_time_ms();
     for (int iter = 0; iter < ITERATIONS; iter++) {
-        sink = fp_foldl_i64(data, n, 0, fold_sum, NULL);
+        sink = fp_fold_left_i64(data, n, 0, fold_sum, NULL);
     }
     double time_foldl = get_time_ms() - start;
 
@@ -98,7 +98,7 @@ void benchmark_map_vs_specialized(int64_t* data, int64_t* output, size_t n) {
     // Benchmark general map
     double start = get_time_ms();
     for (int iter = 0; iter < ITERATIONS; iter++) {
-        fp_map_i64(data, output, n, map_abs, NULL);
+        fp_map_apply_i64(data, output, n, map_abs, NULL);
     }
     double time_map = get_time_ms() - start;
 
@@ -123,7 +123,7 @@ void benchmark_filter_vs_specialized(int64_t* data, int64_t* output, size_t n) {
     // Benchmark general filter
     double start = get_time_ms();
     for (int iter = 0; iter < ITERATIONS; iter++) {
-        sink = fp_filter_i64(data, output, n, filter_gt_threshold, &ctx);
+        sink = fp_filter_predicate_i64(data, output, n, filter_gt_threshold, &ctx);
     }
     double time_filter = get_time_ms() - start;
 
@@ -146,7 +146,7 @@ void benchmark_zipWith_vs_specialized(int64_t* a, int64_t* b, int64_t* output, s
     // Benchmark general zipWith
     double start = get_time_ms();
     for (int iter = 0; iter < ITERATIONS; iter++) {
-        fp_zipWith_i64(a, b, output, n, zip_add, NULL);
+        fp_zip_apply_i64(a, b, output, n, zip_add, NULL);
     }
     double time_zipWith = get_time_ms() - start;
 
@@ -202,7 +202,7 @@ int main(void) {
     printf("  RECOMMENDATION:\n");
     printf("    - Use specialized functions (fp_reduce_add, fp_map_abs, etc.)\n");
     printf("      for hot paths and performance-critical code\n");
-    printf("    - Use general HOFs (fp_foldl, fp_map, etc.) for edge cases,\n");
+    printf("    - Use general HOFs (fp_fold_left, fp_map_apply, etc.) for edge cases,\n");
     printf("      rapid prototyping, and when you need custom logic\n");
     printf("\n");
     printf("  FP-ASM provides BOTH approaches - you choose based on your needs!\n");

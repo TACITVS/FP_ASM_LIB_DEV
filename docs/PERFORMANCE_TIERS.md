@@ -118,7 +118,7 @@ FP_QUICKSORT(Student, students, sorted, 1000, compare_by_gpa_then_name, &options
 |---------------|------|------------------|
 | Specialized Assembly (`fp_reduce_add_i64`) | 0.055s | **1.8x** 🚀 |
 | Naive C loop | 0.100s | 1.0x (baseline) |
-| Generic C (`fp_foldl_generic`) | **0.120s** | **0.83x** 🐢 |
+| Generic C (`fp_fold_left_generic`) | **0.120s** | **0.83x** 🐢 |
 
 **Why generic is slower:**
 - Function pointer called 1,000,000 times (no inlining)
@@ -130,7 +130,7 @@ FP_QUICKSORT(Student, students, sorted, 1000, compare_by_gpa_then_name, &options
 | Implementation | Time | Notes |
 |---------------|------|-------|
 | Naive C loop | 0.080s | Compiler can optimize |
-| Generic C (`fp_map_generic`) | **0.105s** | Function pointer overhead |
+| Generic C (`fp_map_apply_generic`) | **0.105s** | Function pointer overhead |
 
 **Overhead:** ~30% slower due to function pointers
 
@@ -139,7 +139,7 @@ FP_QUICKSORT(Student, students, sorted, 1000, compare_by_gpa_then_name, &options
 | Implementation | Time | Notes |
 |---------------|------|-------|
 | Naive C loop | 0.090s | Simple conditional |
-| Generic C (`fp_filter_generic`) | **0.115s** | Function pointer + memcpy |
+| Generic C (`fp_filter_predicate_generic`) | **0.115s** | Function pointer + memcpy |
 
 **Overhead:** ~25% slower
 
@@ -258,13 +258,13 @@ double variance = fp_fold_sumsq_f64(salaries, count) / count - mean * mean;
 
 1. **Always use specialized functions first**
    ```c
-   int64_t sum = fp_reduce_add_i64(data, n);  /* NOT fp_foldl_generic! */
+   int64_t sum = fp_reduce_add_i64(data, n);  /* NOT fp_fold_left_generic! */
    ```
 
 2. **Only use generic if you need custom logic**
    ```c
    /* Custom weighted sum - no specialized function exists */
-   fp_foldl_i64(data, n, 0, weighted_sum_fn, &weights);
+   fp_fold_left_i64(data, n, 0, weighted_sum_fn, &weights);
    ```
 
 ### For Non-Numeric Types:

@@ -308,10 +308,10 @@ rsi period prices = map calc_rsi (windows period gains_losses)
 **C API**:
 ```c
 // Simple Moving Average
-void fp_sma_f64(const double* prices, size_t n, size_t period, double* sma);
+void fp_map_sma_f64(const double* prices, size_t n, size_t period, double* sma);
 
 // Exponential Moving Average
-void fp_ema_f64(const double* prices, size_t n, size_t period, double* ema);
+void fp_map_ema_f64(const double* prices, size_t n, size_t period, double* ema);
 
 // RSI (Relative Strength Index)
 void fp_rsi_f64(const double* prices, size_t n, size_t period, double* rsi);

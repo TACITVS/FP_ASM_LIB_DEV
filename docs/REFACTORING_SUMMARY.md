@@ -30,7 +30,7 @@ Successfully refactored **ALL 4** major composition violations in the FP-ASM lib
 - **Lines:** 1 line of composition
 - **Solution:**
 ```c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // Mathematical identity!
 }
 ```
