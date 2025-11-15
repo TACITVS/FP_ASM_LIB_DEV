@@ -24,6 +24,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .data
 align 32
 
@@ -35,34 +37,6 @@ identity_matrix:
     dd 0.0, 0.0, 0.0, 1.0    ; Column 3
 
 section .text
-
-%macro SAVE_YMM_REGS 0
-    sub  rsp, 320
-    vmovdqa [rsp + 0],    ymm6
-    vmovdqa [rsp + 32],   ymm7
-    vmovdqa [rsp + 64],   ymm8
-    vmovdqa [rsp + 96],   ymm9
-    vmovdqa [rsp + 128],  ymm10
-    vmovdqa [rsp + 160],  ymm11
-    vmovdqa [rsp + 192],  ymm12
-    vmovdqa [rsp + 224],  ymm13
-    vmovdqa [rsp + 256],  ymm14
-    vmovdqa [rsp + 288],  ymm15
-%endmacro
-
-%macro RESTORE_YMM_REGS 0
-    vmovdqa ymm6,  [rsp + 0]
-    vmovdqa ymm7,  [rsp + 32]
-    vmovdqa ymm8,  [rsp + 64]
-    vmovdqa ymm9,  [rsp + 96]
-    vmovdqa ymm10, [rsp + 128]
-    vmovdqa ymm11, [rsp + 160]
-    vmovdqa ymm12, [rsp + 192]
-    vmovdqa ymm13, [rsp + 224]
-    vmovdqa ymm14, [rsp + 256]
-    vmovdqa ymm15, [rsp + 288]
-    add rsp, 320
-%endmacro
 
 ; ==============================================================================
 ; fp_mat4_identity - Create 4x4 identity matrix
@@ -79,6 +53,7 @@ section .text
 
 global fp_mat4_identity
 fp_mat4_identity:
+    PROLOGUE
     ; Load identity matrix from aligned .data section
     vmovaps ymm0, [identity_matrix]      ; Load columns 0-1 (8 floats)
     vmovaps ymm1, [identity_matrix + 32] ; Load columns 2-3 (8 floats)
@@ -87,8 +62,7 @@ fp_mat4_identity:
     vmovups [rcx], ymm0
     vmovups [rcx + 32], ymm1
 
-    vzeroupper
-    ret
+    EPILOGUE
 
 ; ==============================================================================
 ; fp_mat4_mul - 4x4 Matrix Multiplication (AVX2 OPTIMIZED!)
@@ -120,11 +94,7 @@ fp_mat4_identity:
 
 global fp_mat4_mul
 fp_mat4_mul:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0    ; Align to 32 bytes
-    SAVE_YMM_REGS
+    PROLOGUE
 
     ; Load A columns (cache-friendly sequential access)
     vmovups xmm8,  [rdx]             ; A column 0
@@ -192,11 +162,7 @@ fp_mat4_mul:
 
     vmovups [rcx + 48], xmm15
 
-    RESTORE_YMM_REGS
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ==============================================================================
 ; fp_mat4_mul_vec3 - Transform 3D point by 4x4 matrix
@@ -225,11 +191,7 @@ fp_mat4_mul:
 
 global fp_mat4_mul_vec3
 fp_mat4_mul_vec3:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
-    SAVE_YMM_REGS
+    PROLOGUE
 
     ; Load vector (x, y, z, pad) - UNALIGNED (user memory)
     vmovups xmm0, [r8]               ; xmm0 = [x, y, z, pad]
@@ -258,11 +220,7 @@ fp_mat4_mul_vec3:
     ; Store result
     vmovups [rcx], xmm8              ; Store result (UNALIGNED)
 
-    RESTORE_YMM_REGS
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ==============================================================================
 ; fp_mat4_transpose - Transpose 4x4 matrix
@@ -288,11 +246,7 @@ fp_mat4_mul_vec3:
 
 global fp_mat4_transpose
 fp_mat4_transpose:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
-    SAVE_YMM_REGS
+    PROLOGUE
 
     ; Load matrix as 4 rows (which are columns in column-major layout)
     ; Use UNALIGNED loads - user matrices may not be 32-byte aligned!
@@ -350,11 +304,7 @@ fp_mat4_transpose:
     vmovups [rcx + 32], xmm0         ; Store column 2 (UNALIGNED)
     vmovups [rcx + 48], xmm3         ; Store column 3 (UNALIGNED)
 
-    RESTORE_YMM_REGS
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ==============================================================================
 ; fp_mat4_mul_vec3_batch - BATCHED Transform 3D points (WORLD-CLASS!)
@@ -383,11 +333,7 @@ fp_mat4_transpose:
 
 global fp_mat4_mul_vec3_batch
 fp_mat4_mul_vec3_batch:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
-    SAVE_YMM_REGS
+    PROLOGUE
 
     ; Early exit if count <= 0
     test r9d, r9d
@@ -431,8 +377,4 @@ fp_mat4_mul_vec3_batch:
     jnz .loop                        ; Loop while count > 0
 
 .done:
-    RESTORE_YMM_REGS
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
