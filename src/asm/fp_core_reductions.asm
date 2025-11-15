@@ -7,6 +7,8 @@
 ; =============================================================================
 default rel
 
+%include "macros.inc"
+
 section .rdata
     ALIGN 32
     NEG_INF_F64:
@@ -29,16 +31,7 @@ section .text
 ; (Unchanged - Performed great)
 ; =============================================================================
 fp_reduce_add_i64:
-    push r11
-    push r12
-    push r13
-    mov  r11, rsp
-    and  rsp, 0xFFFFFFFFFFFFFFE0
-    sub  rsp, 128
-    vmovdqa [rsp],     ymm6
-    vmovdqa [rsp+32],  ymm7
-    vmovdqa [rsp+64],  ymm8
-    vmovdqa [rsp+96],  ymm9
+    PROLOGUE
     mov  r12, rcx
     mov  r13, rdx
     xor  rax, rax
@@ -79,32 +72,14 @@ fp_reduce_add_i64:
     vmovq r10, xmm0
     add   rax, r10
 .done:
-    vmovdqa ymm6, [rsp]
-    vmovdqa ymm7, [rsp+32]
-    vmovdqa ymm8, [rsp+64]
-    vmovdqa ymm9, [rsp+96]
-    mov  rsp, r11
-    vzeroupper
-    pop  r13
-    pop  r12
-    pop  r11
-    ret
+    EPILOGUE
 
 ; =============================================================================
 ; double fp_reduce_add_f64(const double* in, size_t n)
 ; (Unchanged - Performed great)
 ; =============================================================================
 fp_reduce_add_f64:
-    push r11
-    push r12
-    push r13
-    mov  r11, rsp
-    and  rsp, 0xFFFFFFFFFFFFFFE0
-    sub  rsp, 128
-    vmovdqa [rsp],     ymm6
-    vmovdqa [rsp+32],  ymm7
-    vmovdqa [rsp+64],  ymm8
-    vmovdqa [rsp+96],  ymm9
+    PROLOGUE
     mov  r12, rcx
     mov  r13, rdx
     vpxor  xmm0, xmm0, xmm0
@@ -144,16 +119,7 @@ fp_reduce_add_f64:
     vaddpd       xmm2, xmm2, xmm1
     vaddsd xmm0, xmm0, xmm2
 .done:
-    vmovdqa ymm6, [rsp]
-    vmovdqa ymm7, [rsp+32]
-    vmovdqa ymm8, [rsp+64]
-    vmovdqa ymm9, [rsp+96]
-    mov  rsp, r11
-    vzeroupper
-    pop  r13
-    pop  r12
-    pop  r11
-    ret
+    EPILOGUE
 
 ; =============================================================================
 ; int64_t fp_reduce_max_i64(const int64_t* in, size_t n)
@@ -162,10 +128,7 @@ fp_reduce_add_f64:
 ; This matches/beats the compiler.
 ; =============================================================================
 fp_reduce_max_i64:
-    push r12
-    push r13
-    push rsi          ; <-- Save rsi for use as scratch
-    sub  rsp, 32
+    PROLOGUE
     mov  r12, rcx     ; in
     mov  r13, rdx     ; n
     
@@ -188,17 +151,17 @@ fp_reduce_max_i64:
     cmp  rax, r11
     cmovl rax, r11
 
-    mov  rcx, [r12+8] ; scratch 2
-    cmp  r8, rcx
-    cmovl r8, rcx
+    mov  r11, [r12+8] ; scratch 2
+    cmp  r8, r11
+    cmovl r8, r11
 
-    mov  rdx, [r12+16] ; scratch 3
-    cmp  r9, rdx
-    cmovl r9, rdx
+    mov  r11, [r12+16] ; scratch 3
+    cmp  r9, r11
+    cmovl r9, r11
     
-    mov  rsi, [r12+24] ; scratch 4
-    cmp  r10, rsi
-    cmovl r10, rsi
+    mov  r11, [r12+24] ; scratch 4
+    cmp  r10, r11
+    cmovl r10, r11
     
     add  r12, 32
     sub  r13, 4
@@ -225,18 +188,11 @@ fp_reduce_max_i64:
     cmovl rax, r10
     
 .done:
-    add  rsp, 32
-    pop  rsi          ; <-- Restore rsi
-    pop  r13
-    pop  r12
-    ret
+    EPILOGUE
+
 .done_zero_scalar:
     xor  rax, rax
-    add  rsp, 32
-    pop  rsi          ; <-- Restore rsi
-    pop  r13
-    pop  r12
-    ret
+    jmp .done
 
 
 ; =============================================================================
@@ -244,16 +200,7 @@ fp_reduce_max_i64:
 ; (Unchanged - Performed great)
 ; =============================================================================
 fp_reduce_max_f64:
-    push r11
-    push r12
-    push r13
-    mov  r11, rsp
-    and  rsp, 0xFFFFFFFFFFFFFFE0
-    sub  rsp, 128
-    vmovdqa [rsp],     ymm6
-    vmovdqa [rsp+32],  ymm7
-    vmovdqa [rsp+64],  ymm8
-    vmovdqa [rsp+96],  ymm9
+    PROLOGUE
     mov  r12, rcx
     mov  r13, rdx
     test r13, r13
@@ -296,40 +243,17 @@ fp_reduce_max_f64:
     vmaxpd       xmm2, xmm2, xmm1
     vmaxsd xmm0, xmm0, xmm2
 .done:
-    vmovdqa ymm6, [rsp]
-    vmovdqa ymm7, [rsp+32]
-    vmovdqa ymm8, [rsp+64]
-    vmovdqa ymm9, [rsp+96]
-    mov  rsp, r11
-    vzeroupper
-    pop  r13
-    pop  r12
-    pop  r11
-    ret
+    EPILOGUE
 .done_zero_vec:
     vpxor  xmm0, xmm0, xmm0
-    mov  rsp, r11
-    vzeroupper
-    pop  r13
-    pop  r12
-    pop  r11
-    ret
+    jmp .done
 
 ; =============================================================================
 ; double fp_reduce_min_f64(const double* in, size_t n)
 ; Find minimum value in array using SIMD
 ; =============================================================================
 fp_reduce_min_f64:
-    push r11
-    push r12
-    push r13
-    mov  r11, rsp
-    and  rsp, 0xFFFFFFFFFFFFFFE0
-    sub  rsp, 128
-    vmovdqa [rsp],     ymm6
-    vmovdqa [rsp+32],  ymm7
-    vmovdqa [rsp+64],  ymm8
-    vmovdqa [rsp+96],  ymm9
+    PROLOGUE
     mov  r12, rcx
     mov  r13, rdx
     test r13, r13
@@ -372,34 +296,17 @@ fp_reduce_min_f64:
     vminpd       xmm2, xmm2, xmm1
     vminsd xmm0, xmm0, xmm2
 .done:
-    vmovdqa ymm6, [rsp]
-    vmovdqa ymm7, [rsp+32]
-    vmovdqa ymm8, [rsp+64]
-    vmovdqa ymm9, [rsp+96]
-    mov  rsp, r11
-    vzeroupper
-    pop  r13
-    pop  r12
-    pop  r11
-    ret
+    EPILOGUE
 .done_zero_vec:
     vpxor  xmm0, xmm0, xmm0
-    mov  rsp, r11
-    vzeroupper
-    pop  r13
-    pop  r12
-    pop  r11
-    ret
+    jmp .done
 
 ; =============================================================================
 ; int64_t fp_reduce_min_i64(const int64_t* in, size_t n)
 ; Find minimum value in array (scalar, AVX2 lacks vpminsq)
 ; =============================================================================
 fp_reduce_min_i64:
-    push r11
-    push r12
-    push r13
-    mov  r11, rsp
+    PROLOGUE
     mov  r12, rcx
     mov  r13, rdx
 
@@ -422,17 +329,9 @@ fp_reduce_min_i64:
     jnz .loop
 
 .done:
-    mov rsp, r11
-    pop r13
-    pop r12
-    pop r11
-    ret
+    EPILOGUE
 
 .done_zero:
     xor rax, rax
-    mov rsp, r11
-    pop r13
-    pop r12
-    pop r11
-    ret
+    jmp .done
 

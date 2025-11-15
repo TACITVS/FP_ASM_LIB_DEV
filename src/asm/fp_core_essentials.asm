@@ -10,6 +10,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .text
 
 ; ============================================================================
@@ -26,6 +28,7 @@ section .text
 ; ----------------------------------------------------------------------------
 global fp_take_n_i64
 fp_take_n_i64:
+    PROLOGUE
     ; Determine actual count to take
     mov rax, r9                 ; RAX = take_count
     cmp rax, r8                 ; Compare with array_len
@@ -61,8 +64,7 @@ fp_take_n_i64:
     jnz .tail_loop
 
 .done:
-    vzeroupper
-    ret
+    EPILOGUE
 
 ; ----------------------------------------------------------------------------
 ; fp_drop_n_i64
@@ -74,6 +76,7 @@ fp_take_n_i64:
 ; ----------------------------------------------------------------------------
 global fp_drop_n_i64
 fp_drop_n_i64:
+    PROLOGUE
     ; Calculate output count
     mov rax, r8                 ; RAX = array_len
     cmp r9, r8                  ; If drop_count >= array_len
@@ -111,8 +114,7 @@ fp_drop_n_i64:
 .empty:
     xor rax, rax
 .done:
-    vzeroupper
-    ret
+    EPILOGUE
 
 ; ----------------------------------------------------------------------------
 ; fp_slice_i64
@@ -124,8 +126,7 @@ fp_drop_n_i64:
 ; ----------------------------------------------------------------------------
 global fp_slice_i64
 fp_slice_i64:
-    push rbp
-    mov rbp, rsp
+    PROLOGUE
 
     mov r10, [rbp+48]           ; R10 = end
 
@@ -173,9 +174,7 @@ fp_slice_i64:
 .empty:
     xor rax, rax
 .done:
-    vzeroupper
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; Category 2: Additional Reductions
@@ -191,6 +190,7 @@ fp_slice_i64:
 ; ----------------------------------------------------------------------------
 global fp_reduce_product_i64
 fp_reduce_product_i64:
+    PROLOGUE
     test rdx, rdx
     jz .zero
 
@@ -233,7 +233,7 @@ fp_reduce_product_i64:
 .zero:
     mov rax, 1                  ; Empty product = 1 (identity)
 .done:
-    ret
+    EPILOGUE
 
 ; ----------------------------------------------------------------------------
 ; fp_reduce_product_f64
@@ -244,10 +244,7 @@ fp_reduce_product_i64:
 ; ----------------------------------------------------------------------------
 global fp_reduce_product_f64
 fp_reduce_product_f64:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
+    PROLOGUE
 
     test rdx, rdx
     jz .zero
@@ -305,10 +302,7 @@ fp_reduce_product_f64:
 .zero:
     vmovsd xmm0, [rel one_const]
 .done:
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; Category 3: Search Operations
@@ -324,6 +318,7 @@ fp_reduce_product_f64:
 ; ----------------------------------------------------------------------------
 global fp_find_index_i64
 fp_find_index_i64:
+    PROLOGUE
     test rdx, rdx
     jz .not_found
 
@@ -375,8 +370,7 @@ fp_find_index_i64:
 .not_found:
     mov rax, -1
 .done:
-    vzeroupper
-    ret
+    EPILOGUE
 
 ; ----------------------------------------------------------------------------
 ; fp_contains_i64
@@ -388,6 +382,7 @@ fp_find_index_i64:
 ; ----------------------------------------------------------------------------
 global fp_contains_i64
 fp_contains_i64:
+    PROLOGUE
     test rdx, rdx
     jz .not_found
 
@@ -424,8 +419,7 @@ fp_contains_i64:
 .found:
     mov rax, 1
 .done:
-    vzeroupper
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; Category 4: Manipulation Operations
@@ -440,6 +434,7 @@ fp_contains_i64:
 ; ----------------------------------------------------------------------------
 global fp_reverse_i64
 fp_reverse_i64:
+    PROLOGUE
     test r8, r8
     jz .done
 
@@ -473,7 +468,7 @@ fp_reverse_i64:
     mov [r12], rax
 
 .done:
-    ret
+    EPILOGUE
 
 ; ----------------------------------------------------------------------------
 ; fp_concat_i64
@@ -486,8 +481,7 @@ fp_reverse_i64:
 ; ----------------------------------------------------------------------------
 global fp_concat_i64
 fp_concat_i64:
-    push rbp
-    mov rbp, rsp
+    PROLOGUE
 
     mov r10, [rbp+48]           ; R10 = len_b
 
@@ -547,9 +541,7 @@ fp_concat_i64:
     ; Return total length
     mov rax, r9
     add rax, r10
-    vzeroupper
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ----------------------------------------------------------------------------
 ; fp_replicate_i64
@@ -560,6 +552,7 @@ fp_concat_i64:
 ; ----------------------------------------------------------------------------
 global fp_replicate_i64
 fp_replicate_i64:
+    PROLOGUE
     test rdx, rdx
     jz .done
 
@@ -585,8 +578,7 @@ fp_replicate_i64:
     jnz .tail_loop
 
 .done:
-    vzeroupper
-    ret
+    EPILOGUE
 
 section .data
 align 8

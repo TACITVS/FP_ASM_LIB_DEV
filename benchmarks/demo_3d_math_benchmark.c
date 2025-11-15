@@ -7,29 +7,22 @@
 #include <math.h>
 #include <time.h>
 
-#if defined(_MSC_VER)
 #include <malloc.h>
 #define ALIGNED_MALLOC(size, alignment) _aligned_malloc(size, alignment)
 #define ALIGNED_FREE(ptr) _aligned_free(ptr)
-#else
-#define _ISOC11_SOURCE // Enable C11 features like aligned_alloc
-#include <stdlib.h>
-#define ALIGNED_MALLOC(size, alignment) aligned_alloc(alignment, size)
-#define ALIGNED_FREE(ptr) free(ptr)
-#endif
 
 #define BENCH_N (1024 * 1024) // Number of vectors
 #define ITERATIONS 100
 
 // --- Test Data Initialization ---
-ALIGN16 Mat4f g_matrix = {{
+ALIGN16 Mat4 g_matrix = {{
     1.0f, 0.0f, 0.0f, 0.0f,
     0.0f, 1.0f, 0.0f, 0.0f,
     0.0f, 0.0f, 1.0f, 0.0f,
     10.0f, 20.0f, 30.0f, 1.0f // Translate +10, +20, +30
 }};
 
-ALIGN16 QuatF32 g_quat = { 0.0f, 0.707107f, 0.0f, 0.707107f }; // 90 deg rot around Y
+ALIGN16 Quaternion g_quat = { 0.0f, 0.707107f, 0.0f, 0.707107f }; // 90 deg rot around Y
 
 Vec3f* g_in_a;
 Vec3f* g_in_b;

@@ -13,7 +13,7 @@ BENCHMARKS = benchmarks
 # Compiler and assembler
 ASM = nasm
 CC = gcc
-ASMFLAGS = -f win64
+ASMFLAGS = -f win64 -I$(SRC_ASM)/
 CFLAGS = -I$(INCLUDE) -O3 -march=native
 LDFLAGS = -lOpenCL
 
