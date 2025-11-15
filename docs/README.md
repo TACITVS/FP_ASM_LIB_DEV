@@ -107,7 +107,7 @@ int main() {
 - `fp_pred_all_gt_zip_i64` - Pairwise comparison
 
 ### Module 7: Compaction (4 functions)
-- `fp_filter_i64/f64` - Select by predicate (1.85x)
+- `fp_filter_predicate_i64/f64` - Select by predicate (1.85x)
 - `fp_partition_i64/f64` - Split by predicate (1.80x)
 
 ### Module 8: Essentials - List FP (11 functions)

@@ -24,7 +24,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "../include/fp_core.h"
+#include "fp.h"
 
 /* ============================================================================
  * FOLDL - General left fold (reduction)
@@ -43,9 +43,9 @@
  *   max     = foldl max INT64_MIN
  *   count   = foldl (\acc _ -> acc + 1) 0
  */
-int64_t fp_foldl_i64(const int64_t* input, size_t n, int64_t init,
-                     int64_t (*fn)(int64_t acc, int64_t x, void* ctx),
-                     void* context) {
+int64_t fp_fold_left_i64(const int64_t* input, size_t n, int64_t init,
+                         fp_binary_i64 fn,
+                         void* context) {
     if (!input || !fn) return init;
 
     int64_t acc = init;
@@ -58,9 +58,9 @@ int64_t fp_foldl_i64(const int64_t* input, size_t n, int64_t init,
 /**
  * General left fold for f64 arrays
  */
-double fp_foldl_f64(const double* input, size_t n, double init,
-                    double (*fn)(double acc, double x, void* ctx),
-                    void* context) {
+double fp_fold_left_f64(const double* input, size_t n, double init,
+                        fp_binary_f64 fn,
+                        void* context) {
     if (!input || !fn) return init;
 
     double acc = init;
@@ -86,9 +86,9 @@ double fp_foldl_f64(const double* input, size_t n, double init,
  *   abs     = map (\x -> x < 0 ? -x : x)
  *   negate  = map (\x -> -x)
  */
-void fp_map_i64(const int64_t* input, int64_t* output, size_t n,
-                int64_t (*fn)(int64_t x, void* ctx),
-                void* context) {
+void fp_map_apply_i64(const int64_t* input, int64_t* output, size_t n,
+                      fp_unary_i64 fn,
+                      void* context) {
     if (!input || !output || !fn) return;
 
     for (size_t i = 0; i < n; i++) {
@@ -99,9 +99,9 @@ void fp_map_i64(const int64_t* input, int64_t* output, size_t n,
 /**
  * General map for f64 arrays
  */
-void fp_map_f64(const double* input, double* output, size_t n,
-                double (*fn)(double x, void* ctx),
-                void* context) {
+void fp_map_apply_f64(const double* input, double* output, size_t n,
+                      fp_unary_f64 fn,
+                      void* context) {
     if (!input || !output || !fn) return;
 
     for (size_t i = 0; i < n; i++) {
@@ -125,9 +125,9 @@ void fp_map_f64(const double* input, double* output, size_t n,
  *   in_range     = filter (\x -> x >= min && x <= max)
  *   non_zero     = filter (\x -> x != 0)
  */
-size_t fp_filter_i64(const int64_t* input, int64_t* output, size_t n,
-                     bool (*predicate)(int64_t x, void* ctx),
-                     void* context) {
+size_t fp_filter_predicate_i64(const int64_t* input, int64_t* output, size_t n,
+                               fp_predicate_i64 predicate,
+                               void* context) {
     if (!input || !output || !predicate) return 0;
 
     size_t write_idx = 0;
@@ -142,9 +142,9 @@ size_t fp_filter_i64(const int64_t* input, int64_t* output, size_t n,
 /**
  * General filter for f64 arrays
  */
-size_t fp_filter_f64(const double* input, double* output, size_t n,
-                     bool (*predicate)(double x, void* ctx),
-                     void* context) {
+size_t fp_filter_predicate_f64(const double* input, double* output, size_t n,
+                               fp_predicate_f64 predicate,
+                               void* context) {
     if (!input || !output || !predicate) return 0;
 
     size_t write_idx = 0;
@@ -172,9 +172,9 @@ size_t fp_filter_f64(const double* input, double* output, size_t n,
  *   max      = zipWith (\x y -> x > y ? x : y)
  *   distance = zipWith (\x y -> abs(x - y))
  */
-void fp_zipWith_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output, size_t n,
-                    int64_t (*fn)(int64_t x, int64_t y, void* ctx),
-                    void* context) {
+void fp_zip_apply_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output, size_t n,
+                      fp_zip_i64 fn,
+                      void* context) {
     if (!input_a || !input_b || !output || !fn) return;
 
     for (size_t i = 0; i < n; i++) {
@@ -185,9 +185,9 @@ void fp_zipWith_i64(const int64_t* input_a, const int64_t* input_b, int64_t* out
 /**
  * General zipWith for f64 arrays
  */
-void fp_zipWith_f64(const double* input_a, const double* input_b, double* output, size_t n,
-                    double (*fn)(double x, double y, void* ctx),
-                    void* context) {
+void fp_zip_apply_f64(const double* input_a, const double* input_b, double* output, size_t n,
+                      fp_zip_f64 fn,
+                      void* context) {
     if (!input_a || !input_b || !output || !fn) return;
 
     for (size_t i = 0; i < n; i++) {

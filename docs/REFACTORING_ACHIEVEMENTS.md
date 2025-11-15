@@ -24,7 +24,7 @@ Successfully refactored 2 of 4 major composition violations in the FP-ASM librar
 **Original Implementation:**
 ```nasm
 ; fp_core_moving_averages.asm
-fp_sma_f64:
+fp_map_sma_f64:
     ; ... 120 lines of assembly ...
     ; Manually implements:
     ;   - Initial window sum loop
@@ -40,7 +40,7 @@ fp_sma_f64:
 
 **Refactored Implementation:**
 ```c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // ONE LINE!
 }
 ```

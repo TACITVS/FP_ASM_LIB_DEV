@@ -324,7 +324,7 @@ double sum_of_squares_f64(const double* x, size_t n) {
 **Example: Simple Moving Average = Rolling Mean**
 ```c
 // SMA and rolling mean are EXACTLY THE SAME OPERATION!
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // ONE LINE!
 }
 ```
@@ -1214,7 +1214,7 @@ Simple Moving Average = Rolling Mean (EXACT IDENTITY!)
 
 **Composition (one line!):**
 ```c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // IDENTICAL!
 }
 ```

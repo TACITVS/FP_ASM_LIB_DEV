@@ -203,20 +203,20 @@ int main(void) {
     printf("==================================\n");
 
     // Test 1a: Sum
-    int64_t sum = fp_foldl_i64(data, n, 0, fold_sum, NULL);
+    int64_t sum = fp_fold_left_i64(data, n, 0, fold_sum, NULL);
     printf("  1a. Sum [1..10] = %lld (expected: 55)\n", (long long)sum);
 
     // Test 1b: Product
-    int64_t product = fp_foldl_i64(data, n, 1, fold_product, NULL);
+    int64_t product = fp_fold_left_i64(data, n, 1, fold_product, NULL);
     printf("  1b. Product [1..10] = %lld (expected: 3628800)\n", (long long)product);
 
     // Test 1c: Max
-    int64_t max_val = fp_foldl_i64(data, n, data[0], fold_max, NULL);
+    int64_t max_val = fp_fold_left_i64(data, n, data[0], fold_max, NULL);
     printf("  1c. Max [1..10] = %lld (expected: 10)\n", (long long)max_val);
 
     // Test 1d: Count elements > 5 (with context)
     CountContext count_ctx = {.threshold = 5};
-    int64_t count_gt5 = fp_foldl_i64(data, n, 0, fold_count_gt, &count_ctx);
+    int64_t count_gt5 = fp_fold_left_i64(data, n, 0, fold_count_gt, &count_ctx);
     printf("  1d. Count elements > 5 = %lld (expected: 5)\n", (long long)count_gt5);
 
     printf("  [SUCCESS] All foldl tests passed!\n\n");
@@ -228,14 +228,14 @@ int main(void) {
     printf("========================================\n");
 
     // Test 2a: Double
-    fp_map_i64(data, output, n, map_double, NULL);
+    fp_map_apply_i64(data, output, n, map_double, NULL);
     printf("  2a. Double [1..10] = [");
     for (size_t i = 0; i < n; i++) printf("%lld%s", (long long)output[i], i < n-1 ? ", " : "");
     printf("]\n");
     printf("      Expected: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]\n");
 
     // Test 2b: Square
-    fp_map_i64(data, output, 5, map_square, NULL);
+    fp_map_apply_i64(data, output, 5, map_square, NULL);
     printf("  2b. Square [1..5] = [");
     for (size_t i = 0; i < 5; i++) printf("%lld%s", (long long)output[i], i < 4 ? ", " : "");
     printf("]\n");
@@ -243,7 +243,7 @@ int main(void) {
 
     // Test 2c: Linear transform (2x + 3) with context
     LinearTransform linear_ctx = {.m = 2, .b = 3};
-    fp_map_i64(data, output, 5, map_linear, &linear_ctx);
+    fp_map_apply_i64(data, output, 5, map_linear, &linear_ctx);
     printf("  2c. Transform 2x+3 [1..5] = [");
     for (size_t i = 0; i < 5; i++) printf("%lld%s", (long long)output[i], i < 4 ? ", " : "");
     printf("]\n");
@@ -251,7 +251,7 @@ int main(void) {
 
     // Test 2d: Conditional transform
     ConditionalTransform cond_ctx = {.threshold = 5, .multiplier = 10};
-    fp_map_i64(data, output, n, map_conditional, &cond_ctx);
+    fp_map_apply_i64(data, output, n, map_conditional, &cond_ctx);
     printf("  2d. Conditional (x>5 ? 10x : x) = [");
     for (size_t i = 0; i < n; i++) printf("%lld%s", (long long)output[i], i < n-1 ? ", " : "");
     printf("]\n");
@@ -266,14 +266,14 @@ int main(void) {
     printf("===========================================\n");
 
     // Test 3a: Positive numbers
-    count = fp_filter_i64(data_mixed, output, n_mixed, filter_positive, NULL);
+    count = fp_filter_predicate_i64(data_mixed, output, n_mixed, filter_positive, NULL);
     printf("  3a. Filter positive from [-5,-3,0,2,4,7,11,15] = [");
     for (size_t i = 0; i < count; i++) printf("%lld%s", (long long)output[i], i < count-1 ? ", " : "");
     printf("] (count=%zu)\n", count);
     printf("      Expected: [2, 4, 7, 11, 15] (count=5)\n");
 
     // Test 3b: Even numbers
-    count = fp_filter_i64(data, output, n, filter_even, NULL);
+    count = fp_filter_predicate_i64(data, output, n, filter_even, NULL);
     printf("  3b. Filter even from [1..10] = [");
     for (size_t i = 0; i < count; i++) printf("%lld%s", (long long)output[i], i < count-1 ? ", " : "");
     printf("] (count=%zu)\n", count);
@@ -281,7 +281,7 @@ int main(void) {
 
     // Test 3c: Greater than threshold
     ThresholdContext threshold_ctx = {.threshold = 7};
-    count = fp_filter_i64(data, output, n, filter_gt_threshold, &threshold_ctx);
+    count = fp_filter_predicate_i64(data, output, n, filter_gt_threshold, &threshold_ctx);
     printf("  3c. Filter > 7 from [1..10] = [");
     for (size_t i = 0; i < count; i++) printf("%lld%s", (long long)output[i], i < count-1 ? ", " : "");
     printf("] (count=%zu)\n", count);
@@ -289,7 +289,7 @@ int main(void) {
 
     // Test 3d: Range filter
     RangeContext range_ctx = {.min = 3, .max = 7};
-    count = fp_filter_i64(data, output, n, filter_in_range, &range_ctx);
+    count = fp_filter_predicate_i64(data, output, n, filter_in_range, &range_ctx);
     printf("  3d. Filter 3 <= x <= 7 from [1..10] = [");
     for (size_t i = 0; i < count; i++) printf("%lld%s", (long long)output[i], i < count-1 ? ", " : "");
     printf("] (count=%zu)\n", count);
@@ -297,7 +297,7 @@ int main(void) {
 
     // Test 3e: Complex predicate (even AND > 5)
     EvenGtContext even_gt_ctx = {.threshold = 5};
-    count = fp_filter_i64(data, output, n, filter_even_and_gt, &even_gt_ctx);
+    count = fp_filter_predicate_i64(data, output, n, filter_even_and_gt, &even_gt_ctx);
     printf("  3e. Filter even AND > 5 from [1..10] = [");
     for (size_t i = 0; i < count; i++) printf("%lld%s", (long long)output[i], i < count-1 ? ", " : "");
     printf("] (count=%zu)\n", count);
@@ -316,21 +316,21 @@ int main(void) {
     size_t n_zip = 5;
 
     // Test 4a: Add
-    fp_zipWith_i64(arr_a, arr_b, output, n_zip, zip_add, NULL);
+    fp_zip_apply_i64(arr_a, arr_b, output, n_zip, zip_add, NULL);
     printf("  4a. ZipWith (+) [1,2,3,4,5] [10,20,30,40,50] = [");
     for (size_t i = 0; i < n_zip; i++) printf("%lld%s", (long long)output[i], i < n_zip-1 ? ", " : "");
     printf("]\n");
     printf("      Expected: [11, 22, 33, 44, 55]\n");
 
     // Test 4b: Multiply
-    fp_zipWith_i64(arr_a, arr_b, output, n_zip, zip_multiply, NULL);
+    fp_zip_apply_i64(arr_a, arr_b, output, n_zip, zip_multiply, NULL);
     printf("  4b. ZipWith (*) [1,2,3,4,5] [10,20,30,40,50] = [");
     for (size_t i = 0; i < n_zip; i++) printf("%lld%s", (long long)output[i], i < n_zip-1 ? ", " : "");
     printf("]\n");
     printf("      Expected: [10, 40, 90, 160, 250]\n");
 
     // Test 4c: Max
-    fp_zipWith_i64(arr_a, arr_b, output, n_zip, zip_max, NULL);
+    fp_zip_apply_i64(arr_a, arr_b, output, n_zip, zip_max, NULL);
     printf("  4c. ZipWith max [1,2,3,4,5] [10,20,30,40,50] = [");
     for (size_t i = 0; i < n_zip; i++) printf("%lld%s", (long long)output[i], i < n_zip-1 ? ", " : "");
     printf("]\n");
@@ -338,7 +338,7 @@ int main(void) {
 
     // Test 4d: Absolute difference
     int64_t arr_c[] = {15, 18, 25, 42, 48};
-    fp_zipWith_i64(arr_a, arr_c, output, n_zip, zip_abs_diff, NULL);
+    fp_zip_apply_i64(arr_a, arr_c, output, n_zip, zip_abs_diff, NULL);
     printf("  4d. ZipWith |a-b| [1,2,3,4,5] [15,18,25,42,48] = [");
     for (size_t i = 0; i < n_zip; i++) printf("%lld%s", (long long)output[i], i < n_zip-1 ? ", " : "");
     printf("]\n");
@@ -346,7 +346,7 @@ int main(void) {
 
     // Test 4e: Weighted average (0.3*x + 0.7*y)
     WeightContext weight_ctx = {.weight_x = 0.3, .weight_y = 0.7};
-    fp_zipWith_i64(arr_a, arr_b, output, n_zip, zip_weighted_avg, &weight_ctx);
+    fp_zip_apply_i64(arr_a, arr_b, output, n_zip, zip_weighted_avg, &weight_ctx);
     printf("  4e. ZipWith weighted_avg(0.3x + 0.7y) [1,2,3,4,5] [10,20,30,40,50] = [");
     for (size_t i = 0; i < n_zip; i++) printf("%lld%s", (long long)output[i], i < n_zip-1 ? ", " : "");
     printf("]\n");
@@ -368,7 +368,7 @@ int main(void) {
     double arr_y[] = {2.0, 4.0, 6.0, 8.0, 10.0};
 
     // Test 5a: Euclidean distance squared
-    fp_zipWith_f64(arr_x, arr_y, output_f64, n_f64, zip_distance_squared, NULL);
+    fp_zip_apply_f64(arr_x, arr_y, output_f64, n_f64, zip_distance_squared, NULL);
     printf("  5a. ZipWith distance_squared = [");
     for (size_t i = 0; i < n_f64; i++) printf("%.1f%s", output_f64[i], i < n_f64-1 ? ", " : "");
     printf("]\n");
@@ -388,10 +388,10 @@ int main(void) {
     printf("    - ML/OCaml (List.fold_left, List.map, List.filter, List.map2)\n");
     printf("\n");
     printf("  General HOFs implemented:\n");
-    printf("    ✅ fp_foldl_i64/f64   - General reduction\n");
-    printf("    ✅ fp_map_i64/f64     - General transformation\n");
-    printf("    ✅ fp_filter_i64/f64  - General selection\n");
-    printf("    ✅ fp_zipWith_i64/f64 - General combination\n");
+    printf("    ✅ fp_fold_left_i64/f64   - General reduction\n");
+    printf("    ✅ fp_map_apply_i64/f64     - General transformation\n");
+    printf("    ✅ fp_filter_predicate_i64/f64  - General selection\n");
+    printf("    ✅ fp_zip_apply_i64/f64 - General combination\n");
     printf("\n");
     printf("  These 4 functions complete the library!\n");
     printf("==================================================\n");

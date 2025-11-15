@@ -63,9 +63,9 @@ extern "C" {
  *       *(double*)acc += ((Item*)elem)->value;
  *   }
  *   double total = 0.0;
- *   fp_foldl_generic(items, n, sizeof(Item), &total, sum_values, NULL);
+ *   fp_fold_left_generic(items, n, sizeof(Item), &total, sum_values, NULL);
  */
-void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
+void fp_fold_left_generic(const void* input, size_t n, size_t elem_size,
                       void* acc,
                       void (*fn)(void* acc, const void* elem, void* ctx),
                       void* context);
@@ -93,10 +93,10 @@ void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
  *       *(double*)out = ((Item*)in)->value;
  *   }
  *   double values[100];
- *   fp_map_generic(items, values, n, sizeof(Item), sizeof(double),
+ *   fp_map_apply_generic(items, values, n, sizeof(Item), sizeof(double),
  *                  extract_value, NULL);
  */
-void fp_map_generic(const void* input, void* output, size_t n,
+void fp_map_apply_generic(const void* input, void* output, size_t n,
                     size_t in_size, size_t out_size,
                     void (*fn)(void* out, const void* in, void* ctx),
                     void* context);
@@ -122,10 +122,10 @@ void fp_map_generic(const void* input, void* output, size_t n,
  *   }
  *   double threshold = 90.0;
  *   Student high_scorers[100];
- *   size_t count = fp_filter_generic(students, high_scorers, n,
+ *   size_t count = fp_filter_predicate_generic(students, high_scorers, n,
  *                                     sizeof(Student), high_score, &threshold);
  */
-size_t fp_filter_generic(const void* input, void* output, size_t n,
+size_t fp_filter_predicate_generic(const void* input, void* output, size_t n,
                          size_t elem_size,
                          bool (*predicate)(const void* elem, void* ctx),
                          void* context);
@@ -156,10 +156,10 @@ size_t fp_filter_generic(const void* input, void* output, size_t n,
  *       emp->salary = ((Job*)b)->salary;
  *   }
  *   Employee employees[100];
- *   fp_zipWith_generic(persons, jobs, employees, n, sizeof(Person),
+ *   fp_zip_apply_generic(persons, jobs, employees, n, sizeof(Person),
  *                      sizeof(Job), sizeof(Employee), join, NULL);
  */
-void fp_zipWith_generic(const void* input_a, const void* input_b, void* output, size_t n,
+void fp_zip_apply_generic(const void* input_a, const void* input_b, void* output, size_t n,
                         size_t size_a, size_t size_b, size_t size_c,
                         void (*fn)(void* out, const void* a, const void* b, void* ctx),
                         void* context);
@@ -338,10 +338,10 @@ bool fp_find_generic(const void* input, size_t n, size_t elem_size,
     fp_mergesort_generic((input), (output), (n), sizeof(TYPE), (cmp), (ctx), (temp))
 
 #define FP_MAP(IN_TYPE, OUT_TYPE, input, output, n, fn, ctx) \
-    fp_map_generic((input), (output), (n), sizeof(IN_TYPE), sizeof(OUT_TYPE), (fn), (ctx))
+    fp_map_apply_generic((input), (output), (n), sizeof(IN_TYPE), sizeof(OUT_TYPE), (fn), (ctx))
 
 #define FP_FILTER(TYPE, input, output, n, pred, ctx) \
-    fp_filter_generic((input), (output), (n), sizeof(TYPE), (pred), (ctx))
+    fp_filter_predicate_generic((input), (output), (n), sizeof(TYPE), (pred), (ctx))
 
 #define FP_REVERSE(TYPE, input, output, n) \
     fp_reverse_generic((input), (output), (n), sizeof(TYPE))

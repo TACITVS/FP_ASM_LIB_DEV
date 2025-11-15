@@ -22,7 +22,7 @@ section .text
     ; Export functions for the C linker
     global fp_map_square_i64
     global fp_reduce_add_i64
-    global fp_foldmap_sumsq_i64
+    global fp_fold_sumsq_i64
 
 ; -----------------------------------------------------------------------------
 ; size_t fp_map_square_i64(const int64_t* in, int64_t* out, size_t n)
@@ -179,10 +179,10 @@ fp_reduce_add_i64:
     ret
 
 ; -----------------------------------------------------------------------------
-; int64_t fp_foldmap_sumsq_i64(const int64_t* in, size_t n, int64_t init)
+; int64_t fp_fold_sumsq_i64(const int64_t* in, size_t n)
 ; (Scalar, unrolled x8 - Unchanged)
 ; -----------------------------------------------------------------------------
-fp_foldmap_sumsq_i64:
+fp_fold_sumsq_i64:
     ; --- Prologue ---
     push rbx
     push r12
@@ -196,7 +196,7 @@ fp_foldmap_sumsq_i64:
     ; --- Initialization ---
     mov  r12, rcx
     mov  r13, rdx
-    mov  rax, r8
+    xor  rax, rax
     xor  r14, r14
     xor  r15, r15
     xor  rbx, rbx

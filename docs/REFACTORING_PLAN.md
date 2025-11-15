@@ -37,7 +37,7 @@ The audit (`COMPOSITION_AUDIT.md`) identified 4 modules that violate the composi
 #### Before (Monolithic Assembly):
 ```nasm
 ; fp_core_moving_averages.asm lines 26-145
-fp_sma_f64:
+fp_map_sma_f64:
     ; ... 120 lines of assembly ...
     ; Reimplements:
     ;   - Initial window sum loop
@@ -49,7 +49,7 @@ fp_sma_f64:
 #### After (Composition):
 ```c
 // fp_moving_averages_wrappers.c
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output) {
     fp_rolling_mean_f64_optimized(data, n, window, output);  // ONE LINE!
 }
 ```
@@ -71,7 +71,7 @@ void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
 - `build/scripts/test_sma_refactoring.bat` (test script)
 
 #### Files Deprecated:
-- `src/asm/fp_core_moving_averages.asm::fp_sma_f64` (lines 26-145)
+- `src/asm/fp_core_moving_averages.asm::fp_map_sma_f64` (lines 26-145)
   - **Status:** Keep for now (reference/benchmarking)
   - **Future:** Can be removed once tests pass
 

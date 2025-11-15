@@ -941,7 +941,7 @@ size_t fp_detect_outliers_iqr_f64(const double* data, size_t n,
  * Complexity: O(n) time, O(1) space (excluding output)
  * Performance: 1.5-2.0x vs naive C (optimized sliding window)
  */
-void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_sma_f64(const double* data, size_t n, size_t window, double* output);
 
 /**
  * Exponential Moving Average (EMA) - Exponentially weighted
@@ -963,7 +963,7 @@ void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
  * Complexity: O(n) time, O(1) space (excluding output)
  * Performance: Similar to C (recursive formula, limited optimization)
  */
-void fp_ema_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_ema_f64(const double* data, size_t n, size_t window, double* output);
 
 /**
  * Weighted Moving Average (WMA) - Linearly weighted
@@ -984,7 +984,7 @@ void fp_ema_f64(const double* data, size_t n, size_t window, double* output);
  * Complexity: O(n * window) time, O(1) space (excluding output)
  * Performance: 1.2-1.5x vs naive C (arithmetic optimization)
  */
-void fp_wma_f64(const double* data, size_t n, size_t window, double* output);
+void fp_map_wma_f64(const double* data, size_t n, size_t window, double* output);
 
 /* ============================================================================
  * Algorithm #7: Rolling Window Statistics (Functional Composition)
@@ -1079,7 +1079,7 @@ void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, 
  * WORKAROUND: Use function pointers + context pointer (void*) for "poor man's closures"
  *
  * PERFORMANCE NOTE: General HOFs have function call overhead. For hot paths, use
- * specialized versions (e.g., fp_reduce_add_i64 instead of fp_foldl_i64 with add function).
+ * specialized versions (e.g., fp_reduce_add_i64 instead of fp_fold_left_i64 with add function).
  *
  * These 4 functions achieve 100% FP equivalence:
  *   1. foldl  - General reduction (replaces sum, product, max, min for custom logic)
@@ -1097,7 +1097,7 @@ void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, 
  *
  * Example - Sum:
  *   int64_t sum_fn(int64_t acc, int64_t x, void* ctx) { return acc + x; }
- *   int64_t total = fp_foldl_i64(data, n, 0, sum_fn, NULL);
+ *   int64_t total = fp_fold_left_i64(data, n, 0, sum_fn, NULL);
  *
  * Example - Custom logic with context:
  *   typedef struct { int threshold; } Ctx;
@@ -1106,7 +1106,7 @@ void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, 
  *       return acc + (x > c->threshold ? 1 : 0);
  *   }
  *   Ctx context = {.threshold = 10};
- *   int64_t count = fp_foldl_i64(data, n, 0, count_gt, &context);
+ *   int64_t count = fp_fold_left_i64(data, n, 0, count_gt, &context);
  *
  * @param input Input array
  * @param n Array length
@@ -1118,11 +1118,11 @@ void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, 
  * Complexity: O(n) time, O(1) space
  * Performance: ~20-30% slower than specialized versions due to indirect calls
  */
-int64_t fp_foldl_i64(const int64_t* input, size_t n, int64_t init,
+int64_t fp_fold_left_i64(const int64_t* input, size_t n, int64_t init,
                      int64_t (*fn)(int64_t acc, int64_t x, void* ctx),
                      void* context);
 
-double fp_foldl_f64(const double* input, size_t n, double init,
+double fp_fold_left_f64(const double* input, size_t n, double init,
                     double (*fn)(double acc, double x, void* ctx),
                     void* context);
 
@@ -1134,7 +1134,7 @@ double fp_foldl_f64(const double* input, size_t n, double init,
  *
  * Example - Double each element:
  *   int64_t double_fn(int64_t x, void* ctx) { return x * 2; }
- *   fp_map_i64(input, output, n, double_fn, NULL);
+ *   fp_map_apply_i64(input, output, n, double_fn, NULL);
  *
  * Example - Custom transformation with context:
  *   typedef struct { int64_t multiplier; int64_t offset; } Ctx;
@@ -1143,7 +1143,7 @@ double fp_foldl_f64(const double* input, size_t n, double init,
  *       return x * c->multiplier + c->offset;
  *   }
  *   Ctx context = {.multiplier = 3, .offset = 5};
- *   fp_map_i64(input, output, n, transform, &context);
+ *   fp_map_apply_i64(input, output, n, transform, &context);
  *
  * @param input Input array
  * @param output Output array (must be pre-allocated, size n)
@@ -1154,11 +1154,11 @@ double fp_foldl_f64(const double* input, size_t n, double init,
  * Complexity: O(n) time, O(1) space (excluding output)
  * Performance: ~20-30% slower than specialized versions due to indirect calls
  */
-void fp_map_i64(const int64_t* input, int64_t* output, size_t n,
+void fp_map_apply_i64(const int64_t* input, int64_t* output, size_t n,
                 int64_t (*fn)(int64_t x, void* ctx),
                 void* context);
 
-void fp_map_f64(const double* input, double* output, size_t n,
+void fp_map_apply_f64(const double* input, double* output, size_t n,
                 double (*fn)(double x, void* ctx),
                 void* context);
 
@@ -1170,7 +1170,7 @@ void fp_map_f64(const double* input, double* output, size_t n,
  *
  * Example - Filter even numbers:
  *   bool is_even(int64_t x, void* ctx) { return x % 2 == 0; }
- *   size_t count = fp_filter_i64(input, output, n, is_even, NULL);
+ *   size_t count = fp_filter_predicate_i64(input, output, n, is_even, NULL);
  *
  * Example - Filter with range (using context):
  *   typedef struct { int64_t min; int64_t max; } Range;
@@ -1179,7 +1179,7 @@ void fp_map_f64(const double* input, double* output, size_t n,
  *       return x >= r->min && x <= r->max;
  *   }
  *   Range range = {.min = 10, .max = 100};
- *   size_t count = fp_filter_i64(input, output, n, in_range, &range);
+ *   size_t count = fp_filter_predicate_i64(input, output, n, in_range, &range);
  *
  * @param input Input array
  * @param output Output array (must be pre-allocated, size n)
@@ -1191,11 +1191,11 @@ void fp_map_f64(const double* input, double* output, size_t n,
  * Complexity: O(n) time, O(1) space (excluding output)
  * Performance: ~20-30% slower than specialized versions due to indirect calls
  */
-size_t fp_filter_i64(const int64_t* input, int64_t* output, size_t n,
+size_t fp_filter_predicate_i64(const int64_t* input, int64_t* output, size_t n,
                      bool (*predicate)(int64_t x, void* ctx),
                      void* context);
 
-size_t fp_filter_f64(const double* input, double* output, size_t n,
+size_t fp_filter_predicate_f64(const double* input, double* output, size_t n,
                      bool (*predicate)(double x, void* ctx),
                      void* context);
 
@@ -1207,7 +1207,7 @@ size_t fp_filter_f64(const double* input, double* output, size_t n,
  *
  * Example - Element-wise maximum:
  *   int64_t max_fn(int64_t x, int64_t y, void* ctx) { return x > y ? x : y; }
- *   fp_zipWith_i64(a, b, output, n, max_fn, NULL);
+ *   fp_zip_apply_i64(a, b, output, n, max_fn, NULL);
  *
  * Example - Euclidean distance (with context):
  *   typedef struct { double scale; } Ctx;
@@ -1217,7 +1217,7 @@ size_t fp_filter_f64(const double* input, double* output, size_t n,
  *       return c->scale * diff * diff;
  *   }
  *   Ctx context = {.scale = 0.5};
- *   fp_zipWith_f64(a, b, output, n, scaled_diff, &context);
+ *   fp_zip_apply_f64(a, b, output, n, scaled_diff, &context);
  *
  * @param input_a First input array
  * @param input_b Second input array
@@ -1229,11 +1229,11 @@ size_t fp_filter_f64(const double* input, double* output, size_t n,
  * Complexity: O(n) time, O(1) space (excluding output)
  * Performance: ~20-30% slower than specialized versions due to indirect calls
  */
-void fp_zipWith_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output, size_t n,
+void fp_zip_apply_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output, size_t n,
                     int64_t (*fn)(int64_t x, int64_t y, void* ctx),
                     void* context);
 
-void fp_zipWith_f64(const double* input_a, const double* input_b, double* output, size_t n,
+void fp_zip_apply_f64(const double* input_a, const double* input_b, double* output, size_t n,
                     double (*fn)(double x, double y, void* ctx),
                     void* context);
 

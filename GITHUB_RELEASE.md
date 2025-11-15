@@ -29,10 +29,10 @@ FP-ASM is the world's first C library to achieve **100% functional programming l
 **Complete FP language equivalence achieved!**
 
 ```c
-fp_foldl_i64/f64      // Haskell: foldl (\acc x -> ...) init xs
-fp_map_i64/f64        // Haskell: map (\x -> ...) xs
-fp_filter_i64/f64     // Haskell: filter (\x -> ...) xs
-fp_zipWith_i64/f64    // Haskell: zipWith (\x y -> ...) xs ys
+fp_fold_left_i64/f64      // Haskell: foldl (\acc x -> ...) init xs
+fp_map_apply_i64/f64        // Haskell: map (\x -> ...) xs
+fp_filter_predicate_i64/f64     // Haskell: filter (\x -> ...) xs
+fp_zip_apply_i64/f64    // Haskell: zipWith (\x y -> ...) xs ys
 ```
 
 **Use cases:**
@@ -51,7 +51,7 @@ int64_t count_gt(int64_t acc, int64_t x, void* ctx) {
 }
 
 Context context = {.threshold = 10};
-int64_t count = fp_foldl_i64(data, n, 0, count_gt, &context);
+int64_t count = fp_fold_left_i64(data, n, 0, count_gt, &context);
 ```
 
 ### 2. Specialized Optimized Functions (100+)
@@ -94,9 +94,9 @@ uint8_t is_outlier[1000];
 size_t count = fp_detect_outliers_zscore_f64(data, n, 3.0, is_outlier);
 
 // Moving averages (financial analysis)
-fp_sma_f64(prices, n, window, sma_output);
-fp_ema_f64(prices, n, window, ema_output);
-fp_wma_f64(prices, n, window, wma_output);
+fp_map_sma_f64(prices, n, window, sma_output);
+fp_map_ema_f64(prices, n, window, ema_output);
+fp_map_wma_f64(prices, n, window, wma_output);
 ```
 
 ---

@@ -37,14 +37,20 @@ static double timer_ms_since(const hi_timer_t* t) {
 }
 
 // --- (Baseline C functions are unchanged) ---
-static size_t c_map_i64(const int64_t* in, int64_t* out, size_t n, fp_unary_i64 f) {
-    for (size_t i = 0; i < n; ++i) out[i] = f(in[i]);
+static size_t c_map_i64(const int64_t* in, int64_t* out, size_t n,
+                        fp_unary_i64 f, void* context) {
+    for (size_t i = 0; i < n; ++i) {
+        out[i] = f(in[i], context);
+    }
     return n;
 }
 
-static int64_t c_reduce_i64(const int64_t* a, size_t n, int64_t init, fp_binary_i64 op) {
+static int64_t c_reduce_i64(const int64_t* a, size_t n, int64_t init,
+                            fp_binary_i64 op, void* context) {
     int64_t acc = init;
-    for (size_t i = 0; i < n; ++i) acc = op(acc, a[i]);
+    for (size_t i = 0; i < n; ++i) {
+        acc = op(acc, a[i], context);
+    }
     return acc;
 }
 
@@ -63,8 +69,8 @@ static int64_t c_reduce_add_i64(const int64_t* a, size_t n, int64_t init) {
     return acc;
 }
 
-static int64_t c_foldmap_sumsq_i64(const int64_t* in, size_t n, int64_t init) {
-    int64_t acc = init;
+static int64_t c_fold_sumsq_i64(const int64_t* in, size_t n) {
+    int64_t acc = 0;
     for (size_t i = 0; i < n; ++i) {
         acc += in[i] * in[i];
     }
@@ -72,8 +78,15 @@ static int64_t c_foldmap_sumsq_i64(const int64_t* in, size_t n, int64_t init) {
 }
 
 // --- (Sample user functions are unchanged) ---
-static int64_t square_i64(int64_t x) { return x * x; }
-static int64_t add_i64(int64_t a, int64_t b) { return a + b; }
+static int64_t square_i64(int64_t x, void* ctx) {
+    (void)ctx;
+    return x * x;
+}
+
+static int64_t add_i64(int64_t acc, int64_t value, void* ctx) {
+    (void)ctx;
+    return acc + value;
+}
 
 // --- (Helpers are unchanged) ---
 static void* xmalloc(size_t bytes) {
@@ -131,10 +144,10 @@ int main(int argc, char** argv) {
     // ---------------- Warm-ups -----------------------------
     (void)fp_map_square_i64(in, out_asm, n);
     (void)c_map_square_i64(in, out_c, n);
-    (void)fp_reduce_add_i64(out_asm, n, 0);
+    (void)fp_reduce_add_i64(out_asm, n);
     (void)c_reduce_add_i64(out_c, n, 0);
-    (void)fp_foldmap_sumsq_i64(in, n, 0);
-    (void)c_foldmap_sumsq_i64(in, n, 0);
+    (void)fp_fold_sumsq_i64(in, n);
+    (void)c_fold_sumsq_i64(in, n);
     
     // ---------------- Correctness check -----------------------
     size_t mism = 0;
@@ -149,8 +162,8 @@ int main(int argc, char** argv) {
         printf("MAP CHECK: OK\n");
     }
 
-    int64_t asm_sum_fused = fp_foldmap_sumsq_i64(in, n, 0);
-    int64_t c_sum_fused = c_foldmap_sumsq_i64(in, n, 0);
+    int64_t asm_sum_fused = fp_fold_sumsq_i64(in, n);
+    int64_t c_sum_fused = c_fold_sumsq_i64(in, n);
     printf("REDUCE CHECK: asm_fused=%" PRId64 "  c_fused=%" PRId64 "  %s\n",
            asm_sum_fused, c_sum_fused, (asm_sum_fused == c_sum_fused ? "OK" : "MISMATCH"));
     
@@ -190,7 +203,7 @@ int main(int argc, char** argv) {
     int64_t asm_sum = 0;
     for (int k = 0; k < iters; ++k) {
         hi_timer_t t = timer_start();
-        asm_sum = fp_reduce_add_i64(out_asm, n, 0);
+        asm_sum = fp_reduce_add_i64(out_asm, n);
         asm_red_ms += timer_ms_since(&t);
         sink += asm_sum; // Use the result
     }
@@ -211,7 +224,7 @@ int main(int argc, char** argv) {
     double asm_fused_ms = 0.0;
     for (int k = 0; k < iters; ++k) {
         hi_timer_t t = timer_start();
-        asm_sum_fused = fp_foldmap_sumsq_i64(in, n, 0);
+        asm_sum_fused = fp_fold_sumsq_i64(in, n);
         asm_fused_ms += timer_ms_since(&t);
         sink += asm_sum_fused; // Use the result
     }
@@ -221,7 +234,7 @@ int main(int argc, char** argv) {
     double c_fused_ms = 0.0;
     for (int k = 0; k < iters; ++k) {
         hi_timer_t t = timer_start();
-        c_sum_fused = c_foldmap_sumsq_i64(in, n, 0);
+        c_sum_fused = c_fold_sumsq_i64(in, n);
         c_fused_ms += timer_ms_since(&t);
         sink += c_sum_fused; // Use the result
     }

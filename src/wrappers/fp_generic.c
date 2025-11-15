@@ -13,7 +13,7 @@
  * CATEGORY 12: GENERIC HIGHER-ORDER FUNCTIONS
  * ============================================================================ */
 
-void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
+void fp_fold_left_generic(const void* input, size_t n, size_t elem_size,
                       void* acc,
                       void (*fn)(void* acc, const void* elem, void* ctx),
                       void* context) {
@@ -26,7 +26,7 @@ void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
     }
 }
 
-void fp_map_generic(const void* input, void* output, size_t n,
+void fp_map_apply_generic(const void* input, void* output, size_t n,
                     size_t in_size, size_t out_size,
                     void (*fn)(void* out, const void* in, void* ctx),
                     void* context) {
@@ -40,7 +40,7 @@ void fp_map_generic(const void* input, void* output, size_t n,
     }
 }
 
-size_t fp_filter_generic(const void* input, void* output, size_t n,
+size_t fp_filter_predicate_generic(const void* input, void* output, size_t n,
                          size_t elem_size,
                          bool (*predicate)(const void* elem, void* ctx),
                          void* context) {
@@ -61,7 +61,7 @@ size_t fp_filter_generic(const void* input, void* output, size_t n,
     return write_idx;
 }
 
-void fp_zipWith_generic(const void* input_a, const void* input_b, void* output, size_t n,
+void fp_zip_apply_generic(const void* input_a, const void* input_b, void* output, size_t n,
                         size_t size_a, size_t size_b, size_t size_c,
                         void (*fn)(void* out, const void* a, const void* b, void* ctx),
                         void* context) {

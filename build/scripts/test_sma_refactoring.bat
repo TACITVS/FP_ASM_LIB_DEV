@@ -27,7 +27,7 @@ echo     size_t window = 5;                       >> build\temp_sma_test.c
 echo     double* data = malloc(n * sizeof(double)); >> build\temp_sma_test.c
 echo     double* output = malloc((n-window+1) * sizeof(double)); >> build\temp_sma_test.c
 echo     for (size_t i = 0; i ^< n; i++) data[i] = (double)(i+1); >> build\temp_sma_test.c
-echo     fp_sma_f64(data, n, window, output);    >> build\temp_sma_test.c
+echo     fp_map_sma_f64(data, n, window, output);    >> build\temp_sma_test.c
 echo     printf("SMA Test Results (n=%%zu, window=%%zu):\n", n, window); >> build\temp_sma_test.c
 echo     for (size_t i = 0; i ^< 10; i++) {       >> build\temp_sma_test.c
 echo         printf("  output[%%zu] = %%.6f\n", i, output[i]); >> build\temp_sma_test.c

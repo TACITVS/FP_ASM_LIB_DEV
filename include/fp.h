@@ -3,24 +3,59 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "fp_core.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef int64_t (*fp_unary_i64)(int64_t);
-typedef int64_t (*fp_binary_i64)(int64_t, int64_t);
+/* Callback typedefs for general higher-order functions */
+typedef int64_t (*fp_unary_i64)(int64_t value, void* context);
+typedef int64_t (*fp_binary_i64)(int64_t acc, int64_t value, void* context);
+typedef double  (*fp_unary_f64)(double value, void* context);
+typedef double  (*fp_binary_f64)(double acc, double value, void* context);
+typedef bool    (*fp_predicate_i64)(int64_t value, void* context);
+typedef bool    (*fp_predicate_f64)(double value, void* context);
 
-/* Generic, callback-based kernels */
-size_t  fp_map_i64   (const int64_t *in, int64_t *out, size_t n, fp_unary_i64 f);
-int64_t fp_reduce_i64(const int64_t *a,  size_t n, int64_t init, fp_binary_i64 op);
+typedef int64_t (*fp_zip_i64)(int64_t lhs, int64_t rhs, void* context);
+typedef double  (*fp_zip_f64)(double lhs, double rhs, void* context);
 
-/* Specialized fast paths (no callbacks) */
-size_t  fp_map_square_i64(const int64_t *in, int64_t *out, size_t n);
-int64_t fp_reduce_add_i64(const int64_t *a,  size_t n, int64_t init);
+/* General higher-order functions with canonical naming */
+int64_t fp_fold_left_i64(const int64_t* input, size_t n, int64_t init,
+                         fp_binary_i64 fn,
+                         void* context);
 
-/* Fused fold (one pass): sum_{i}(in[i]^2) + init */
-int64_t fp_foldmap_sumsq_i64(const int64_t *in, size_t n, int64_t init);
+double  fp_fold_left_f64(const double* input, size_t n, double init,
+                          fp_binary_f64 fn,
+                          void* context);
+
+void    fp_map_apply_i64(const int64_t* input, int64_t* output, size_t n,
+                         fp_unary_i64 fn,
+                         void* context);
+
+void    fp_map_apply_f64(const double* input, double* output, size_t n,
+                         fp_unary_f64 fn,
+                         void* context);
+
+size_t  fp_filter_predicate_i64(const int64_t* input, int64_t* output, size_t n,
+                                fp_predicate_i64 predicate,
+                                void* context);
+
+size_t  fp_filter_predicate_f64(const double* input, double* output, size_t n,
+                                fp_predicate_f64 predicate,
+                                void* context);
+
+void    fp_zip_apply_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output,
+                         size_t n,
+                         fp_zip_i64 fn,
+                         void* context);
+
+void    fp_zip_apply_f64(const double* input_a, const double* input_b, double* output,
+                         size_t n,
+                         fp_zip_f64 fn,
+                         void* context);
 
 #ifdef __cplusplus
 }

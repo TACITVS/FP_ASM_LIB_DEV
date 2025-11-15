@@ -30,7 +30,7 @@ All missing functionality from the original audit has been implemented and teste
 | Or | `or` | `(some #'identity xs)` | `List.exists id` | `fp_reduce_or_bool` | ✅ |
 | Length | `length` | `(length xs)` | `List.length` | *USE: `n` parameter* | ⚠️ |
 | Null | `null` | `(null xs)` | `xs = []` | *USE: `n == 0`* | ⚠️ |
-| Fold Left | `foldl` | `(reduce fn xs)` | `List.fold_left` | `fp_foldl_i64/f64` | ✅ |
+| Fold Left | `foldl` | `(reduce fn xs)` | `List.fold_left` | `fp_fold_left_i64/f64` | ✅ |
 | Fold Right | `foldr` | `(reduce fn xs :from-end t)` | `List.fold_right` | **MISSING** | ❌ |
 | Scan Left | `scanl` | N/A | N/A | `fp_scan_add_i64/f64` | ⚠️ |
 | Scan Right | `scanr` | N/A | N/A | **MISSING** | ❌ |
@@ -45,14 +45,14 @@ All missing functionality from the original audit has been implemented and teste
 
 | Operation | Haskell | Common Lisp | ML/OCaml | FP-ASM | Status |
 |-----------|---------|-------------|----------|---------|--------|
-| Map | `map f xs` | `(mapcar f xs)` | `List.map f` | `fp_map_i64/f64` | ✅ |
+| Map | `map f xs` | `(mapcar f xs)` | `List.map f` | `fp_map_apply_i64/f64` | ✅ |
 | Map (specialized) | `map abs`, `map sqrt` | N/A | N/A | `fp_map_abs`, `fp_map_sqrt`, `fp_map_clamp` | ✅ |
 | Map with constant | `map (*c)`, `map (+c)` | N/A | N/A | `fp_map_scale`, `fp_map_offset` | ✅ |
-| ZipWith | `zipWith f xs ys` | `(mapcar f xs ys)` | `List.map2 f` | `fp_zipWith_i64/f64` | ✅ |
+| ZipWith | `zipWith f xs ys` | `(mapcar f xs ys)` | `List.map2 f` | `fp_zip_apply_i64/f64` | ✅ |
 | ZipWith (specialized) | `zipWith (+)` | N/A | N/A | `fp_zip_add_i64/f64` | ✅ |
 
 **Notes:**
-- ✅ **RESOLVED**: General `fp_map_i64/f64` and `fp_zipWith_i64/f64` now implemented!
+- ✅ **RESOLVED**: General `fp_map_apply_i64/f64` and `fp_zip_apply_i64/f64` now implemented!
 - Both general and specialized versions available - use specialized for performance, general for flexibility
 
 ---
@@ -61,7 +61,7 @@ All missing functionality from the original audit has been implemented and teste
 
 | Operation | Haskell | Common Lisp | ML/OCaml | FP-ASM | Status |
 |-----------|---------|-------------|----------|---------|--------|
-| Filter | `filter p xs` | `(remove-if-not p xs)` | `List.filter p` | `fp_filter_i64/f64` | ✅ |
+| Filter | `filter p xs` | `(remove-if-not p xs)` | `List.filter p` | `fp_filter_predicate_i64/f64` | ✅ |
 | Filter (specialized) | `filter (>n)` | N/A | N/A | `fp_filter_gt_i64_simple` | ✅ |
 | Partition | `partition p xs` | `(partition p xs :test t)` | `List.partition p` | `fp_partition_gt_i64` | ⚠️ |
 | Take While | `takeWhile p xs` | N/A | N/A | `fp_take_while_gt_i64` | ⚠️ |
@@ -150,7 +150,7 @@ These are **NOT** in Haskell Prelude or standard libraries but are valuable addi
 | Correlation | `fp_correlation_f64` | Data science |
 | Linear Regression | `fp_linear_regression_f64` | Predictive modeling |
 | Outlier Detection | `fp_detect_outliers_zscore_f64` | Data cleaning |
-| Moving Averages | `fp_sma_f64`, `fp_ema_f64`, `fp_wma_f64` | Financial computing |
+| Moving Averages | `fp_map_sma_f64`, `fp_map_ema_f64`, `fp_map_wma_f64` | Financial computing |
 | Rolling Window | `fp_rolling_min/max/sum/mean` | Time series analysis |
 
 **Verdict:** These are **domain-specific extensions** beyond pure FP, adding real-world value.
@@ -162,38 +162,38 @@ These are **NOT** in Haskell Prelude or standard libraries but are valuable addi
 ### ✅ RESOLVED (All 4 Critical Functions Implemented!)
 
 1. **`foldl`** - General fold with arbitrary function ✅ **IMPLEMENTED**
-   - **Status: COMPLETE** - `fp_foldl_i64/f64` available!
+   - **Status: COMPLETE** - `fp_fold_left_i64/f64` available!
    - Haskell: `foldl (\acc x -> acc + x) 0 xs`
-   - FP-ASM: `fp_foldl_i64(xs, n, 0, fold_sum, NULL)`
+   - FP-ASM: `fp_fold_left_i64(xs, n, 0, fold_sum, NULL)`
    - Example: See `test_general_hof.c` for 5+ examples
 
 2. **`map`** - General map with arbitrary function ✅ **IMPLEMENTED**
-   - **Status: COMPLETE** - `fp_map_i64/f64` available!
+   - **Status: COMPLETE** - `fp_map_apply_i64/f64` available!
    - Haskell: `map (\x -> x * 2 + 1) xs`
-   - FP-ASM: `fp_map_i64(xs, output, n, transform, NULL)`
+   - FP-ASM: `fp_map_apply_i64(xs, output, n, transform, NULL)`
    - Example: See `test_general_hof.c` for 5+ examples
 
 3. **`filter`** - General filter with arbitrary predicate ✅ **IMPLEMENTED**
-   - **Status: COMPLETE** - `fp_filter_i64/f64` available!
+   - **Status: COMPLETE** - `fp_filter_predicate_i64/f64` available!
    - Haskell: `filter (\x -> x > 5 && x < 10) xs`
-   - FP-ASM: `fp_filter_i64(xs, output, n, predicate, NULL)`
+   - FP-ASM: `fp_filter_predicate_i64(xs, output, n, predicate, NULL)`
    - Example: See `test_general_hof.c` for 5+ examples
 
 4. **`zipWith`** - General zip with arbitrary combiner ✅ **IMPLEMENTED**
-   - **Status: COMPLETE** - `fp_zipWith_i64/f64` available!
+   - **Status: COMPLETE** - `fp_zip_apply_i64/f64` available!
    - Haskell: `zipWith (\x y -> sqrt(x^2 + y^2)) xs ys`
-   - FP-ASM: `fp_zipWith_i64(a, b, output, n, combiner, NULL)`
+   - FP-ASM: `fp_zip_apply_i64(a, b, output, n, combiner, NULL)`
    - Example: See `test_general_hof.c` for 6+ examples
 
 ### ❌ REMAINING GAPS (Non-Critical)
 
 5. **`foldr`** - Right fold
    - **Impact: MINOR** - Most use cases covered by `foldl`
-   - Note: Can be emulated with `fp_reverse` + `fp_foldl` for finite lists
+   - Note: Can be emulated with `fp_reverse` + `fp_fold_left` for finite lists
 
 6. **`zip` / `unzip`** - Tuple creation/destruction
    - **Impact: MINOR** - Less common in array processing
-   - Workaround: Manual interleaving or use `fp_zipWith`
+   - Workaround: Manual interleaving or use `fp_zip_apply`
 
 7. **`find`** - Find first element matching predicate
    - **Impact: MINOR** - Can implement via `filter` + take first element
@@ -239,7 +239,7 @@ fp_filter_gt_i64(xs, output, n, threshold);
 ```c
 typedef int64_t (*MapFunc)(int64_t x, void* context);
 
-fp_map_i64(const int64_t* input, int64_t* output, size_t n,
+fp_map_apply_i64(const int64_t* input, int64_t* output, size_t n,
            MapFunc fn, void* context);
 
 // Usage:
@@ -250,7 +250,7 @@ int64_t gt_predicate(int64_t x, void* ctx) {
 }
 
 FilterContext ctx = {.threshold = 10};
-fp_map_i64(xs, output, n, gt_predicate, &ctx);
+fp_map_apply_i64(xs, output, n, gt_predicate, &ctx);
 ```
 
 **Pros:** General-purpose, true FP semantics
@@ -269,10 +269,10 @@ fp_map_i64(xs, output, n, gt_predicate, &ctx);
 FP-ASM now provides **COMPLETE theoretical equivalence** with Haskell/Lisp/ML:
 
 **General Higher-Order Functions (NEW):**
-- ✅ `fp_foldl_i64/f64` - General reduction with arbitrary function + context
-- ✅ `fp_map_i64/f64` - General transformation with arbitrary function + context
-- ✅ `fp_filter_i64/f64` - General selection with arbitrary predicate + context
-- ✅ `fp_zipWith_i64/f64` - General combination with arbitrary function + context
+- ✅ `fp_fold_left_i64/f64` - General reduction with arbitrary function + context
+- ✅ `fp_map_apply_i64/f64` - General transformation with arbitrary function + context
+- ✅ `fp_filter_predicate_i64/f64` - General selection with arbitrary predicate + context
+- ✅ `fp_zip_apply_i64/f64` - General combination with arbitrary function + context
 
 **Specialized Functions (Existing):**
 - ✅ All common reductions (sum, product, min, max, and, or)
@@ -286,7 +286,7 @@ FP-ASM now provides **COMPLETE theoretical equivalence** with Haskell/Lisp/ML:
 
 FP-ASM provides **BOTH** approaches:
 
-1. **General HOFs** (`fp_foldl`, `fp_map`, `fp_filter`, `fp_zipWith`)
+1. **General HOFs** (`fp_fold_left`, `fp_map_apply`, `fp_filter_predicate`, `fp_zip_apply`)
    - 100% FP language equivalence
    - Arbitrary user-defined functions with context
    - ~20-30% overhead vs specialized (function call indirection)

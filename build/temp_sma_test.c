@@ -9,7 +9,7 @@ int main(void) {
     double* data = malloc(n * sizeof(double)); 
     double* output = malloc((n-window+1) * sizeof(double)); 
     for (size_t i = 0; i < n; i++) data[i] = (double)(i+1); 
-    fp_sma_f64(data, n, window, output);    
+    fp_map_sma_f64(data, n, window, output);    
     printf("SMA Test Results (n=%zu, window=%zu):\n", n, window); 
     for (size_t i = 0; i < 10; i++) {       
         printf("  output[%zu] = %.6f\n", i, output[i]); 

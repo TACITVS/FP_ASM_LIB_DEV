@@ -9,7 +9,7 @@
 section .text
 
 ; ============================================================================
-; fp_sma_f64
+; fp_map_sma_f64
 ;
 ; Simple Moving Average - unweighted sliding window
 ; SMA[i] = (data[i] + data[i-1] + ... + data[i-window+1]) / window
@@ -22,8 +22,8 @@ section .text
 ;
 ; Returns: void (results in output array)
 ; ============================================================================
-global fp_sma_f64
-fp_sma_f64:
+global fp_map_sma_f64
+fp_map_sma_f64:
     push rbp
     mov rbp, rsp
     sub rsp, 64
@@ -117,7 +117,7 @@ fp_sma_f64:
     ret
 
 ; ============================================================================
-; fp_ema_f64
+; fp_map_ema_f64
 ;
 ; Exponential Moving Average - exponentially weighted
 ; EMA[0] = data[0]
@@ -132,8 +132,8 @@ fp_sma_f64:
 ;
 ; Returns: void
 ; ============================================================================
-global fp_ema_f64
-fp_ema_f64:
+global fp_map_ema_f64
+fp_map_ema_f64:
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -194,7 +194,7 @@ fp_ema_f64:
     ret
 
 ; ============================================================================
-; fp_wma_f64
+; fp_map_wma_f64
 ;
 ; Weighted Moving Average - linearly weighted
 ; WMA[i] = (window*data[i] + (window-1)*data[i-1] + ... + 1*data[i-window+1]) / sum_of_weights
@@ -208,8 +208,8 @@ fp_ema_f64:
 ;
 ; Returns: void
 ; ============================================================================
-global fp_wma_f64
-fp_wma_f64:
+global fp_map_wma_f64
+fp_map_wma_f64:
     push rbp
     mov rbp, rsp
     sub rsp, 96
