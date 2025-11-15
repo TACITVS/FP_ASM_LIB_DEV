@@ -285,17 +285,39 @@ fp_reduce_min_i32:
     jmp .loop8
 
 .tail:
+    ; Do horizontal reduction first if we have tail elements
     test rcx, rcx
     jz .horizontal_min
 
+    ; Reduce SIMD accumulators to scalar before tail loop
+    vpminsd ymm0, ymm0, ymm1
+    vpminsd ymm2, ymm2, ymm3
+    vpminsd ymm0, ymm0, ymm2
+
+    vextracti128 xmm1, ymm0, 1
+    vpminsd xmm0, xmm0, xmm1
+
+    vpshufd xmm1, xmm0, 0x4E
+    vpminsd xmm0, xmm0, xmm1
+
+    vpshufd xmm1, xmm0, 0xB1
+    vpminsd xmm0, xmm0, xmm1
+
+    vmovd edx, xmm0                 ; Current min in edx
+
 .tail_loop:
-    mov eax, [r12]
-    vpinsrd xmm4, xmm4, eax, 0
-    vpbroadcastd ymm4, xmm4         ; Broadcast xmm4[0] to all lanes of ymm4
-    vpminsd ymm0, ymm0, ymm4        ; Min (use YMM to preserve upper bits!)
+    mov eax, [r12]                  ; Load scalar
+    cmp eax, edx                    ; Compare with current min
+    cmovl edx, eax                  ; Update min if less
     add r12, 4
     dec rcx
     jnz .tail_loop
+
+    vmovd xmm0, edx                 ; Put result back in xmm0
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
 
 .horizontal_min:
     vpminsd ymm0, ymm0, ymm1
@@ -372,17 +394,39 @@ fp_reduce_max_i32:
     jmp .loop8
 
 .tail:
+    ; Do horizontal reduction first if we have tail elements
     test rcx, rcx
     jz .horizontal_max
 
+    ; Reduce SIMD accumulators to scalar before tail loop
+    vpmaxsd ymm0, ymm0, ymm1
+    vpmaxsd ymm2, ymm2, ymm3
+    vpmaxsd ymm0, ymm0, ymm2
+
+    vextracti128 xmm1, ymm0, 1
+    vpmaxsd xmm0, xmm0, xmm1
+
+    vpshufd xmm1, xmm0, 0x4E
+    vpmaxsd xmm0, xmm0, xmm1
+
+    vpshufd xmm1, xmm0, 0xB1
+    vpmaxsd xmm0, xmm0, xmm1
+
+    vmovd edx, xmm0                 ; Current max in edx
+
 .tail_loop:
-    mov eax, [r12]
-    vpinsrd xmm4, xmm4, eax, 0
-    vpbroadcastd ymm4, xmm4         ; Broadcast xmm4[0] to all lanes of ymm4
-    vpmaxsd ymm0, ymm0, ymm4        ; Max (use YMM to preserve upper bits!)
+    mov eax, [r12]                  ; Load scalar
+    cmp eax, edx                    ; Compare with current max
+    cmovg edx, eax                  ; Update max if greater
     add r12, 4
     dec rcx
     jnz .tail_loop
+
+    vmovd xmm0, edx                 ; Put result back in xmm0
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
 
 .horizontal_max:
     vpmaxsd ymm0, ymm0, ymm1
