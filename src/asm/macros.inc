@@ -6,6 +6,7 @@
 %macro PROLOGUE 0
     push    rbp
     mov     rbp, rsp
+    push    rbx                     ; Save additional non-volatile register used by callers
     push    r12                     ; Save non-volatile registers
     push    r13
     push    r14
@@ -40,6 +41,7 @@
     pop     r14
     pop     r13
     pop     r12
+    pop     rbx
     pop     rbp
     vzeroupper                      ; Clear upper YMM lanes
     ret

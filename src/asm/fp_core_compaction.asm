@@ -10,6 +10,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .data
 align 32
 
