@@ -73,6 +73,37 @@ benchmarks: $(BENCH_BINARIES)
 .PHONY: complete
 complete: asm wrappers tests benchmarks
 
+# Run all compiled tests sequentially
+.PHONY: run-tests
+run-tests: tests
+	@if [ -z "$(TEST_BINARIES)" ]; then \
+		echo "No test binaries defined."; \
+	else \
+		set -e; \
+		for exe in $(TEST_BINARIES); do \
+			echo "Running $$exe"; \
+			"$$exe"; \
+			done; \
+	fi
+
+# Run all compiled benchmarks sequentially
+.PHONY: run-benchmarks
+run-benchmarks: benchmarks
+	@if [ -z "$(BENCH_BINARIES)" ]; then \
+		echo "No benchmark binaries defined."; \
+	else \
+		set -e; \
+		for exe in $(BENCH_BINARIES); do \
+			echo "Running $$exe"; \
+			"$$exe"; \
+			done; \
+	fi
+
+# Clean build, rebuild everything, and execute tests and benchmarks
+.PHONY: ci
+ci: clean complete run-tests run-benchmarks
+	@echo "CI pipeline completed successfully."
+
 # Assembly compilation rule
 $(BUILD_OBJ)/%.o: $(SRC_ASM)/%.asm | dirs
 	@echo "Assembling $<..."
