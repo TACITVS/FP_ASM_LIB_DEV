@@ -79,17 +79,7 @@ section .text
 ; ============================================================================
 global fp_filter_gt_i64_simd
 fp_filter_gt_i64_simd:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
-
-    ; Save non-volatile registers
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
+    PROLOGUE
 
     mov r12, rcx                ; r12 = input
     mov r13, rdx                ; r13 = output (current write ptr)
@@ -119,21 +109,17 @@ fp_filter_gt_i64_simd:
     test eax, eax
     jz .skip
 
-    ; Extract each element and check mask
     ; Element 0
     test eax, 1
     jz .skip0
-    vmovq r10, xmm0
-    mov [r13], r10
+    vpextrq [r13], xmm0, 0
     add r13, 8
 .skip0:
 
     ; Element 1
     test eax, 2
     jz .skip1
-    vpsrldq xmm1, xmm0, 8
-    vmovq r10, xmm1
-    mov [r13], r10
+    vpextrq [r13], xmm0, 1
     add r13, 8
 .skip1:
 
@@ -141,8 +127,7 @@ fp_filter_gt_i64_simd:
     test eax, 4
     jz .skip2
     vextracti128 xmm1, ymm0, 1
-    vmovq r10, xmm1
-    mov [r13], r10
+    vpextrq [r13], xmm1, 0
     add r13, 8
 .skip2:
 
@@ -150,9 +135,7 @@ fp_filter_gt_i64_simd:
     test eax, 8
     jz .skip3
     vextracti128 xmm1, ymm0, 1
-    vpsrldq xmm1, xmm1, 8
-    vmovq r10, xmm1
-    mov [r13], r10
+    vpextrq [r13], xmm1, 1
     add r13, 8
 .skip3:
 
@@ -184,17 +167,7 @@ fp_filter_gt_i64_simd:
     sub rax, r15
     shr rax, 3                  ; Divide by 8 (element size)
 
-    ; Restore registers
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; fp_filter_gt_i64_simple
@@ -205,16 +178,7 @@ fp_filter_gt_i64_simd:
 ; ============================================================================
 global fp_filter_gt_i64_simple
 fp_filter_gt_i64_simple:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
-
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
+    PROLOGUE
 
     mov r12, rcx                ; r12 = input
     mov r13, rdx                ; r13 = output (current write ptr)
@@ -295,16 +259,7 @@ fp_filter_gt_i64_simple:
     sub rax, r15
     shr rax, 3
 
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; fp_partition_gt_i64
@@ -325,16 +280,7 @@ fp_filter_gt_i64_simple:
 ; ============================================================================
 global fp_partition_gt_i64
 fp_partition_gt_i64:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
-
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
+    PROLOGUE
 
     mov r12, rcx                ; r12 = input
     mov r13, rdx                ; r13 = output_pass (current write ptr)
@@ -447,16 +393,7 @@ fp_partition_gt_i64:
     mov r11, [rbp + 64]         ; out_fail_count pointer
     mov [r11], r10
 
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-
-    vzeroupper
-    mov rsp, rbp
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; fp_take_while_gt_i64
@@ -476,8 +413,7 @@ fp_partition_gt_i64:
 ; ============================================================================
 global fp_take_while_gt_i64
 fp_take_while_gt_i64:
-    push rbp
-    mov rbp, rsp
+    PROLOGUE
 
     mov r10, rcx                ; r10 = input
     mov r11, rdx                ; r11 = output
@@ -498,8 +434,7 @@ fp_take_while_gt_i64:
     jmp .loop
 
 .done:
-    pop rbp
-    ret
+    EPILOGUE
 
 ; ============================================================================
 ; fp_drop_while_gt_i64
@@ -519,8 +454,7 @@ fp_take_while_gt_i64:
 ; ============================================================================
 global fp_drop_while_gt_i64
 fp_drop_while_gt_i64:
-    push rbp
-    mov rbp, rsp
+    PROLOGUE
 
     mov r10, rcx                ; r10 = input (current)
     mov r11, rdx                ; r11 = output
@@ -558,5 +492,4 @@ fp_drop_while_gt_i64:
 .done_empty:
     xor rax, rax
 .done:
-    pop rbp
-    ret
+    EPILOGUE
