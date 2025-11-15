@@ -35,6 +35,10 @@ fp_reduce_add_i32:
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: EAX = sum
 
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     ; Prologue
     push rbp
     mov rbp, rsp
@@ -120,6 +124,10 @@ fp_reduce_add_i32:
     pop rbp
     ret
 
+.error_null:
+    xor eax, eax                    ; Return 0 for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_mul_i32: Product of i32 array
 ; ============================================================================
@@ -130,6 +138,10 @@ fp_reduce_add_i32:
 
 global fp_reduce_mul_i32
 fp_reduce_mul_i32:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -229,6 +241,10 @@ fp_reduce_mul_i32:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 1                      ; Return 1 for null pointer (identity for multiply)
+    ret
+
 ; ============================================================================
 ; fp_reduce_min_i32: Minimum of i32 array
 ; ============================================================================
@@ -238,6 +254,10 @@ fp_reduce_mul_i32:
 
 global fp_reduce_min_i32
 fp_reduce_min_i32:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -340,6 +360,10 @@ fp_reduce_min_i32:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 0x7FFFFFFF             ; Return INT32_MAX for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_i32: Maximum of i32 array
 ; ============================================================================
@@ -347,6 +371,10 @@ fp_reduce_min_i32:
 
 global fp_reduce_max_i32
 fp_reduce_max_i32:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -447,4 +475,8 @@ fp_reduce_max_i32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    ret
+
+.error_null:
+    mov eax, 0x80000000             ; Return INT32_MIN for null pointer
     ret

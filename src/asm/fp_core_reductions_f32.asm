@@ -35,6 +35,10 @@ fp_reduce_add_f32:
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: XMM0 = sum
 
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     ; Prologue
     push rbp
     mov rbp, rsp
@@ -119,6 +123,10 @@ fp_reduce_add_f32:
     pop rbp
     ret
 
+.error_null:
+    vxorps xmm0, xmm0, xmm0         ; Return 0.0 for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_mul_f32: Product of f32 array
 ; ============================================================================
@@ -128,6 +136,10 @@ fp_reduce_add_f32:
 
 global fp_reduce_mul_f32
 fp_reduce_mul_f32:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -220,6 +232,10 @@ fp_reduce_mul_f32:
     pop rbp
     ret
 
+.error_null:
+    vmovss xmm0, [rel .one]         ; Return 1.0 for null pointer
+    ret
+
 ; Constant data
 section .rodata
 align 4
@@ -235,6 +251,10 @@ align 4
 section .text
 global fp_reduce_min_f32
 fp_reduce_min_f32:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -324,6 +344,11 @@ fp_reduce_min_f32:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 0x7F800000             ; Return +inf for null pointer
+    vmovd xmm0, eax
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_f32: Maximum of f32 array
 ; ============================================================================
@@ -331,6 +356,10 @@ fp_reduce_min_f32:
 
 global fp_reduce_max_f32
 fp_reduce_max_f32:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -418,4 +447,9 @@ fp_reduce_max_f32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    ret
+
+.error_null:
+    mov eax, 0xFF800000             ; Return -inf for null pointer
+    vmovd xmm0, eax
     ret
