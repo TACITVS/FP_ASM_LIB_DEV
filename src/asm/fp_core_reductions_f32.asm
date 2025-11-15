@@ -51,7 +51,7 @@ fp_reduce_add_f32:
     vxorps ymm2, ymm2, ymm2         ; acc3 = 0.0
     vxorps ymm3, ymm3, ymm3         ; acc4 = 0.0
 
-    mov r12, rcx                    ; r12 = input pointer
+    mov r10, rcx                    ; r10 = input pointer
     mov rcx, rdx                    ; rcx = count
 
     ; Main loop: 32 elements per iteration (4 YMM * 8 f32)
@@ -59,19 +59,19 @@ fp_reduce_add_f32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovups ymm4, [r12]             ; Load 8x f32
-    vmovups ymm5, [r12 + 32]        ; Load 8x f32
-    vmovups ymm6, [r12 + 64]        ; Load 8x f32
-    vmovups ymm7, [r12 + 96]        ; Load 8x f32
-
+    vmovups ymm4, [r10]             ; Load 8x f32
+    vmovups ymm5, [r10 + 32]        ; Load 8x f32
     vaddps ymm0, ymm0, ymm4         ; Accumulate
     vaddps ymm1, ymm1, ymm5
-    vaddps ymm2, ymm2, ymm6
-    vaddps ymm3, ymm3, ymm7
 
-    add r12, 128                    ; 32 * 4 bytes
+    vmovups ymm4, [r10 + 64]        ; Load 8x f32 (reuse ymm4)
+    vmovups ymm5, [r10 + 96]        ; Load 8x f32 (reuse ymm5)
+    vaddps ymm2, ymm2, ymm4         ; Accumulate
+    vaddps ymm3, ymm3, ymm5
+
+    add r10, 128                    ; 32 * 4 bytes
     sub rcx, 32
     jmp .loop32
 
@@ -79,10 +79,10 @@ fp_reduce_add_f32:
     cmp rcx, 8
     jb .tail
 
-    vmovups ymm4, [r12]             ; Load 8x f32
+    vmovups ymm4, [r10]             ; Load 8x f32
     vaddps ymm0, ymm0, ymm4         ; Accumulate
 
-    add r12, 32                     ; 8 * 4 bytes
+    add r10, 32                     ; 8 * 4 bytes
     sub rcx, 8
     jmp .loop8
 
@@ -93,9 +93,9 @@ fp_reduce_add_f32:
 
 .tail_loop:
     vxorps ymm4, ymm4, ymm4         ; Zero ymm4 (use YMM to preserve upper bits!)
-    vmovss xmm4, [r12]              ; Load single f32
+    vmovss xmm4, [r10]              ; Load single f32
     vaddps ymm0, ymm0, ymm4         ; Add to accumulator (use YMM!)
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -151,26 +151,26 @@ fp_reduce_mul_f32:
     vmovaps ymm2, ymm0
     vmovaps ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovups ymm4, [r12]
-    vmovups ymm5, [r12 + 32]
-    vmovups ymm6, [r12 + 64]
-    vmovups ymm7, [r12 + 96]
-
+    vmovups ymm4, [r10]
+    vmovups ymm5, [r10 + 32]
     vmulps ymm0, ymm0, ymm4         ; f32 multiply (AVX has this!)
     vmulps ymm1, ymm1, ymm5
-    vmulps ymm2, ymm2, ymm6
-    vmulps ymm3, ymm3, ymm7
 
-    add r12, 128
+    vmovups ymm4, [r10 + 64]        ; Reuse ymm4
+    vmovups ymm5, [r10 + 96]        ; Reuse ymm5
+    vmulps ymm2, ymm2, ymm4
+    vmulps ymm3, ymm3, ymm5
+
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -178,10 +178,10 @@ fp_reduce_mul_f32:
     cmp rcx, 8
     jb .tail
 
-    vmovups ymm4, [r12]
+    vmovups ymm4, [r10]
     vmulps ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -204,9 +204,9 @@ fp_reduce_mul_f32:
     vmulps xmm0, xmm0, xmm1
 
 .tail_loop:
-    vmovss xmm4, [r12]              ; Load value
+    vmovss xmm4, [r10]              ; Load value
     vmulss xmm0, xmm0, xmm4         ; Scalar multiply
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -270,26 +270,26 @@ fp_reduce_min_f32:
     vmovaps ymm2, ymm0
     vmovaps ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovups ymm4, [r12]
-    vmovups ymm5, [r12 + 32]
-    vmovups ymm6, [r12 + 64]
-    vmovups ymm7, [r12 + 96]
-
+    vmovups ymm4, [r10]
+    vmovups ymm5, [r10 + 32]
     vminps ymm0, ymm0, ymm4         ; Min of 8x f32
     vminps ymm1, ymm1, ymm5
-    vminps ymm2, ymm2, ymm6
-    vminps ymm3, ymm3, ymm7
 
-    add r12, 128
+    vmovups ymm4, [r10 + 64]        ; Reuse ymm4
+    vmovups ymm5, [r10 + 96]        ; Reuse ymm5
+    vminps ymm2, ymm2, ymm4
+    vminps ymm3, ymm3, ymm5
+
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -297,10 +297,10 @@ fp_reduce_min_f32:
     cmp rcx, 8
     jb .tail
 
-    vmovups ymm4, [r12]
+    vmovups ymm4, [r10]
     vminps ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -309,10 +309,10 @@ fp_reduce_min_f32:
     jz .horizontal_min
 
 .tail_loop:
-    vmovss xmm4, [r12]
+    vmovss xmm4, [r10]
     vbroadcastss ymm4, xmm4         ; Broadcast xmm4[0] to all lanes of ymm4
     vminps ymm0, ymm0, ymm4         ; Min (use YMM to preserve upper bits!)
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -375,26 +375,26 @@ fp_reduce_max_f32:
     vmovaps ymm2, ymm0
     vmovaps ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovups ymm4, [r12]
-    vmovups ymm5, [r12 + 32]
-    vmovups ymm6, [r12 + 64]
-    vmovups ymm7, [r12 + 96]
-
+    vmovups ymm4, [r10]
+    vmovups ymm5, [r10 + 32]
     vmaxps ymm0, ymm0, ymm4         ; Max of 8x f32
     vmaxps ymm1, ymm1, ymm5
-    vmaxps ymm2, ymm2, ymm6
-    vmaxps ymm3, ymm3, ymm7
 
-    add r12, 128
+    vmovups ymm4, [r10 + 64]        ; Reuse ymm4
+    vmovups ymm5, [r10 + 96]        ; Reuse ymm5
+    vmaxps ymm2, ymm2, ymm4
+    vmaxps ymm3, ymm3, ymm5
+
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -402,10 +402,10 @@ fp_reduce_max_f32:
     cmp rcx, 8
     jb .tail
 
-    vmovups ymm4, [r12]
+    vmovups ymm4, [r10]
     vmaxps ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -414,10 +414,10 @@ fp_reduce_max_f32:
     jz .horizontal_max
 
 .tail_loop:
-    vmovss xmm4, [r12]
+    vmovss xmm4, [r10]
     vbroadcastss ymm4, xmm4         ; Broadcast xmm4[0] to all lanes of ymm4
     vmaxps ymm0, ymm0, ymm4         ; Max (use YMM to preserve upper bits!)
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
