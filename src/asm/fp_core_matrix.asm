@@ -248,61 +248,25 @@ global fp_mat4_transpose
 fp_mat4_transpose:
     PROLOGUE
 
-    ; Load matrix as 4 rows (which are columns in column-major layout)
-    ; Use UNALIGNED loads - user matrices may not be 32-byte aligned!
-    vmovups xmm0, [rdx]              ; [m0, m1, m2, m3]
-    vmovups xmm1, [rdx + 16]         ; [m4, m5, m6, m7]
-    vmovups xmm2, [rdx + 32]         ; [m8, m9, m10, m11]
-    vmovups xmm3, [rdx + 48]         ; [m12, m13, m14, m15]
+    ; Load the matrix as two YMM registers
+    vmovups ymm0, [rdx]      ; [m0, m1, m2, m3, m4, m5, m6, m7]
+    vmovups ymm1, [rdx+32]   ; [m8, m9, m10, m11, m12, m13, m14, m15]
 
-    ; Transpose using shuffle operations
-    ; Step 1: Interleave low/high pairs
-    vmovaps xmm4, xmm0
-    vmovaps xmm5, xmm2
+    ; Step 1: Interleave elements within 128-bit lanes
+    vunpcklps ymm2, ymm0, ymm1
+    vunpckhps ymm3, ymm0, ymm1
 
-    vunpcklps xmm0, xmm0, xmm1       ; [m0, m4, m1, m5]
-    vunpckhps xmm4, xmm4, xmm1       ; [m2, m6, m3, m7]
-    vunpcklps xmm2, xmm2, xmm3       ; [m8, m12, m9, m13]
-    vunpckhps xmm5, xmm5, xmm3       ; [m10, m14, m11, m15]
+    ; Step 2: Shuffle elements within 128-bit lanes
+    vshufps ymm0, ymm2, ymm3, 0x44
+    vshufps ymm1, ymm2, ymm3, 0xEE
 
-    ; Step 2: Interleave again to get final columns
-    vmovaps xmm6, xmm0
-    vmovaps xmm7, xmm4
+    ; Step 3: Permute 128-bit lanes to get final columns
+    vperm2i128 ymm2, ymm0, ymm1, 0x20
+    vperm2i128 ymm3, ymm0, ymm1, 0x31
 
-    vunpcklps xmm0, xmm0, xmm2       ; [m0, m8, m4, m12] - wait, this isn't right
-    ; Let me use a different approach with vshufps
-
-    ; Actually, let's use the proper 4x4 transpose pattern:
-    ; Load rows - UNALIGNED (user memory)
-    vmovups xmm0, [rdx]              ; row 0 = [m0, m1, m2, m3]
-    vmovups xmm1, [rdx + 16]         ; row 1 = [m4, m5, m6, m7]
-    vmovups xmm2, [rdx + 32]         ; row 2 = [m8, m9, m10, m11]
-    vmovups xmm3, [rdx + 48]         ; row 3 = [m12, m13, m14, m15]
-
-    ; Use vshufps for transpose
-    ; temp = vshufps(row0, row1, pattern)
-    vmovaps xmm4, xmm0
-    vmovaps xmm6, xmm2
-
-    vshufps xmm4, xmm0, xmm1, 0x44   ; [m0, m1, m4, m5]
-    vshufps xmm0, xmm0, xmm1, 0xEE   ; [m2, m3, m6, m7]
-    vshufps xmm6, xmm2, xmm3, 0x44   ; [m8, m9, m12, m13]
-    vshufps xmm2, xmm2, xmm3, 0xEE   ; [m10, m11, m14, m15]
-
-    ; Final shuffle
-    vmovaps xmm1, xmm4
-    vmovaps xmm3, xmm0
-
-    vshufps xmm4, xmm4, xmm6, 0x88   ; [m0, m4, m8, m12] = col 0
-    vshufps xmm1, xmm1, xmm6, 0xDD   ; [m1, m5, m9, m13] = col 1
-    vshufps xmm0, xmm0, xmm2, 0x88   ; [m2, m6, m10, m14] = col 2
-    vshufps xmm3, xmm3, xmm2, 0xDD   ; [m3, m7, m11, m15] = col 3
-
-    ; Store transposed matrix
-    vmovups [rcx], xmm4              ; Store column 0 (UNALIGNED)
-    vmovups [rcx + 16], xmm1         ; Store column 1 (UNALIGNED)
-    vmovups [rcx + 32], xmm0         ; Store column 2 (UNALIGNED)
-    vmovups [rcx + 48], xmm3         ; Store column 3 (UNALIGNED)
+    ; Store the transposed matrix
+    vmovups [rcx], ymm2
+    vmovups [rcx+32], ymm3
 
     EPILOGUE
 
