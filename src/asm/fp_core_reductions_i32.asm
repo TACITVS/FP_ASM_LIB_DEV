@@ -29,6 +29,11 @@ section .text
 ;   - 8x i32 per YMM register (DOUBLE i64 throughput!)
 ;
 ; Performance: ~2-3x faster than gcc -O3 (8-wide SIMD)
+;
+; OVERFLOW BEHAVIOR:
+;   - Integer addition wraps on overflow (modular arithmetic)
+;   - Caller responsible for ensuring sum fits in int32_t range
+;   - No overflow detection or saturation provided
 
 global fp_reduce_add_i32
 fp_reduce_add_i32:
@@ -135,6 +140,12 @@ fp_reduce_add_i32:
 ;
 ; NOTE: AVX2 has vpmulld for i32 multiply (NO i64 equivalent!)
 ;       This makes i32 product MUCH better than i64 product
+;
+; OVERFLOW BEHAVIOR:
+;   - Integer multiplication wraps on overflow (modular arithmetic)
+;   - Product can overflow very quickly (e.g., 2^16 * 2^16 = 2^32 > INT32_MAX)
+;   - Caller responsible for ensuring product fits in int32_t range
+;   - No overflow detection or saturation provided
 
 global fp_reduce_mul_i32
 fp_reduce_mul_i32:
