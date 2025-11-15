@@ -163,66 +163,102 @@ fp_reduce_max_i64:
     PROLOGUE
     mov  r12, rcx     ; in
     mov  r13, rdx     ; n
-    
+
     test r13, r13     ; Check for n=0
-    jz   .done_zero_scalar
-    
-    ; Load first element as initial max for all 4 accumulators
-    mov  rax, [r12]   ; acc0
-    mov  r8, rax      ; acc1
-    mov  r9, rax      ; acc2
-    mov  r10, rax     ; acc3
-    add  r12, 8
-    dec  r13
-    
-.loop4:
+    jz   .done_zero
+
+    ; Initialize accumulators with first element broadcast
+    vpbroadcastq ymm6, [r12]
+    vmovdqa ymm7, ymm6
+    vmovdqa ymm8, ymm6
+    vmovdqa ymm9, ymm6
+
+.loop16:
+    cmp  r13, 16
+    jb   .tail8
+
+    ; Load 16 x i64 (4 YMM registers)
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+
+    ; SIMD MAX using compare-and-blend (AVX2 has no vpmaxsq)
+    vpcmpgtq ymm10, ymm6, ymm0    ; ymm10 = mask (ymm6 > ymm0)
+    vpblendvb ymm6, ymm0, ymm6, ymm10  ; ymm6 = max(ymm6, ymm0)
+
+    vpcmpgtq ymm10, ymm7, ymm1
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    vpcmpgtq ymm10, ymm8, ymm2
+    vpblendvb ymm8, ymm2, ymm8, ymm10
+
+    vpcmpgtq ymm10, ymm9, ymm3
+    vpblendvb ymm9, ymm3, ymm9, ymm10
+
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+
+.tail8:
+    cmp  r13, 8
+    jb   .tail4
+
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vpcmpgtq ymm10, ymm6, ymm0
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+    vpcmpgtq ymm10, ymm7, ymm1
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    add  r12, 64
+    sub  r13, 8
+
+.tail4:
     cmp  r13, 4
-    jb   .tail
-    
-    mov  r11, [r12]   ; scratch 1
-    cmp  rax, r11
-    cmovl rax, r11
+    jb   .tail_scalar
 
-    mov  r11, [r12+8] ; scratch 2
-    cmp  r8, r11
-    cmovl r8, r11
+    vmovdqu ymm0, [r12]
+    vpcmpgtq ymm10, ymm6, ymm0
+    vpblendvb ymm6, ymm0, ymm6, ymm10
 
-    mov  r11, [r12+16] ; scratch 3
-    cmp  r9, r11
-    cmovl r9, r11
-    
-    mov  r11, [r12+24] ; scratch 4
-    cmp  r10, r11
-    cmovl r10, r11
-    
     add  r12, 32
     sub  r13, 4
-    jmp  .loop4
-    
-.tail:
+
+.tail_scalar:
+    ; Horizontal reduction of SIMD accumulators
+    vpcmpgtq ymm10, ymm6, ymm7
+    vpblendvb ymm6, ymm7, ymm6, ymm10
+    vpcmpgtq ymm10, ymm8, ymm9
+    vpblendvb ymm8, ymm9, ymm8, ymm10
+    vpcmpgtq ymm10, ymm6, ymm8
+    vpblendvb ymm6, ymm8, ymm6, ymm10
+
+    vextractf128 xmm0, ymm6, 1
+    vpcmpgtq xmm1, xmm6, xmm0
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vpshufd xmm0, xmm6, 0x4E
+    vpcmpgtq xmm1, xmm6, xmm0
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vmovq rax, xmm6    ; Extract final max
+
+    ; Handle remaining 1-3 elements
     test r13, r13
-    jz   .accum
+    jz   .done
 .tail_loop:
-    mov  r11, [r12]
-    cmp  rax, r11
-    cmovl rax, r11    ; Fold remaining 1-3 into acc0
+    mov  r10, [r12]
+    cmp  rax, r10
+    cmovl rax, r10
     add  r12, 8
     dec  r13
     jnz  .tail_loop
-    
-.accum:
-    ; Combine the 4 accumulators
-    cmp  rax, r8
-    cmovl rax, r8
-    cmp  rax, r9
-    cmovl rax, r9
-    cmp  rax, r10
-    cmovl rax, r10
-    
+
 .done:
     EPILOGUE
 
-.done_zero_scalar:
+.done_zero:
     xor  rax, rax
     jmp .done
 
@@ -345,20 +381,93 @@ fp_reduce_min_i64:
     test r13, r13
     jz   .done_zero
 
-    ; Initialize min to first element
-    mov rax, [r12]
-    dec r13
-    jz  .done
-    add r12, 8
+    ; Initialize accumulators with first element broadcast
+    vpbroadcastq ymm6, [r12]
+    vmovdqa ymm7, ymm6
+    vmovdqa ymm8, ymm6
+    vmovdqa ymm9, ymm6
 
-    ; Scalar loop (AVX2 has no vpminsq)
-.loop:
-    mov r10, [r12]
-    cmp r10, rax
+.loop16:
+    cmp  r13, 16
+    jb   .tail8
+
+    ; Load 16 x i64 (4 YMM registers)
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+
+    ; SIMD MIN using compare-and-blend (AVX2 has no vpminsq)
+    vpcmpgtq ymm10, ymm0, ymm6    ; ymm10 = mask (ymm0 > ymm6)
+    vpblendvb ymm6, ymm0, ymm6, ymm10  ; ymm6 = min(ymm6, ymm0)
+
+    vpcmpgtq ymm10, ymm1, ymm7
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    vpcmpgtq ymm10, ymm2, ymm8
+    vpblendvb ymm8, ymm2, ymm8, ymm10
+
+    vpcmpgtq ymm10, ymm3, ymm9
+    vpblendvb ymm9, ymm3, ymm9, ymm10
+
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+
+.tail8:
+    cmp  r13, 8
+    jb   .tail4
+
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vpcmpgtq ymm10, ymm0, ymm6
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+    vpcmpgtq ymm10, ymm1, ymm7
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    add  r12, 64
+    sub  r13, 8
+
+.tail4:
+    cmp  r13, 4
+    jb   .tail_scalar
+
+    vmovdqu ymm0, [r12]
+    vpcmpgtq ymm10, ymm0, ymm6
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+
+    add  r12, 32
+    sub  r13, 4
+
+.tail_scalar:
+    ; Horizontal reduction of SIMD accumulators
+    vpcmpgtq ymm10, ymm7, ymm6
+    vpblendvb ymm6, ymm7, ymm6, ymm10
+    vpcmpgtq ymm10, ymm9, ymm8
+    vpblendvb ymm8, ymm9, ymm8, ymm10
+    vpcmpgtq ymm10, ymm8, ymm6
+    vpblendvb ymm6, ymm8, ymm6, ymm10
+
+    vextractf128 xmm0, ymm6, 1
+    vpcmpgtq xmm1, xmm0, xmm6
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vpshufd xmm0, xmm6, 0x4E
+    vpcmpgtq xmm1, xmm0, xmm6
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vmovq rax, xmm6    ; Extract final min
+
+    ; Handle remaining 1-3 elements
+    test r13, r13
+    jz   .done
+.tail_loop:
+    mov  r10, [r12]
+    cmp  r10, rax
     cmovl rax, r10
-    add r12, 8
-    dec r13
-    jnz .loop
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
 
 .done:
     EPILOGUE
