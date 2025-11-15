@@ -119,6 +119,10 @@ void fp_rolling_sum_i64(const int64_t* data, size_t n, size_t window, int64_t* o
  */
 
 void fp_rolling_mean_f64(const double* data, size_t n, size_t window, double* output) {
+    if (window == 0 || n < window) {
+        return;
+    }
+
     // mean = sum / window
     // Compose: rolling(sum) then map(scale)
     fp_rolling_sum_f64(data, n, window, output);
@@ -213,6 +217,10 @@ void fp_rolling_sum_f64_optimized(const double* data, size_t n, size_t window, d
 }
 
 void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, double* output) {
+    if (window == 0 || n < window) {
+        return;
+    }
+
     // mean = sum / window (optimized version)
     fp_rolling_sum_f64_optimized(data, n, window, output);
 

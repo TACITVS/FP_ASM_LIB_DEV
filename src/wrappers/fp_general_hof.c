@@ -194,3 +194,54 @@ void fp_zipWith_f64(const double* input_a, const double* input_b, double* output
         output[i] = fn(input_a[i], input_b[i], context);
     }
 }
+
+/* ============================================================================
+ * COMPOSE - Function composition (Haskell-style)
+ * ============================================================================ */
+
+/**
+ * Generic function composition: (f . g)(x) = f(g(x))
+ *
+ * Haskell equivalent:
+ *   (.) :: (b -> c) -> (a -> b) -> (a -> c)
+ *   compose f g = \x -> f (g x)
+ *
+ * This is the FOUNDATION of functional programming pipelines.
+ * Instead of nested function calls or intermediate variables:
+ *   temp = map g input
+ *   result = map f temp
+ *
+ * You write:
+ *   result = compose f g input
+ *
+ * PURITY GUARANTEE:
+ * - Input array NEVER modified (const)
+ * - Intermediate results isolated in temp buffer
+ * - No heap allocation (user provides temp)
+ * - Deterministic (same input = same output)
+ *
+ * Performance: Same as two separate map calls, but clearer intent.
+ */
+void fp_compose_generic(const void* input, void* output, size_t n,
+                        size_t size_a, size_t size_b, size_t size_c,
+                        void (*g)(void* out, const void* in, void* ctx_g),
+                        void* ctx_g,
+                        void (*f)(void* out, const void* in, void* ctx_f),
+                        void* ctx_f,
+                        void* temp) {
+    if (!input || !output || !g || !f || !temp) return;
+
+    const unsigned char* in_ptr = (const unsigned char*)input;
+    unsigned char* temp_ptr = (unsigned char*)temp;
+    unsigned char* out_ptr = (unsigned char*)output;
+
+    // Step 1: Apply g to all elements (a -> b)
+    for (size_t i = 0; i < n; i++) {
+        g(temp_ptr + i * size_b, in_ptr + i * size_a, ctx_g);
+    }
+
+    // Step 2: Apply f to all intermediate results (b -> c)
+    for (size_t i = 0; i < n; i++) {
+        f(out_ptr + i * size_c, temp_ptr + i * size_b, ctx_f);
+    }
+}

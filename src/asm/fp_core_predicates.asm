@@ -70,10 +70,12 @@ fp_pred_all_eq_const_i64:
 
 .return_true:
     mov rax, 1                   ; Return true
+    vzeroupper
     ret
 
 .return_false:
     xor rax, rax                 ; Return false
+    vzeroupper
     ret
 
 ; ===========================================================================
@@ -131,10 +133,12 @@ fp_pred_any_gt_const_i64:
 
 .return_false:
     xor rax, rax                 ; Return false
+    vzeroupper
     ret
 
 .return_true:
     mov rax, 1                   ; Return true
+    vzeroupper
     ret
 
 ; ===========================================================================
@@ -196,8 +200,10 @@ fp_pred_all_gt_zip_i64:
 
 .return_true:
     mov rax, 1                   ; Return true
+    vzeroupper
     ret
 
 .return_false:
     xor rax, rax                 ; Return false
+    vzeroupper
     ret

@@ -15,7 +15,7 @@ ASM = nasm
 CC = gcc
 ASMFLAGS = -f win64
 CFLAGS = -I$(INCLUDE) -O3 -march=native
-LDFLAGS =
+LDFLAGS = -lOpenCL
 
 # Assembly source files
 ASM_SOURCES = $(wildcard $(SRC_ASM)/*.asm)
@@ -24,6 +24,10 @@ ASM_OBJECTS = $(patsubst $(SRC_ASM)/%.asm,$(BUILD_OBJ)/%.o,$(ASM_SOURCES))
 # Wrapper source files
 WRAPPER_SOURCES = $(wildcard $(SRC_WRAPPERS)/*.c)
 WRAPPER_OBJECTS = $(patsubst $(SRC_WRAPPERS)/%.c,$(BUILD_OBJ)/%.o,$(WRAPPER_SOURCES))
+
+# Algorithm source files
+ALGORITHM_SOURCES = $(wildcard src/algorithms/*.c)
+ALGORITHM_OBJECTS = $(patsubst src/algorithms/%.c,$(BUILD_OBJ)/%.o,$(ALGORITHM_SOURCES))
 
 # Test source files
 TEST_SOURCES = $(wildcard $(TESTS)/*.c)
@@ -35,7 +39,7 @@ BENCH_BINARIES = $(patsubst $(BENCHMARKS)/%.c,$(BUILD_BIN)/%.exe,$(BENCH_SOURCES
 
 # Default target
 .PHONY: all
-all: asm wrappers
+all: asm wrappers algorithms
 
 # Build all assembly modules
 .PHONY: asm
@@ -44,6 +48,10 @@ asm: $(ASM_OBJECTS)
 # Build all wrappers
 .PHONY: wrappers
 wrappers: $(WRAPPER_OBJECTS)
+
+# Build all algorithms
+.PHONY: algorithms
+algorithms: $(ALGORITHM_OBJECTS)
 
 # Build all tests
 .PHONY: tests
@@ -67,28 +75,36 @@ $(BUILD_OBJ)/%.o: $(SRC_WRAPPERS)/%.c
 	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Algorithm compilation rule
+$(BUILD_OBJ)/%.o: src/algorithms/%.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+
+
 # Test compilation rule
-$(BUILD_BIN)/test_%.exe: $(TESTS)/test_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS)
+$(BUILD_BIN)/test_%.exe: $(TESTS)/test_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS)
 	@echo "Building test $@..."
-	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) -o $@ $(LDFLAGS)
 
 # Benchmark compilation rule (demo_*.c files)
-$(BUILD_BIN)/demo_%.exe: $(BENCHMARKS)/demo_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS)
+$(BUILD_BIN)/demo_%.exe: $(BENCHMARKS)/demo_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS)
 	@echo "Building benchmark $@..."
-	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) -o $@ $(LDFLAGS)
 
 # Clean build artifacts
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(BUILD_OBJ)/*.o
-	rm -f $(BUILD_BIN)/*.exe
+	-del /F $(BUILD_OBJ)\*.o 2>NUL
+	-del /F $(BUILD_BIN)\*.exe 2>NUL
 
 # Clean everything including directories
 .PHONY: distclean
 distclean: clean
 	@echo "Removing build directories..."
-	rm -rf $(BUILD_OBJ) $(BUILD_BIN)
+	-rmdir /S /Q $(BUILD_OBJ) 2>NUL
+	-rmdir /S /Q $(BUILD_BIN) 2>NUL
 
 # Recreate build directories
 .PHONY: dirs

@@ -66,7 +66,7 @@ fp_percentile_sorted_f64:
     vsubsd xmm6, xmm5, xmm4          ; xmm6 = upper - lower
     vmulsd xmm6, xmm3, xmm6          ; xmm6 = frac * (upper - lower)
     vaddsd xmm0, xmm4, xmm6          ; xmm0 = lower + frac * (upper - lower)
-
+    vzeroupper
     mov rsp, rbp
     pop rbp
     ret
@@ -161,6 +161,7 @@ fp_percentiles_sorted_f64:
 
 .done:
     ; Restore and return
+    vzeroupper
     pop r15
     pop r14
     pop r13
@@ -252,6 +253,7 @@ fp_quartiles_sorted_f64:
     vmovsd [r8 + 24], xmm2      ; iqr
 
     ; Restore and return
+    vzeroupper
     pop r13
     pop r12
     pop rbx

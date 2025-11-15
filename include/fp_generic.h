@@ -319,6 +319,67 @@ bool fp_find_generic(const void* input, size_t n, size_t elem_size,
                      void* result);
 
 /* ============================================================================
+ * CATEGORY 15: FUNCTION COMPOSITION
+ *
+ * Haskell-style function composition for building pipelines.
+ * ============================================================================ */
+
+/**
+ * Generic function composition (map f . map g)
+ *
+ * Haskell equivalent:
+ *   (.) :: (b -> c) -> (a -> b) -> (a -> c)
+ *   compose f g = \x -> f (g x)
+ *
+ * Composes two functions by applying them sequentially to an array:
+ *   result = map f (map g input)
+ *
+ * @param input       Input array (type A)
+ * @param output      Output array (type C)
+ * @param n           Number of elements
+ * @param size_a      Size of type A in bytes
+ * @param size_b      Size of intermediate type B in bytes
+ * @param size_c      Size of output type C in bytes
+ * @param g           First function to apply: g(b_out, a_in, ctx_g)  [a -> b]
+ * @param ctx_g       Context for function g
+ * @param f           Second function to apply: f(c_out, b_in, ctx_f) [b -> c]
+ * @param ctx_f       Context for function f
+ * @param temp        Temporary buffer for intermediate results (size: n * size_b)
+ *
+ * PURITY GUARANTEE:
+ * - Input array is NEVER modified (const)
+ * - All computation done via output and temp buffers
+ * - No heap allocation (user provides buffers)
+ * - Deterministic (same input = same output)
+ *
+ * Example (compose two transformations):
+ *   // g: int -> double (multiply by 2)
+ *   void double_it(void* out, const void* in, void* ctx) {
+ *       *(double*)out = *(int*)in * 2.0;
+ *   }
+ *
+ *   // f: double -> double (add 10)
+ *   void add_10(void* out, const void* in, void* ctx) {
+ *       *(double*)out = *(double*)in + 10.0;
+ *   }
+ *
+ *   int input[100];
+ *   double output[100];
+ *   double temp[100];
+ *   fp_compose_generic(input, output, 100,
+ *                      sizeof(int), sizeof(double), sizeof(double),
+ *                      double_it, NULL, add_10, NULL, temp);
+ *   // Result: output[i] = (input[i] * 2.0) + 10.0
+ */
+void fp_compose_generic(const void* input, void* output, size_t n,
+                        size_t size_a, size_t size_b, size_t size_c,
+                        void (*g)(void* out, const void* in, void* ctx_g),
+                        void* ctx_g,
+                        void (*f)(void* out, const void* in, void* ctx_f),
+                        void* ctx_f,
+                        void* temp);
+
+/* ============================================================================
  * HELPER MACROS FOR TYPE SAFETY
  * ============================================================================ */
 
@@ -345,6 +406,9 @@ bool fp_find_generic(const void* input, size_t n, size_t elem_size,
 
 #define FP_REVERSE(TYPE, input, output, n) \
     fp_reverse_generic((input), (output), (n), sizeof(TYPE))
+
+#define FP_COMPOSE(TYPE_A, TYPE_B, TYPE_C, input, output, n, g, ctx_g, f, ctx_f, temp) \
+    fp_compose_generic((input), (output), (n), sizeof(TYPE_A), sizeof(TYPE_B), sizeof(TYPE_C), (g), (ctx_g), (f), (ctx_f), (temp))
 
 #ifdef __cplusplus
 }

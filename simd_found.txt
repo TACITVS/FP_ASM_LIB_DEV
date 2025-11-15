@@ -1,0 +1,450 @@
+	vmovups	XMMWORD PTR 48[rsp], xmm6
+	vmulss	xmm0, xmm1, DWORD PTR .LC0[rip]
+	vmovss	xmm6, DWORD PTR 112[rsp]
+	vmovss	DWORD PTR 44[rsp], xmm2
+	vmovss	DWORD PTR 104[rsp], xmm3
+	vmovss	xmm3, DWORD PTR 104[rsp]
+	vmovss	xmm1, DWORD PTR .LC1[rip]
+	vmovss	DWORD PTR [rbx], xmm2
+	vmovss	DWORD PTR 20[rbx], xmm0
+	vaddss	xmm0, xmm6, xmm3
+	vaddss	xmm6, xmm6, xmm6
+	vmulss	xmm6, xmm6, xmm3
+	vmovss	DWORD PTR 40[rbx], xmm0
+	vmovss	DWORD PTR 56[rbx], xmm6
+	vmovups	xmm6, XMMWORD PTR 48[rsp]
+	vmovss	DWORD PTR 48[rcx], xmm1
+	vmovss	DWORD PTR 52[rcx], xmm2
+	vmovss	DWORD PTR 56[rcx], xmm3
+	vmovss	xmm0, DWORD PTR 40[rsp]
+	vmovss	DWORD PTR [rcx], xmm0
+	vmovss	DWORD PTR 48[rcx], xmm1
+	vmovss	DWORD PTR 20[rcx], xmm0
+	vmovss	DWORD PTR 52[rcx], xmm2
+	vmovss	DWORD PTR 40[rcx], xmm0
+	vmovss	DWORD PTR 56[rcx], xmm3
+	vmovups	XMMWORD PTR 64[rsp], xmm6
+	vmovups	XMMWORD PTR 80[rsp], xmm7
+	vmovups	XMMWORD PTR 96[rsp], xmm8
+	vmovups	XMMWORD PTR 112[rsp], xmm9
+	vmovups	XMMWORD PTR 128[rsp], xmm10
+	vmovups	XMMWORD PTR 144[rsp], xmm11
+	vmovups	XMMWORD PTR 160[rsp], xmm12
+	vmovups	XMMWORD PTR 176[rsp], xmm13
+	vmovups	XMMWORD PTR 192[rsp], xmm14
+	vmovups	XMMWORD PTR 208[rsp], xmm15
+	vmovss	xmm3, DWORD PTR 28[r8]
+	vmovss	xmm0, DWORD PTR 24[r8]
+	vmovss	xmm13, DWORD PTR 60[r8]
+	vmovss	xmm2, DWORD PTR [r8]
+	vmovss	xmm15, DWORD PTR 4[r9]
+	vmovss	xmm12, DWORD PTR 16[r8]
+	vmovss	xmm14, DWORD PTR 44[r8]
+	vmovss	xmm11, DWORD PTR 32[r8]
+	vmovss	DWORD PTR 24[rsp], xmm3
+	vmovss	xmm3, DWORD PTR [r9]
+	vmovss	xmm6, DWORD PTR 52[r8]
+	vmovss	DWORD PTR 16[rsp], xmm0
+	vmovss	xmm10, DWORD PTR 48[r8]
+	vmovss	xmm5, DWORD PTR 4[r8]
+	vmovss	DWORD PTR 32[rsp], xmm13
+	vmovaps	xmm13, xmm3
+	vmovss	xmm7, DWORD PTR 20[r8]
+	vmovss	xmm9, DWORD PTR 36[r8]
+	vfmadd132ss	xmm13, xmm0, xmm2
+	vmovss	DWORD PTR 28[rsp], xmm14
+	vmovss	xmm14, DWORD PTR 8[r9]
+	vmovss	xmm1, DWORD PTR 8[r8]
+	vmovss	DWORD PTR 12[rsp], xmm6
+	vmovss	xmm6, DWORD PTR 56[r8]
+	vmovss	xmm4, DWORD PTR 40[r8]
+	vmovss	DWORD PTR 4[rsp], xmm7
+	vmovss	xmm8, DWORD PTR 12[r8]
+	vmovss	DWORD PTR 20[rsp], xmm6
+	vmovss	DWORD PTR 8[rsp], xmm9
+	vfmadd231ss	xmm13, xmm15, xmm12
+	vfmadd231ss	xmm13, xmm14, xmm11
+	vmovaps	xmm6, xmm13
+	vmovss	xmm13, DWORD PTR 12[r9]
+	vfmadd231ss	xmm6, xmm13, xmm10
+	vmovss	DWORD PTR 44[rsp], xmm6
+	vmovaps	xmm6, xmm3
+	vfmadd132ss	xmm6, xmm0, xmm5
+	vfmadd231ss	xmm6, xmm15, xmm7
+	vfmadd231ss	xmm6, xmm14, xmm9
+	vmovaps	xmm9, xmm13
+	vmovaps	xmm7, xmm6
+	vfmadd231ss	xmm7, xmm13, DWORD PTR 12[rsp]
+	vmovaps	xmm6, xmm3
+	vfmadd132ss	xmm6, xmm0, xmm1
+	vfmadd132ss	xmm3, xmm0, xmm8
+	vfmadd231ss	xmm6, xmm15, DWORD PTR 16[rsp]
+	vmovss	DWORD PTR 48[rsp], xmm7
+	vfmadd231ss	xmm6, xmm14, xmm4
+	vfmadd231ss	xmm6, xmm13, DWORD PTR 20[rsp]
+	vfmadd231ss	xmm3, xmm15, DWORD PTR 24[rsp]
+	vmovaps	xmm13, xmm2
+	vmovss	DWORD PTR 40[rsp], xmm8
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 28[rsp]
+	vmovss	xmm15, DWORD PTR 20[r9]
+	vmovss	DWORD PTR 36[rsp], xmm4
+	vfmadd132ss	xmm9, xmm3, DWORD PTR 32[rsp]
+	vmovss	xmm3, DWORD PTR 16[r9]
+	vmovss	xmm14, DWORD PTR 24[r9]
+	vfmadd132ss	xmm13, xmm0, xmm3
+	vmovss	DWORD PTR 52[rsp], xmm6
+	vmovaps	xmm6, xmm10
+	vmovss	DWORD PTR 56[rsp], xmm9
+	vmovaps	xmm9, xmm1
+	vfmadd132ss	xmm9, xmm0, xmm3
+	vfmadd231ss	xmm13, xmm12, xmm15
+	vfmadd231ss	xmm9, xmm15, DWORD PTR 16[rsp]
+	vfmadd231ss	xmm13, xmm11, xmm14
+	vfmadd231ss	xmm9, xmm14, xmm4
+	vmovss	xmm4, DWORD PTR 16[rsp]
+	vmovaps	xmm7, xmm13
+	vmovss	xmm13, DWORD PTR 28[r9]
+	vfmadd231ss	xmm9, xmm13, DWORD PTR 20[rsp]
+	vfmadd231ss	xmm7, xmm13, xmm10
+	vmovaps	xmm10, xmm5
+	vfmadd132ss	xmm10, xmm0, xmm3
+	vfmadd132ss	xmm3, xmm0, xmm8
+	vmovaps	xmm8, xmm6
+	vfmadd231ss	xmm10, xmm15, DWORD PTR 4[rsp]
+	vfmadd231ss	xmm3, xmm15, DWORD PTR 24[rsp]
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 28[rsp]
+	vfmadd231ss	xmm10, xmm14, DWORD PTR 8[rsp]
+	vfmadd231ss	xmm10, xmm13, DWORD PTR 12[rsp]
+	vfmadd132ss	xmm13, xmm3, DWORD PTR 32[rsp]
+	vmovss	xmm3, DWORD PTR 32[r9]
+	vmovss	xmm14, DWORD PTR 40[r9]
+	vmovss	DWORD PTR 60[rsp], xmm7
+	vmovss	xmm15, DWORD PTR 4[rsp]
+	vmovd	edx, xmm13
+	vmovaps	xmm13, xmm2
+	vfmadd132ss	xmm13, xmm0, xmm3
+	vfmadd231ss	xmm13, xmm12, DWORD PTR 36[r9]
+	vfmadd231ss	xmm13, xmm11, xmm14
+	vmovaps	xmm7, xmm13
+	vmovss	xmm13, DWORD PTR 44[r9]
+	vfmadd231ss	xmm7, xmm13, xmm6
+	vmovaps	xmm6, xmm5
+	vfmadd132ss	xmm6, xmm0, xmm3
+	vfmadd231ss	xmm6, xmm15, DWORD PTR 36[r9]
+	vmovaps	xmm15, xmm1
+	vfmadd132ss	xmm15, xmm0, xmm3
+	vfmadd231ss	xmm6, xmm14, DWORD PTR 8[rsp]
+	vfmadd231ss	xmm15, xmm4, DWORD PTR 36[r9]
+	vfmadd231ss	xmm6, xmm13, DWORD PTR 12[rsp]
+	vfmadd231ss	xmm15, xmm14, DWORD PTR 36[rsp]
+	vfmadd231ss	xmm15, xmm13, DWORD PTR 20[rsp]
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 40[rsp]
+	vmovss	xmm4, DWORD PTR 24[rsp]
+	vfmadd231ss	xmm3, xmm4, DWORD PTR 36[r9]
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 28[rsp]
+	vmovss	xmm4, DWORD PTR 12[rsp]
+	vfmadd132ss	xmm13, xmm3, DWORD PTR 32[rsp]
+	vmovss	xmm3, DWORD PTR 48[r9]
+	vfmadd132ss	xmm2, xmm0, xmm3
+	vfmadd132ss	xmm5, xmm0, xmm3
+	vfmadd132ss	xmm1, xmm0, xmm3
+	vmovaps	xmm14, xmm13
+	vmovss	xmm13, DWORD PTR 52[r9]
+	vfmadd231ss	xmm5, xmm13, DWORD PTR 4[rsp]
+	vfmadd231ss	xmm1, xmm13, DWORD PTR 16[rsp]
+	vfmadd132ss	xmm12, xmm2, xmm13
+	vmovss	xmm2, DWORD PTR 56[r9]
+	vfmadd231ss	xmm5, xmm2, DWORD PTR 8[rsp]
+	vfmadd231ss	xmm1, xmm2, DWORD PTR 36[rsp]
+	vfmadd231ss	xmm12, xmm11, xmm2
+	vmovss	xmm11, DWORD PTR 60[r9]
+	vfmadd231ss	xmm1, xmm11, DWORD PTR 20[rsp]
+	vfmadd132ss	xmm4, xmm5, xmm11
+	vmovss	xmm5, DWORD PTR 40[rsp]
+	vfmadd132ss	xmm5, xmm0, xmm3
+	vfmadd231ss	xmm5, xmm13, DWORD PTR 24[rsp]
+	vfmadd231ss	xmm12, xmm11, xmm8
+	vmovss	xmm13, DWORD PTR 52[rsp]
+	vfmadd132ss	xmm2, xmm5, DWORD PTR 28[rsp]
+	vmovss	xmm5, DWORD PTR 44[rsp]
+	vfmadd231ss	xmm2, xmm11, DWORD PTR 32[rsp]
+	vmovss	xmm11, DWORD PTR 48[rsp]
+	vmovaps	xmm3, xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR [rax]
+	vmovss	xmm8, DWORD PTR 56[rsp]
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 16[rax]
+	vfmadd231ss	xmm3, xmm13, DWORD PTR 32[rax]
+	vfmadd231ss	xmm3, xmm8, DWORD PTR 48[rax]
+	vmovss	DWORD PTR [rcx], xmm3
+	vmovaps	xmm3, xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 4[rax]
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 20[rax]
+	vfmadd231ss	xmm3, xmm13, DWORD PTR 36[rax]
+	vfmadd231ss	xmm3, xmm8, DWORD PTR 52[rax]
+	vmovss	DWORD PTR 4[rcx], xmm3
+	vmovaps	xmm3, xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 8[rax]
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 24[rax]
+	vfmadd231ss	xmm3, xmm13, DWORD PTR 40[rax]
+	vfmadd231ss	xmm3, xmm8, DWORD PTR 56[rax]
+	vmovss	DWORD PTR 8[rcx], xmm3
+	vfmadd132ss	xmm5, xmm0, DWORD PTR 12[rax]
+	vmovaps	xmm3, xmm5
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 28[rax]
+	vmovss	xmm5, DWORD PTR 60[rsp]
+	vmovd	xmm11, edx
+	vfmadd231ss	xmm3, xmm13, DWORD PTR 44[rax]
+	vfmadd231ss	xmm3, xmm8, DWORD PTR 60[rax]
+	vmovss	DWORD PTR 12[rcx], xmm3
+	vmovaps	xmm3, xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR [rax]
+	vfmadd231ss	xmm3, xmm10, DWORD PTR 16[rax]
+	vfmadd231ss	xmm3, xmm9, DWORD PTR 32[rax]
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 48[rax]
+	vmovss	DWORD PTR 16[rcx], xmm3
+	vmovaps	xmm3, xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 4[rax]
+	vfmadd231ss	xmm3, xmm10, DWORD PTR 20[rax]
+	vfmadd231ss	xmm3, xmm9, DWORD PTR 36[rax]
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 52[rax]
+	vmovss	DWORD PTR 20[rcx], xmm3
+	vmovaps	xmm3, xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 8[rax]
+	vfmadd231ss	xmm3, xmm10, DWORD PTR 24[rax]
+	vfmadd231ss	xmm3, xmm9, DWORD PTR 40[rax]
+	vfmadd231ss	xmm3, xmm11, DWORD PTR 56[rax]
+	vmovss	DWORD PTR 24[rcx], xmm3
+	vfmadd132ss	xmm5, xmm0, DWORD PTR 12[rax]
+	vmovaps	xmm3, xmm5
+	vfmadd231ss	xmm3, xmm10, DWORD PTR 28[rax]
+	vmovd	xmm5, edx
+	vfmadd231ss	xmm3, xmm9, DWORD PTR 44[rax]
+	vfmadd132ss	xmm5, xmm3, DWORD PTR 60[rax]
+	vmovaps	xmm3, xmm7
+	vmovss	DWORD PTR 28[rcx], xmm5
+	vfmadd132ss	xmm3, xmm0, DWORD PTR [rax]
+	vfmadd231ss	xmm3, xmm6, DWORD PTR 16[rax]
+	vfmadd231ss	xmm3, xmm15, DWORD PTR 32[rax]
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 48[rax]
+	vmovss	DWORD PTR 32[rcx], xmm3
+	vmovaps	xmm3, xmm7
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 4[rax]
+	vfmadd231ss	xmm3, xmm6, DWORD PTR 20[rax]
+	vfmadd231ss	xmm3, xmm15, DWORD PTR 36[rax]
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 52[rax]
+	vmovss	DWORD PTR 36[rcx], xmm3
+	vmovaps	xmm3, xmm7
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 8[rax]
+	vfmadd231ss	xmm3, xmm6, DWORD PTR 24[rax]
+	vfmadd231ss	xmm3, xmm15, DWORD PTR 40[rax]
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 56[rax]
+	vmovss	DWORD PTR 40[rcx], xmm3
+	vfmadd132ss	xmm7, xmm0, DWORD PTR 12[rax]
+	vmovaps	xmm3, xmm7
+	vfmadd231ss	xmm3, xmm6, DWORD PTR 28[rax]
+	vfmadd231ss	xmm3, xmm15, DWORD PTR 44[rax]
+	vfmadd231ss	xmm3, xmm14, DWORD PTR 60[rax]
+	vmovss	DWORD PTR 44[rcx], xmm3
+	vmovaps	xmm3, xmm12
+	vfmadd132ss	xmm3, xmm0, DWORD PTR [rax]
+	vfmadd231ss	xmm3, xmm4, DWORD PTR 16[rax]
+	vfmadd231ss	xmm3, xmm1, DWORD PTR 32[rax]
+	vfmadd231ss	xmm3, xmm2, DWORD PTR 48[rax]
+	vmovss	DWORD PTR 48[rcx], xmm3
+	vmovaps	xmm3, xmm12
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 4[rax]
+	vfmadd231ss	xmm3, xmm4, DWORD PTR 20[rax]
+	vfmadd231ss	xmm3, xmm1, DWORD PTR 36[rax]
+	vfmadd231ss	xmm3, xmm2, DWORD PTR 52[rax]
+	vmovss	DWORD PTR 52[rcx], xmm3
+	vmovaps	xmm3, xmm12
+	vfmadd132ss	xmm3, xmm0, DWORD PTR 8[rax]
+	vfmadd231ss	xmm3, xmm4, DWORD PTR 24[rax]
+	vfmadd231ss	xmm3, xmm1, DWORD PTR 40[rax]
+	vmovups	xmm6, XMMWORD PTR 64[rsp]
+	vfmadd231ss	xmm3, xmm2, DWORD PTR 56[rax]
+	vmovups	xmm7, XMMWORD PTR 80[rsp]
+	vmovups	xmm8, XMMWORD PTR 96[rsp]
+	vmovups	xmm9, XMMWORD PTR 112[rsp]
+	vmovups	xmm10, XMMWORD PTR 128[rsp]
+	vmovups	xmm11, XMMWORD PTR 144[rsp]
+	vmovups	xmm13, XMMWORD PTR 176[rsp]
+	vmovups	xmm14, XMMWORD PTR 192[rsp]
+	vmovups	xmm15, XMMWORD PTR 208[rsp]
+	vmovss	DWORD PTR 56[rcx], xmm3
+	vfmadd132ss	xmm12, xmm0, DWORD PTR 12[rax]
+	vfmadd132ss	xmm4, xmm12, DWORD PTR 28[rax]
+	vmovups	xmm12, XMMWORD PTR 160[rsp]
+	vfmadd132ss	xmm1, xmm4, DWORD PTR 44[rax]
+	vfmadd132ss	xmm2, xmm1, DWORD PTR 60[rax]
+	vmovss	DWORD PTR 60[rcx], xmm2
+	vmovups	XMMWORD PTR [rsp], xmm6
+	vmovups	XMMWORD PTR 16[rsp], xmm7
+	vmovups	XMMWORD PTR 32[rsp], xmm8
+	vmovups	XMMWORD PTR 48[rsp], xmm9
+	vmovups	XMMWORD PTR 64[rsp], xmm10
+	vmovups	XMMWORD PTR 80[rsp], xmm11
+	vmovups	XMMWORD PTR 96[rsp], xmm12
+	vmovups	XMMWORD PTR 112[rsp], xmm13
+	vmovups	XMMWORD PTR 128[rsp], xmm14
+	vmovss	xmm14, DWORD PTR [rdx]
+	vmovss	xmm12, DWORD PTR 16[rdx]
+	vmovss	xmm11, DWORD PTR 32[rdx]
+	vmovss	xmm10, DWORD PTR 48[rdx]
+	vmovss	xmm9, DWORD PTR 4[rdx]
+	vmovss	xmm8, DWORD PTR 20[rdx]
+	vmovss	xmm7, DWORD PTR 36[rdx]
+	vmovss	xmm6, DWORD PTR 52[rdx]
+	vmovss	xmm5, DWORD PTR 8[rdx]
+	vmovss	xmm13, DWORD PTR 24[rdx]
+	vmovss	xmm4, DWORD PTR 40[rdx]
+	vmovss	xmm3, DWORD PTR 56[rdx]
+	vmovss	xmm0, DWORD PTR 4[r8]
+	vmovss	xmm1, DWORD PTR 8[r8]
+	vmulss	xmm2, xmm12, xmm0
+	vmulss	xmm0, xmm0, xmm8
+	vfmadd231ss	xmm2, xmm14, DWORD PTR -16[r8]
+	vfmadd231ss	xmm2, xmm11, xmm1
+	vaddss	xmm2, xmm2, xmm10
+	vmovss	DWORD PTR -16[rcx], xmm2
+	vmovss	xmm2, DWORD PTR -16[r8]
+	vfmadd231ss	xmm0, xmm9, xmm2
+	vfmadd231ss	xmm0, xmm1, xmm7
+	vaddss	xmm0, xmm0, xmm6
+	vmovss	DWORD PTR -12[rcx], xmm0
+	vmulss	xmm0, xmm13, DWORD PTR -12[r8]
+	vfmadd132ss	xmm2, xmm0, xmm5
+	vfmadd132ss	xmm1, xmm2, xmm4
+	vaddss	xmm1, xmm1, xmm3
+	vmovss	DWORD PTR -8[rcx], xmm1
+	vmovups	xmm6, XMMWORD PTR [rsp]
+	vmovups	xmm7, XMMWORD PTR 16[rsp]
+	vmovups	xmm8, XMMWORD PTR 32[rsp]
+	vmovups	xmm9, XMMWORD PTR 48[rsp]
+	vmovups	xmm10, XMMWORD PTR 64[rsp]
+	vmovups	xmm11, XMMWORD PTR 80[rsp]
+	vmovups	xmm12, XMMWORD PTR 96[rsp]
+	vmovups	xmm13, XMMWORD PTR 112[rsp]
+	vmovups	xmm14, XMMWORD PTR 128[rsp]
+	vmovups	XMMWORD PTR 336[rsp], xmm6
+	vmovups	XMMWORD PTR 352[rsp], xmm7
+	vmovups	XMMWORD PTR 368[rsp], xmm8
+	vmovups	XMMWORD PTR 384[rsp], xmm9
+	vmovups	XMMWORD PTR 400[rsp], xmm10
+	vmovups	XMMWORD PTR 416[rsp], xmm11
+	vmovups	XMMWORD PTR 432[rsp], xmm12
+	vmovups	XMMWORD PTR 448[rsp], xmm13
+	vmovups	XMMWORD PTR 464[rsp], xmm14
+	vmovups	XMMWORD PTR 480[rsp], xmm15
+	vmovss	xmm1, DWORD PTR .LC10[rip]
+	vmovss	DWORD PTR -16[r8], xmm0
+	vmovss	DWORD PTR -12[r8], xmm0
+	vmovss	DWORD PTR -8[r8], xmm0
+	vmovss	xmm0, DWORD PTR .LC1[rip]
+	vmovss	DWORD PTR -64[rax], xmm0
+	vmovss	DWORD PTR -44[rax], xmm0
+	vmovss	DWORD PTR -24[rax], xmm0
+	vmovss	DWORD PTR -16[rax], xmm1
+	vmovss	DWORD PTR -4[rax], xmm0
+	vmovss	DWORD PTR -12[rax], xmm1
+	vmovss	DWORD PTR -8[rax], xmm1
+	vmovss	xmm0, DWORD PTR 76[rsp]
+	vaddss	xmm0, xmm0, DWORD PTR 272[rsp]
+	vmovss	DWORD PTR 76[rsp], xmm0
+	vmovss	xmm0, DWORD PTR 76[rsp]
+	vaddss	xmm0, xmm0, DWORD PTR 272[rsp]
+	vmovss	DWORD PTR 76[rsp], xmm0
+	vmovsd	xmm8, QWORD PTR .LC15[rip]
+	vmovq	rdx, xmm7
+	vmulsd	xmm1, xmm0, QWORD PTR .LC16[rip]
+	vmovq	r8, xmm1
+	vmovapd	xmm2, xmm1
+	vmovapd	xmm1, xmm7
+	vmovq	rdx, xmm6
+	vmulsd	xmm1, xmm8, QWORD PTR .LC16[rip]
+	vmovapd	xmm2, xmm1
+	vmovq	r8, xmm1
+	vmovapd	xmm1, xmm6
+	vmovq	rdx, xmm1
+	vmovsd	xmm7, QWORD PTR .LC20[rip]
+	vmovq	rdx, xmm1
+	vmovsd	xmm7, QWORD PTR .LC20[rip]
+	vmovq	rdx, xmm1
+	vmovss	xmm6, DWORD PTR 0[rbp]
+	vmovss	xmm0, DWORD PTR .LC27[rip]
+	vfmadd132ss	xmm0, xmm6, DWORD PTR 15984[r12]
+	vmovss	DWORD PTR 0[rbp], xmm0
+	vmovss	xmm1, DWORD PTR 76[rsp]
+	vmovq	rbx, xmm7
+	vmovss	xmm0, DWORD PTR [r12]
+	vaddss	xmm0, xmm0, DWORD PTR 0[rbp]
+	vaddss	xmm0, xmm0, xmm1
+	vmovss	DWORD PTR 76[rsp], xmm0
+	vmovss	xmm1, DWORD PTR 0[rbp]
+	vmovss	xmm15, DWORD PTR 272[rsp]
+	vmovss	xmm14, DWORD PTR 276[rsp]
+	vmovss	xmm13, DWORD PTR 280[rsp]
+	vmovss	xmm12, DWORD PTR 288[rsp]
+	vmovss	xmm11, DWORD PTR 292[rsp]
+	vmovss	DWORD PTR 36[rsp], xmm15
+	vmovss	xmm10, DWORD PTR 296[rsp]
+	vmovss	xmm9, DWORD PTR 304[rsp]
+	vmovss	xmm8, DWORD PTR 308[rsp]
+	vmovss	xmm7, DWORD PTR 312[rsp]
+	vmovss	xmm6, DWORD PTR 320[rsp]
+	vmovss	xmm5, DWORD PTR 324[rsp]
+	vmovss	xmm4, DWORD PTR 328[rsp]
+	vmovaps	xmm0, xmm1
+	vmovss	xmm0, DWORD PTR -4[rax]
+	vmovss	xmm15, DWORD PTR [rax]
+	vmovss	xmm2, DWORD PTR 4[rax]
+	vmulss	xmm3, xmm12, xmm15
+	vfmadd231ss	xmm3, xmm0, DWORD PTR 36[rsp]
+	vfmadd231ss	xmm3, xmm9, xmm2
+	vaddss	xmm3, xmm3, xmm6
+	vmovss	DWORD PTR [rdx], xmm3
+	vmulss	xmm3, xmm11, xmm15
+	vmulss	xmm15, xmm10, xmm15
+	vfmadd231ss	xmm3, xmm14, xmm0
+	vfmadd231ss	xmm15, xmm13, xmm0
+	vfmadd231ss	xmm3, xmm8, xmm2
+	vfmadd132ss	xmm2, xmm15, xmm7
+	vaddss	xmm3, xmm3, xmm5
+	vaddss	xmm2, xmm2, xmm4
+	vmovss	DWORD PTR 4[rdx], xmm3
+	vmovss	DWORD PTR 8[rdx], xmm2
+	vmovss	xmm2, DWORD PTR .LC27[rip]
+	vfmadd231ss	xmm1, xmm2, DWORD PTR 15984[r12]
+	vmovss	DWORD PTR 0[rbp], xmm1
+	vmovss	xmm0, DWORD PTR [r12]
+	vaddss	xmm0, xmm0, DWORD PTR 0[rbp]
+	vmovss	xmm1, DWORD PTR 76[rsp]
+	vmovsd	xmm7, QWORD PTR .LC29[rip]
+	vaddss	xmm0, xmm0, xmm1
+	vmovq	xmm1, rbx
+	vmovss	DWORD PTR 76[rsp], xmm0
+	vmulsd	xmm1, xmm0, QWORD PTR .LC16[rip]
+	vmovq	r8, xmm1
+	vmovapd	xmm2, xmm1
+	vmovq	xmm1, rbx
+	vmovq	rdx, xmm6
+	vmulsd	xmm1, xmm0, QWORD PTR .LC16[rip]
+	vmovq	r8, xmm1
+	vmovapd	xmm2, xmm1
+	vmovapd	xmm1, xmm6
+	vmovq	xmm1, rbx
+	vmovapd	xmm1, xmm8
+	vmovq	rdx, xmm8
+	vmovq	xmm1, rbx
+	vmovq	rdx, xmm1
+	vmovq	rdx, xmm1
+	vmovups	xmm6, XMMWORD PTR 336[rsp]
+	vmovups	xmm7, XMMWORD PTR 352[rsp]
+	vmovups	xmm8, XMMWORD PTR 368[rsp]
+	vmovups	xmm9, XMMWORD PTR 384[rsp]
+	vmovups	xmm10, XMMWORD PTR 400[rsp]
+	vmovups	xmm11, XMMWORD PTR 416[rsp]
+	vmovups	xmm12, XMMWORD PTR 432[rsp]
+	vmovups	xmm13, XMMWORD PTR 448[rsp]
+	vmovups	xmm14, XMMWORD PTR 464[rsp]
+	vmovups	xmm15, XMMWORD PTR 480[rsp]

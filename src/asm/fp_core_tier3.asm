@@ -262,7 +262,7 @@ fp_reduce_and_bool:
     xor r11, r11                ; r11 = index
 
     ; Use SIMD for parallel checking
-    vpxor ymm0, ymm0, ymm0      ; ymm0 = all zeros
+    vpxor ymm3, ymm3, ymm3      ; ymm3 = all zeros
 
 .loop4:
     mov rax, rdx
@@ -270,12 +270,11 @@ fp_reduce_and_bool:
     cmp rax, 4
     jb .tail
 
-    ; Load 4 values and OR them with accumulator
+    ; Load 4 values
     vmovdqu ymm1, [r10 + r11*8]
-    vpor ymm0, ymm0, ymm1       ; Accumulate any non-zero
 
     ; Check if any are zero
-    vpcmpeqq ymm2, ymm1, ymm0   ; Compare with zero
+    vpcmpeqq ymm2, ymm1, ymm3   ; Compare with zero
     vmovmskpd r8d, ymm2
     cmp r8d, 0
     jne .found_zero             ; If any zeros, AND fails
