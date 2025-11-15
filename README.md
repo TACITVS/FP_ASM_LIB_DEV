@@ -180,22 +180,30 @@ All functions documented in [`include/fp_core.h`](include/fp_core.h) with:
 ## 🛠️ Build Instructions
 
 ### Requirements
-- **Assembler**: NASM (for Windows x64)
-- **Compiler**: GCC (MinGW64) or Clang
-- **Platform**: Windows x64 (Linux port planned)
+- **Assembler**: NASM (x86_64)
+- **Compiler**: GCC or Clang with AVX2 support
+- **Build tooling**: GNU Make
+- **Platform**: Linux x86_64 (Windows build scripts remain available under `*.bat`)
 
-### Compile & Test
+### Build & Validate
 
 ```bash
-# Assemble a module
-nasm -f win64 src/asm/fp_core_reductions.asm -o build/obj/fp_core_reductions.o
+# Build everything (assembly, wrappers, tests, benchmarks)
+make complete
 
-# Run general HOF tests
-build_test_general_hof.bat
+# Execute every test binary that was just built
+make run-tests
 
-# Run performance benchmarks
-build_bench_general_hof.bat
+# Execute every benchmark binary that was just built
+make run-benchmarks
+
+# Rebuild from scratch and run tests + benchmarks in one step
+make ci
 ```
+
+> **Note:** The 3D benchmark currently reports warning-level diagnostics for
+> large-N dot products due to expected fused-multiply-add drift. The run still
+> completes successfully and is included in `make run-benchmarks` and `make ci`.
 
 ---
 
