@@ -23,39 +23,26 @@ align 32
 ;   shuffle pattern: [0,1,3,3] = pack first 3, duplicate last
 
 ; Shuffle patterns for vpermq (each entry is 1 byte = 4 × 2-bit indices)
-compaction_lut:
-    ; mask=0b0000 (0): no elements pass
-    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [0,0,0,0] (doesn't matter)
-    ; mask=0b0001 (1): keep index 0
-    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [0,0,0,0]
-    ; mask=0b0010 (2): keep index 1
-    db 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [1,0,0,0]
-    ; mask=0b0011 (3): keep indices 0,1
-    db 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [1,0,0,0]
-    ; mask=0b0100 (4): keep index 2
-    db 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [2,0,0,0]
-    ; mask=0b0101 (5): keep indices 0,2
-    db 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [2,0,0,0]
-    ; mask=0b0110 (6): keep indices 1,2
-    db 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [2,1,0,0]
-    ; mask=0b0111 (7): keep indices 0,1,2
-    db 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [2,1,0,0]
-    ; mask=0b1000 (8): keep index 3
-    db 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,0,0,0]
-    ; mask=0b1001 (9): keep indices 0,3
-    db 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,0,0,0]
-    ; mask=0b1010 (10): keep indices 1,3
-    db 0x03, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,1,0,0]
-    ; mask=0b1011 (11): keep indices 0,1,3
-    db 0x03, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,1,0,0]
-    ; mask=0b1100 (12): keep indices 2,3
-    db 0x03, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,2,0,0]
-    ; mask=0b1101 (13): keep indices 0,2,3
-    db 0x03, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,2,0,0]
-    ; mask=0b1110 (14): keep indices 1,2,3
-    db 0x03, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,2,1,0]
-    ; mask=0b1111 (15): keep all indices
-    db 0x03, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00  ; [3,2,1,0]
+compaction_idx_lut:
+    ; Each entry provides 8 dword indices that select the desired qwords
+    ; from the source vector when used with vpermd. Entries past the last
+    ; survivor are filled with zeroes and will be ignored based on popcount.
+    dd 0, 1, 2, 3, 4, 5, 6, 7      ; mask=0b0000 (unused)
+    dd 0, 1, 0, 1, 0, 1, 0, 1      ; mask=0b0001
+    dd 2, 3, 2, 3, 2, 3, 2, 3      ; mask=0b0010
+    dd 0, 1, 2, 3, 2, 3, 2, 3      ; mask=0b0011
+    dd 4, 5, 4, 5, 4, 5, 4, 5      ; mask=0b0100
+    dd 0, 1, 4, 5, 4, 5, 4, 5      ; mask=0b0101
+    dd 2, 3, 4, 5, 4, 5, 4, 5      ; mask=0b0110
+    dd 0, 1, 2, 3, 4, 5, 4, 5      ; mask=0b0111
+    dd 6, 7, 6, 7, 6, 7, 6, 7      ; mask=0b1000
+    dd 0, 1, 6, 7, 6, 7, 6, 7      ; mask=0b1001
+    dd 2, 3, 6, 7, 6, 7, 6, 7      ; mask=0b1010
+    dd 0, 1, 2, 3, 6, 7, 6, 7      ; mask=0b1011
+    dd 4, 5, 6, 7, 6, 7, 6, 7      ; mask=0b1100
+    dd 0, 1, 4, 5, 6, 7, 6, 7      ; mask=0b1101
+    dd 2, 3, 4, 5, 6, 7, 6, 7      ; mask=0b1110
+    dd 0, 1, 2, 3, 4, 5, 6, 7      ; mask=0b1111
 
 ; Popcount lookup: number of set bits in 4-bit mask
 popcount_lut:
@@ -107,39 +94,43 @@ fp_filter_gt_i64_simd:
     vmovmskpd eax, ymm1         ; eax = 4-bit mask (bits 0-3)
     and eax, 0x0F
 
-    ; If mask == 0, skip (no elements pass)
-    test eax, eax
+    ; Lookup survivor count and permutation indices
+    movzx edx, byte [popcount_lut + rax]
+    test edx, edx
     jz .skip
 
-    ; Element 0
-    test eax, 1
-    jz .skip0
-    vpextrq [r13], xmm0, 0
-    add r13, 8
-.skip0:
+    mov r11, rax
+    shl r11, 5                  ; 32 bytes per entry
+    vmovdqa ymm2, [compaction_idx_lut + r11]
+    vpermd ymm3, ymm2, ymm0     ; Rearrange qwords so survivors are packed
 
-    ; Element 1
-    test eax, 2
-    jz .skip1
-    vpextrq [r13], xmm0, 1
-    add r13, 8
-.skip1:
+    cmp edx, 4
+    je .store4
+    cmp edx, 3
+    je .store3
+    cmp edx, 2
+    je .store2
 
-    ; Element 2
-    test eax, 4
-    jz .skip2
-    vextracti128 xmm1, ymm0, 1
-    vpextrq [r13], xmm1, 0
+.store1:
+    vmovq [r13], xmm3
     add r13, 8
-.skip2:
+    jmp .skip
 
-    ; Element 3
-    test eax, 8
-    jz .skip3
-    vextracti128 xmm1, ymm0, 1
-    vpextrq [r13], xmm1, 1
-    add r13, 8
-.skip3:
+.store2:
+    vmovdqu [r13], xmm3
+    add r13, 16
+    jmp .skip
+
+.store3:
+    vmovdqu [r13], xmm3
+    vextracti128 xmm1, ymm3, 1
+    vmovq [r13+16], xmm1
+    add r13, 24
+    jmp .skip
+
+.store4:
+    vmovdqu [r13], ymm3
+    add r13, 32
 
 .skip:
     add r12, 32                 ; input += 4
@@ -249,7 +240,6 @@ fp_filter_gt_i64_simple:
     jle .tail_skip
     mov [r13], r10
     add r13, 8
-    inc r15
 .tail_skip:
     add r12, 8
     dec rcx
