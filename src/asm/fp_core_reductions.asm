@@ -54,6 +54,22 @@ fp_reduce_add_i64:
     sub  r13, 16
     jmp  .loop16
 .tail:
+    cmp r13, 8
+    jb .tail4
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vpaddq ymm6, ymm6, ymm0
+    vpaddq ymm7, ymm7, ymm1
+    add r12, 64
+    sub r13, 8
+.tail4:
+    cmp r13, 4
+    jb .tail1
+    vmovdqu ymm0, [r12]
+    vpaddq ymm6, ymm6, ymm0
+    add r12, 32
+    sub r13, 4
+.tail1:
     test r13, r13
     jz   .accum
 .tail_loop:
@@ -102,6 +118,22 @@ fp_reduce_add_f64:
     sub  r13, 16
     jmp  .loop16
 .tail:
+    cmp r13, 8
+    jb .tail4
+    vmovupd ymm1, [r12]
+    vmovupd ymm2, [r12+32]
+    vaddpd  ymm6, ymm6, ymm1
+    vaddpd  ymm7, ymm7, ymm2
+    add r12, 64
+    sub r13, 8
+.tail4:
+    cmp r13, 4
+    jb .tail1
+    vmovupd ymm1, [r12]
+    vaddpd  ymm6, ymm6, ymm1
+    add r12, 32
+    sub r13, 4
+.tail1:
     test r13, r13
     jz   .accum
 .tail_loop:
