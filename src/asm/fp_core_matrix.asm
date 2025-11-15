@@ -261,8 +261,8 @@ fp_mat4_transpose:
     vshufps ymm1, ymm2, ymm3, 0xEE
 
     ; Step 3: Permute 128-bit lanes to get final columns
-    vperm2i128 ymm2, ymm0, ymm1, 0x20
-    vperm2i128 ymm3, ymm0, ymm1, 0x31
+    vperm2f128 ymm2, ymm0, ymm1, 0x20   ; Use vperm2f128 for float data
+    vperm2f128 ymm3, ymm0, ymm1, 0x31   ; Use vperm2f128 for float data
 
     ; Store the transposed matrix
     vmovups [rcx], ymm2

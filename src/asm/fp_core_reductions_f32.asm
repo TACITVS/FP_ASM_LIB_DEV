@@ -236,6 +236,10 @@ fp_reduce_min_f32:
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_infinity             ; Return +inf for empty array
+
     ; Load first element as initial value
     vbroadcastss ymm0, [rcx]
     vmovaps ymm1, ymm0
@@ -305,6 +309,15 @@ fp_reduce_min_f32:
     pop rbp
     ret
 
+.return_infinity:
+    ; Return +infinity for minimum of empty array
+    mov eax, 0x7F800000             ; IEEE 754: +infinity
+    vmovd xmm0, eax
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_f32: Maximum of f32 array
 ; ============================================================================
@@ -316,6 +329,10 @@ fp_reduce_max_f32:
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_neg_infinity         ; Return -inf for empty array
 
     ; Load first element as initial value
     vbroadcastss ymm0, [rcx]
@@ -381,6 +398,15 @@ fp_reduce_max_f32:
     vshufps xmm1, xmm0, xmm0, 0xB1
     vmaxps xmm0, xmm0, xmm1
 
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
+.return_neg_infinity:
+    ; Return -infinity for maximum of empty array
+    mov eax, 0xFF800000             ; IEEE 754: -infinity
+    vmovd xmm0, eax
     vzeroupper
     mov rsp, rbp
     pop rbp
