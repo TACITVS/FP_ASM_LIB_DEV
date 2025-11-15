@@ -76,7 +76,7 @@ fp_reduce_add_u8:
 
 .tail_loop:
     vpxor ymm4, ymm4, ymm4
-    movsx eax, byte [r12]
+    movzx eax, byte [r12]        ; Zero-extend for unsigned u8
     vpinsrb xmm4, xmm4, eax, 0
     vpaddb ymm0, ymm0, ymm4
     add r12, 1
@@ -89,7 +89,7 @@ fp_reduce_add_u8:
     vpaddb ymm2, ymm2, ymm3
     vpaddb ymm0, ymm0, ymm2
 
-    ; For SIGNED u8, sign-extend to i16 then sum
+    ; For UNSIGNED u8, zero-extend to i16 then sum
     ; ymm0 has 32 unsigned bytes
     vextracti128 xmm1, ymm0, 1       ; Upper 16 bytes
 
@@ -140,7 +140,7 @@ fp_reduce_mul_u8:
     jz .done
 
 .loop:
-    movsx r8d, byte [r12]
+    movzx r8d, byte [r12]        ; Zero-extend for unsigned u8
     imul eax, r8d
     add r12, 1
     dec rcx
@@ -164,7 +164,7 @@ fp_reduce_min_u8:
     and rsp, 0xFFFFFFFFFFFFFFE0
 
     ; Load first element and broadcast
-    movsx eax, byte [rcx]
+    movzx eax, byte [rcx]        ; Zero-extend for unsigned u8
     vpinsrb xmm0, xmm0, eax, 0
     vpbroadcastb ymm0, xmm0
     vmovdqa ymm1, ymm0
@@ -208,7 +208,7 @@ fp_reduce_min_u8:
     jz .horizontal_min
 
 .tail_loop:
-    movsx eax, byte [r12]
+    movzx eax, byte [r12]        ; Zero-extend for unsigned u8
     vpinsrb xmm4, xmm4, eax, 0
     vpbroadcastb ymm4, xmm4
     vpminub ymm0, ymm0, ymm4
@@ -260,7 +260,7 @@ fp_reduce_max_u8:
     and rsp, 0xFFFFFFFFFFFFFFE0
 
     ; Load first element and broadcast
-    movsx eax, byte [rcx]
+    movzx eax, byte [rcx]        ; Zero-extend for unsigned u8
     vpinsrb xmm0, xmm0, eax, 0
     vpbroadcastb ymm0, xmm0
     vmovdqa ymm1, ymm0
@@ -304,7 +304,7 @@ fp_reduce_max_u8:
     jz .horizontal_max
 
 .tail_loop:
-    movsx eax, byte [r12]
+    movzx eax, byte [r12]        ; Zero-extend for unsigned u8
     vpinsrb xmm4, xmm4, eax, 0
     vpbroadcastb ymm4, xmm4
     vpmaxub ymm0, ymm0, ymm4

@@ -103,7 +103,9 @@ fp_reduce_add_u64:
 ; ============================================================================
 ; Signature: uint64_t fp_reduce_mul_u64(const uint64_t* input, size_t n);
 ;
-; No SIMD i64 multiply in AVX2, use scalar with multiple accumulators
+; No SIMD i64 multiply in AVX2, use scalar
+; NOTE: For multiplication mod 2^64, IMUL and MUL produce identical lower 64 bits
+; Using IMUL for convenience (allows multiple accumulators)
 
 global fp_reduce_mul_u64
 fp_reduce_mul_u64:
@@ -124,7 +126,7 @@ fp_reduce_mul_u64:
     jb .loop1
 
     mov r11, [r12]
-    imul rax, r11
+    imul rax, r11               ; Multiply rax by r11 (lower 64 bits)
 
     mov r11, [r12 + 8]
     imul r8, r11
@@ -155,6 +157,7 @@ fp_reduce_mul_u64:
     imul rax, r9
     imul rax, r10
 
+    vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
     pop rbp
     ret
 
@@ -225,6 +228,7 @@ fp_reduce_min_u64:
     cmp r10, rax
     cmovb rax, r10
 
+    vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
     pop rbp
     ret
 
@@ -295,5 +299,6 @@ fp_reduce_max_u64:
     cmp r10, rax
     cmova rax, r10
 
+    vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
     pop rbp
     ret

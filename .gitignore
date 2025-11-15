@@ -47,6 +47,12 @@ build/tmp/
 *~
 .DS_Store
 
+# Claude Code temporary files
+.claude/
+.github/
+benchmarks/logs/
+research_notes.md
+
 # Windows specific
 Thumbs.db
 ehthumbs.db
