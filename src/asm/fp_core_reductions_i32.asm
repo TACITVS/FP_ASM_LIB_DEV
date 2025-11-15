@@ -51,7 +51,7 @@ fp_reduce_add_i32:
     vpxor ymm2, ymm2, ymm2          ; acc3 = 0
     vpxor ymm3, ymm3, ymm3          ; acc4 = 0
 
-    mov r12, rcx                    ; r12 = input pointer
+    mov r10, rcx                    ; r10 = input pointer
     mov rcx, rdx                    ; rcx = count
 
     ; Main loop: 32 elements per iteration (4 YMM * 8 i32)
@@ -59,19 +59,19 @@ fp_reduce_add_i32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovdqu ymm4, [r12]             ; Load 8x i32
-    vmovdqu ymm5, [r12 + 32]        ; Load 8x i32
-    vmovdqu ymm6, [r12 + 64]        ; Load 8x i32
-    vmovdqu ymm7, [r12 + 96]        ; Load 8x i32
-
+    vmovdqu ymm4, [r10]             ; Load 8x i32
+    vmovdqu ymm5, [r10 + 32]        ; Load 8x i32
     vpaddd ymm0, ymm0, ymm4         ; Accumulate
     vpaddd ymm1, ymm1, ymm5
-    vpaddd ymm2, ymm2, ymm6
-    vpaddd ymm3, ymm3, ymm7
 
-    add r12, 128                    ; 32 * 4 bytes
+    vmovdqu ymm4, [r10 + 64]        ; Load 8x i32 (reuse ymm4)
+    vmovdqu ymm5, [r10 + 96]        ; Load 8x i32 (reuse ymm5)
+    vpaddd ymm2, ymm2, ymm4         ; Accumulate
+    vpaddd ymm3, ymm3, ymm5
+
+    add r10, 128                    ; 32 * 4 bytes
     sub rcx, 32
     jmp .loop32
 
@@ -79,10 +79,10 @@ fp_reduce_add_i32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]             ; Load 8x i32
+    vmovdqu ymm4, [r10]             ; Load 8x i32
     vpaddd ymm0, ymm0, ymm4         ; Accumulate
 
-    add r12, 32                     ; 8 * 4 bytes
+    add r10, 32                     ; 8 * 4 bytes
     sub rcx, 8
     jmp .loop8
 
@@ -93,10 +93,10 @@ fp_reduce_add_i32:
 
 .tail_loop:
     vpxor ymm4, ymm4, ymm4          ; Zero ymm4 (use YMM to preserve upper bits!)
-    mov eax, [r12]                  ; Load single i32
+    mov eax, [r10]                  ; Load single i32
     vpinsrd xmm4, xmm4, eax, 0      ; Insert into xmm4
     vpaddd ymm0, ymm0, ymm4         ; Add to accumulator (use YMM!)
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -154,26 +154,26 @@ fp_reduce_mul_i32:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
-
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
     vpmulld ymm0, ymm0, ymm4        ; i32 multiply (AVX2 has this!)
     vpmulld ymm1, ymm1, ymm5
-    vpmulld ymm2, ymm2, ymm6
-    vpmulld ymm3, ymm3, ymm7
 
-    add r12, 128
+    vmovdqu ymm4, [r10 + 64]        ; Reuse ymm4
+    vmovdqu ymm5, [r10 + 96]        ; Reuse ymm5
+    vpmulld ymm2, ymm2, ymm4
+    vpmulld ymm3, ymm3, ymm5
+
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -181,10 +181,10 @@ fp_reduce_mul_i32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpmulld ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -209,9 +209,9 @@ fp_reduce_mul_i32:
     vmovd r8d, xmm0                 ; r8d = SIMD product
 
 .tail_loop:
-    mov eax, [r12]                  ; Load value
+    mov eax, [r10]                  ; Load value
     imul r8d, eax                   ; Multiply by tail element
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -270,26 +270,26 @@ fp_reduce_min_i32:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
-
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
     vpminsd ymm0, ymm0, ymm4        ; Min of 8x i32
     vpminsd ymm1, ymm1, ymm5
-    vpminsd ymm2, ymm2, ymm6
-    vpminsd ymm3, ymm3, ymm7
 
-    add r12, 128
+    vmovdqu ymm4, [r10 + 64]        ; Reuse ymm4
+    vmovdqu ymm5, [r10 + 96]        ; Reuse ymm5
+    vpminsd ymm2, ymm2, ymm4
+    vpminsd ymm3, ymm3, ymm5
+
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -297,10 +297,10 @@ fp_reduce_min_i32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpminsd ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -326,10 +326,10 @@ fp_reduce_min_i32:
     vmovd edx, xmm0                 ; Current min in edx
 
 .tail_loop:
-    mov eax, [r12]                  ; Load scalar
+    mov eax, [r10]                  ; Load scalar
     cmp eax, edx                    ; Compare with current min
     cmovl edx, eax                  ; Update min if less
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -387,26 +387,26 @@ fp_reduce_max_i32:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+    prefetcht0 [r10 + 256]          ; Prefetch 2 iterations ahead
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
-
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
     vpmaxsd ymm0, ymm0, ymm4        ; Max of 8x i32
     vpmaxsd ymm1, ymm1, ymm5
-    vpmaxsd ymm2, ymm2, ymm6
-    vpmaxsd ymm3, ymm3, ymm7
 
-    add r12, 128
+    vmovdqu ymm4, [r10 + 64]        ; Reuse ymm4
+    vmovdqu ymm5, [r10 + 96]        ; Reuse ymm5
+    vpmaxsd ymm2, ymm2, ymm4
+    vpmaxsd ymm3, ymm3, ymm5
+
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -414,10 +414,10 @@ fp_reduce_max_i32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpmaxsd ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -443,10 +443,10 @@ fp_reduce_max_i32:
     vmovd edx, xmm0                 ; Current max in edx
 
 .tail_loop:
-    mov eax, [r12]                  ; Load scalar
+    mov eax, [r10]                  ; Load scalar
     cmp eax, edx                    ; Compare with current max
     cmovg edx, eax                  ; Update max if greater
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
