@@ -147,8 +147,7 @@ fp_reduce_add_f64:
     vaddpd ymm6, ymm6, ymm8
     vextractf128 xmm1, ymm6, 1
     vaddpd       xmm2, xmm6, xmm1
-    vpermilpd    xmm1, xmm2, 1
-    vaddpd       xmm2, xmm2, xmm1
+    vhaddpd      xmm2, xmm2, xmm2    ; Horizontal add [a+b, a+b]
     vaddsd xmm0, xmm0, xmm2
 .done:
     EPILOGUE

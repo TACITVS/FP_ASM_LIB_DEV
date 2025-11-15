@@ -94,14 +94,11 @@ fp_fold_sumsq_f32:
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
 
+    ; Horizontal sum using vhaddps
     vextractf128 xmm1, ymm0, 1
     vaddps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vaddps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vaddps xmm0, xmm0, xmm1
+    vhaddps xmm0, xmm0, xmm0        ; [a+b, c+d, a+b, c+d]
+    vhaddps xmm0, xmm0, xmm0        ; [a+b+c+d, ...]
 
     ; Result already in xmm0
 
@@ -195,14 +192,11 @@ fp_fold_dotp_f32:
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
 
+    ; Horizontal sum using vhaddps
     vextractf128 xmm1, ymm0, 1
     vaddps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vaddps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vaddps xmm0, xmm0, xmm1
+    vhaddps xmm0, xmm0, xmm0        ; [a+b, c+d, a+b, c+d]
+    vhaddps xmm0, xmm0, xmm0        ; [a+b+c+d, ...]
 
     vzeroupper
     mov rsp, rbp
@@ -313,14 +307,11 @@ fp_fold_sad_f32:
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
 
+    ; Horizontal sum using vhaddps
     vextractf128 xmm1, ymm0, 1
     vaddps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vaddps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vaddps xmm0, xmm0, xmm1
+    vhaddps xmm0, xmm0, xmm0        ; [a+b, c+d, a+b, c+d]
+    vhaddps xmm0, xmm0, xmm0        ; [a+b+c+d, ...]
 
     vzeroupper
     mov rsp, rbp

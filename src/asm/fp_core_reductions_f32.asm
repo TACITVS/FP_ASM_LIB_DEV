@@ -105,15 +105,11 @@ fp_reduce_add_f32:
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
 
-    ; Horizontal sum of 8x f32 in ymm0
+    ; Horizontal sum of 8x f32 in ymm0 using vhaddps
     vextractf128 xmm1, ymm0, 1      ; Extract upper 128 bits
     vaddps xmm0, xmm0, xmm1         ; Sum upper/lower halves (4+4 = 4 elements)
-
-    vshufps xmm1, xmm0, xmm0, 0x4E  ; Shuffle [2,3,0,1]
-    vaddps xmm0, xmm0, xmm1         ; Sum (2 elements)
-
-    vshufps xmm1, xmm0, xmm0, 0xB1  ; Shuffle [1,0,3,2]
-    vaddps xmm0, xmm0, xmm1         ; Sum (1 element)
+    vhaddps xmm0, xmm0, xmm0        ; [a+b, c+d, a+b, c+d]
+    vhaddps xmm0, xmm0, xmm0        ; [a+b+c+d, ...]
 
     ; Result already in xmm0 (Windows ABI: float return in xmm0)
 
