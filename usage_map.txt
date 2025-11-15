@@ -1,0 +1,808 @@
+include\renderer_modern.h:26:#include "fp_engine_types.h" // Include FP_AppState, FP_Light, FP_Camera, FP_SceneObject
+include\renderer.h:4:#include "fp_graphics_engine.h"
+include\renderer.h:5:#include "fp_msaa.h"
+include\renderer.h:6:#include "fp_shadow_mapping.h"
+include\fp_shadow_mapping.h:14:FP_ShadowMap fp_shadow_create_map();
+include\fp_shadow_mapping.h:15:void fp_shadow_destroy_map(FP_ShadowMap* shadow_map);
+include\fp_ray_tracer.h:4: * fp_ray_tracer.h
+include\fp_ray_tracer.h:16:#include "fp_core.h"
+include\fp_ray_tracer.h:126:// NOTE: These are now implemented in fp_vector_ops.c and declared in fp_core.h
+include\fp_msaa.h:15:FP_MSAA_Framebuffer fp_msaa_create_framebuffer(int width, int height, int samples);
+include\fp_msaa.h:16:void fp_msaa_destroy_framebuffer(FP_MSAA_Framebuffer* msaa_fbo);
+include\fp_msaa.h:17:void fp_msaa_resolve_framebuffer(const FP_MSAA_Framebuffer* msaa_fbo, GLuint target_fbo);
+include\fp_mesh_generation.h:27:FP_MeshData fp_mesh_create_cube();
+include\fp_mesh_generation.h:30:FP_MeshData fp_mesh_create_plane(float size);
+include\fp_mesh_generation.h:33:void fp_mesh_destroy(FP_MeshData* mesh);
+include\fp_math.h:4:#include "fp_graphics_engine.h"
+src\algorithms\3d_math_wrapper.c:1:#include "fp_3d_math_wrapper.h"
+src\algorithms\3d_math_wrapper.c:7: * SECTION 1: C-KERNELS (for fp_generic.h)
+src\algorithms\3d_math_wrapper.c:13:    fp_zipWith_vec3_add_f32((const Vec3f*)a, (const Vec3f*)b, (Vec3f*)out, 1);
+src\algorithms\3d_math_wrapper.c:17:    fp_map_transform_vec3_f32((const Vec3f*)in, (Vec3f*)out, 1, (const Mat4*)ctx);
+src\algorithms\3d_math_wrapper.c:21:    fp_map_quat_rotate_vec3_f32((const Vec3f*)in, (Vec3f*)out, 1, (const Quaternion*)ctx);
+src\algorithms\3d_math_wrapper.c:27:    fp_zipWith_vec3_add_f32((const Vec3f*)acc, (const Vec3f*)elem, &temp, 1);
+include\fp_core.h:7:#include "fp_types.h"
+include\fp_core.h:15: * FP-ASM Core Library (fp_core.h)
+include\fp_core.h:55: *    - See fp_percentile_wrappers.c for the copy-and-sort pattern
+include\fp_core.h:69:int64_t fp_fold_sumsq_i64(const int64_t* in, size_t n);
+include\fp_core.h:70:int64_t fp_fold_dotp_i64(const int64_t* a, const int64_t* b, size_t n);
+include\fp_core.h:71:int64_t fp_fold_sad_i64(const int64_t* a, const int64_t* b, size_t n);
+include\fp_core.h:74:double  fp_fold_dotp_f64(const double* a, const double* b, size_t n);
+include\fp_core.h:77:int32_t fp_fold_sumsq_i32(const int32_t* in, size_t n);
+include\fp_core.h:78:int32_t fp_fold_dotp_i32(const int32_t* a, const int32_t* b, size_t n);
+include\fp_core.h:79:int32_t fp_fold_sad_i32(const int32_t* a, const int32_t* b, size_t n);
+include\fp_core.h:82:float   fp_fold_sumsq_f32(const float* in, size_t n);
+include\fp_core.h:83:float   fp_fold_dotp_f32(const float* a, const float* b, size_t n);
+include\fp_core.h:84:float   fp_fold_sad_f32(const float* a, const float* b, size_t n);
+include\fp_core.h:87:uint32_t fp_fold_sumsq_u32(const uint32_t* in, size_t n);
+include\fp_core.h:88:uint32_t fp_fold_dotp_u32(const uint32_t* a, const uint32_t* b, size_t n);
+include\fp_core.h:89:uint32_t fp_fold_sad_u32(const uint32_t* a, const uint32_t* b, size_t n);
+include\fp_core.h:92:uint64_t fp_fold_sumsq_u64(const uint64_t* in, size_t n);
+include\fp_core.h:93:uint64_t fp_fold_dotp_u64(const uint64_t* a, const uint64_t* b, size_t n);
+include\fp_core.h:94:uint64_t fp_fold_sad_u64(const uint64_t* a, const uint64_t* b, size_t n);
+include\fp_core.h:97:int16_t fp_fold_sumsq_i16(const int16_t* in, size_t n);
+include\fp_core.h:98:int16_t fp_fold_dotp_i16(const int16_t* a, const int16_t* b, size_t n);
+include\fp_core.h:99:int16_t fp_fold_sad_i16(const int16_t* a, const int16_t* b, size_t n);
+include\fp_core.h:102:uint16_t fp_fold_sumsq_u16(const uint16_t* in, size_t n);
+include\fp_core.h:103:uint16_t fp_fold_dotp_u16(const uint16_t* a, const uint16_t* b, size_t n);
+include\fp_core.h:104:uint16_t fp_fold_sad_u16(const uint16_t* a, const uint16_t* b, size_t n);
+include\fp_core.h:107:int8_t fp_fold_sumsq_i8(const int8_t* in, size_t n);
+include\fp_core.h:108:int8_t fp_fold_dotp_i8(const int8_t* a, const int8_t* b, size_t n);
+include\fp_core.h:109:int8_t fp_fold_sad_i8(const int8_t* a, const int8_t* b, size_t n);
+include\fp_core.h:116:int64_t fp_reduce_add_i64(const int64_t* in, size_t n);
+include\fp_core.h:117:int64_t fp_reduce_max_i64(const int64_t* in, size_t n);
+include\fp_core.h:118:int64_t fp_reduce_min_i64(const int64_t* in, size_t n);
+include\fp_core.h:121:double  fp_reduce_add_f64(const double* in, size_t n);
+include\fp_core.h:122:double  fp_reduce_max_f64(const double* in, size_t n);
+include\fp_core.h:123:double  fp_reduce_min_f64(const double* in, size_t n);
+include\fp_core.h:126:int32_t fp_reduce_add_i32(const int32_t* in, size_t n);
+include\fp_core.h:127:int32_t fp_reduce_mul_i32(const int32_t* in, size_t n);
+include\fp_core.h:128:int32_t fp_reduce_min_i32(const int32_t* in, size_t n);
+include\fp_core.h:129:int32_t fp_reduce_max_i32(const int32_t* in, size_t n);
+include\fp_core.h:132:float   fp_reduce_add_f32(const float* in, size_t n);
+include\fp_core.h:133:float   fp_reduce_mul_f32(const float* in, size_t n);
+include\fp_core.h:134:float   fp_reduce_min_f32(const float* in, size_t n);
+include\fp_core.h:135:float   fp_reduce_max_f32(const float* in, size_t n);
+include\fp_core.h:138:uint32_t fp_reduce_add_u32(const uint32_t* in, size_t n);
+include\fp_core.h:139:uint32_t fp_reduce_mul_u32(const uint32_t* in, size_t n);
+include\fp_core.h:140:uint32_t fp_reduce_min_u32(const uint32_t* in, size_t n);
+include\fp_core.h:141:uint32_t fp_reduce_max_u32(const uint32_t* in, size_t n);
+include\fp_core.h:144:uint64_t fp_reduce_add_u64(const uint64_t* in, size_t n);
+include\fp_core.h:145:uint64_t fp_reduce_mul_u64(const uint64_t* in, size_t n);
+include\fp_core.h:146:uint64_t fp_reduce_min_u64(const uint64_t* in, size_t n);
+include\fp_core.h:147:uint64_t fp_reduce_max_u64(const uint64_t* in, size_t n);
+include\fp_core.h:150:int16_t fp_reduce_add_i16(const int16_t* in, size_t n);
+include\fp_core.h:151:int16_t fp_reduce_mul_i16(const int16_t* in, size_t n);
+include\fp_core.h:152:int16_t fp_reduce_min_i16(const int16_t* in, size_t n);
+include\fp_core.h:153:int16_t fp_reduce_max_i16(const int16_t* in, size_t n);
+include\fp_core.h:156:uint16_t fp_reduce_add_u16(const uint16_t* in, size_t n);
+include\fp_core.h:157:uint16_t fp_reduce_mul_u16(const uint16_t* in, size_t n);
+include\fp_core.h:158:uint16_t fp_reduce_min_u16(const uint16_t* in, size_t n);
+include\fp_core.h:159:uint16_t fp_reduce_max_u16(const uint16_t* in, size_t n);
+include\fp_core.h:162:int8_t fp_reduce_add_i8(const int8_t* in, size_t n);
+include\fp_core.h:163:int8_t fp_reduce_mul_i8(const int8_t* in, size_t n);
+include\fp_core.h:164:int8_t fp_reduce_min_i8(const int8_t* in, size_t n);
+include\fp_core.h:165:int8_t fp_reduce_max_i8(const int8_t* in, size_t n);
+include\fp_core.h:179:void fp_map_axpy_f64(const double* x, const double* y, double* out, size_t n, double c);
+include\fp_core.h:180:void fp_map_axpy_i64(const int64_t* x, const int64_t* y, int64_t* out, size_t n, int64_t c);
+include\fp_core.h:181:void fp_map_axpy_i32(const int32_t* x, const int32_t* y, int32_t* out, size_t n, int32_t c);
+include\fp_core.h:182:void fp_map_axpy_f32(const float* x, const float* y, float* out, size_t n, float c);
+include\fp_core.h:183:void fp_map_axpy_u32(const uint32_t* x, const uint32_t* y, uint32_t* out, size_t n, uint32_t c);
+include\fp_core.h:184:void fp_map_axpy_u64(const uint64_t* x, const uint64_t* y, uint64_t* out, size_t n, uint64_t c);
+include\fp_core.h:185:void fp_map_axpy_i16(const int16_t* x, const int16_t* y, int16_t* out, size_t n, int16_t c);
+include\fp_core.h:186:void fp_map_axpy_u16(const uint16_t* x, const uint16_t* y, uint16_t* out, size_t n, uint16_t c);
+include\fp_core.h:187:void fp_map_axpy_i8(const int8_t* x, const int8_t* y, int8_t* out, size_t n, int8_t c);
+include\fp_core.h:194:void fp_map_scale_i64(const int64_t* in, int64_t* out, size_t n, int64_t c);
+include\fp_core.h:195:void fp_map_scale_f64(const double* in, double* out, size_t n, double c);
+include\fp_core.h:196:void fp_map_scale_i32(const int32_t* in, int32_t* out, size_t n, int32_t c);
+include\fp_core.h:197:void fp_map_scale_f32(const float* in, float* out, size_t n, float c);
+include\fp_core.h:198:void fp_map_scale_u32(const uint32_t* in, uint32_t* out, size_t n, uint32_t c);
+include\fp_core.h:199:void fp_map_scale_u64(const uint64_t* in, uint64_t* out, size_t n, uint64_t c);
+include\fp_core.h:200:void fp_map_scale_i16(const int16_t* in, int16_t* out, size_t n, int16_t c);
+include\fp_core.h:201:void fp_map_scale_u16(const uint16_t* in, uint16_t* out, size_t n, uint16_t c);
+include\fp_core.h:202:void fp_map_scale_i8(const int8_t* in, int8_t* out, size_t n, int8_t c);
+include\fp_core.h:209:void fp_map_offset_i64(const int64_t* in, int64_t* out, size_t n, int64_t c);
+include\fp_core.h:210:void fp_map_offset_f64(const double* in, double* out, size_t n, double c);
+include\fp_core.h:211:void fp_map_offset_i32(const int32_t* in, int32_t* out, size_t n, int32_t c);
+include\fp_core.h:212:void fp_map_offset_f32(const float* in, float* out, size_t n, float c);
+include\fp_core.h:213:void fp_map_offset_u32(const uint32_t* in, uint32_t* out, size_t n, uint32_t c);
+include\fp_core.h:214:void fp_map_offset_u64(const uint64_t* in, uint64_t* out, size_t n, uint64_t c);
+include\fp_core.h:215:void fp_map_offset_i16(const int16_t* in, int16_t* out, size_t n, int16_t c);
+include\fp_core.h:216:void fp_map_offset_u16(const uint16_t* in, uint16_t* out, size_t n, uint16_t c);
+include\fp_core.h:217:void fp_map_offset_i8(const int8_t* in, int8_t* out, size_t n, int8_t c);
+include\fp_core.h:224:void fp_zip_add_i64(const int64_t* a, const int64_t* b, int64_t* out, size_t n);
+include\fp_core.h:225:void fp_zip_add_f64(const double* a, const double* b, double* out, size_t n);
+include\fp_core.h:226:void fp_zip_add_i32(const int32_t* a, const int32_t* b, int32_t* out, size_t n);
+include\fp_core.h:227:void fp_zip_add_f32(const float* a, const float* b, float* out, size_t n);
+include\fp_core.h:228:void fp_zip_add_u32(const uint32_t* a, const uint32_t* b, uint32_t* out, size_t n);
+include\fp_core.h:229:void fp_zip_add_u64(const uint64_t* a, const uint64_t* b, uint64_t* out, size_t n);
+include\fp_core.h:230:void fp_zip_add_i16(const int16_t* a, const int16_t* b, int16_t* out, size_t n);
+include\fp_core.h:231:void fp_zip_add_u16(const uint16_t* a, const uint16_t* b, uint16_t* out, size_t n);
+include\fp_core.h:232:void fp_zip_add_i8(const int8_t* a, const int8_t* b, int8_t* out, size_t n);
+include\fp_core.h:233:void fp_zip_add_u8(const uint8_t* a, const uint8_t* b, uint8_t* out, size_t n);
+include\fp_core.h:234:void fp_map_offset_u8(const uint8_t* in, uint8_t* out, size_t n, uint8_t c);
+include\fp_core.h:235:void fp_map_scale_u8(const uint8_t* in, uint8_t* out, size_t n, uint8_t c);
+include\fp_core.h:236:void fp_map_axpy_u8(const uint8_t* x, const uint8_t* y, uint8_t* out, size_t n, uint8_t c);
+include\fp_core.h:237:uint8_t fp_fold_sad_u8(const uint8_t* a, const uint8_t* b, size_t n);
+include\fp_core.h:238:uint8_t fp_fold_dotp_u8(const uint8_t* a, const uint8_t* b, size_t n);
+include\fp_core.h:239:uint8_t fp_fold_sumsq_u8(const uint8_t* in, size_t n);
+include\fp_core.h:240:uint8_t fp_reduce_max_u8(const uint8_t* in, size_t n);
+include\fp_core.h:241:uint8_t fp_reduce_min_u8(const uint8_t* in, size_t n);
+include\fp_core.h:242:uint8_t fp_reduce_mul_u8(const uint8_t* in, size_t n);
+include\fp_core.h:243:uint8_t fp_reduce_add_u8(const uint8_t* in, size_t n);
+include\fp_core.h:261:void fp_map_abs_i64(const int64_t* in, int64_t* out, size_t n);
+include\fp_core.h:262:void fp_map_abs_f64(const double* in, double* out, size_t n);
+include\fp_core.h:269:void fp_map_sqrt_f64(const double* in, double* out, size_t n);
+include\fp_core.h:276:void fp_map_clamp_i64(const int64_t* in, int64_t* out, size_t n, int64_t min_val, int64_t max_val);
+include\fp_core.h:277:void fp_map_clamp_f64(const double* in, double* out, size_t n, double min_val, double max_val);
+include\fp_core.h:293:void fp_scan_add_i64(const int64_t* in, int64_t* out, size_t n);
+include\fp_core.h:294:void fp_scan_add_f64(const double* in, double* out, size_t n);
+include\fp_core.h:309:bool fp_pred_all_eq_const_i64(const int64_t* arr, size_t n, int64_t value);
+include\fp_core.h:316:bool fp_pred_any_gt_const_i64(const int64_t* arr, size_t n, int64_t value);
+include\fp_core.h:323:bool fp_pred_all_gt_zip_i64(const int64_t* a, const int64_t* b, size_t n);
+include\fp_core.h:340:size_t fp_filter_gt_i64_simple(const int64_t* input, int64_t* output, size_t n, int64_t threshold);
+include\fp_core.h:348:void fp_partition_gt_i64(const int64_t* input, int64_t* output_pass, int64_t* output_fail,
+include\fp_core.h:358:size_t fp_take_while_gt_i64(const int64_t* input, int64_t* output, size_t n, int64_t threshold);
+include\fp_core.h:366:size_t fp_drop_while_gt_i64(const int64_t* input, int64_t* output, size_t n, int64_t threshold);
+include\fp_core.h:386:size_t fp_take_n_i64(const int64_t* input, int64_t* output, size_t array_len, size_t take_count);
+include\fp_core.h:394:size_t fp_drop_n_i64(const int64_t* input, int64_t* output, size_t array_len, size_t drop_count);
+include\fp_core.h:402:size_t fp_slice_i64(const int64_t* input, int64_t* output, size_t array_len,
+include\fp_core.h:415:int64_t fp_reduce_product_i64(const int64_t* input, size_t n);
+include\fp_core.h:416:double fp_reduce_product_f64(const double* input, size_t n);
+include\fp_core.h:428:int64_t fp_find_index_i64(const int64_t* input, size_t n, int64_t target);
+include\fp_core.h:436:bool fp_contains_i64(const int64_t* input, size_t n, int64_t target);
+include\fp_core.h:447:void fp_reverse_i64(const int64_t* input, int64_t* output, size_t n);
+include\fp_core.h:455:size_t fp_concat_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output,
+include\fp_core.h:463:void fp_replicate_i64(int64_t* output, size_t n, int64_t value);
+include\fp_core.h:507:size_t fp_unique_i64(const int64_t* input, int64_t* output, size_t n);
+include\fp_core.h:517:size_t fp_union_i64(const int64_t* array_a, const int64_t* array_b, int64_t* output,
+include\fp_core.h:528:size_t fp_intersect_i64(const int64_t* array_a, const int64_t* array_b, int64_t* output,
+include\fp_core.h:553:size_t fp_group_i64(const int64_t* input, int64_t* groups_out, int64_t* counts_out, size_t n);
+include\fp_core.h:562:size_t fp_run_length_encode_i64(const int64_t* input, int64_t* output, size_t n);
+include\fp_core.h:574:void fp_iterate_add_i64(int64_t* output, size_t n, int64_t start, int64_t step);
+include\fp_core.h:582:void fp_iterate_mul_i64(int64_t* output, size_t n, int64_t start, int64_t factor);
+include\fp_core.h:591:size_t fp_range_i64(int64_t* output, int64_t start, int64_t end);
+include\fp_core.h:604:bool fp_reduce_and_bool(const int64_t* input, size_t n);
+include\fp_core.h:612:bool fp_reduce_or_bool(const int64_t* input, size_t n);
+include\fp_core.h:625:size_t fp_zip_with_index_i64(const int64_t* input, int64_t* output, size_t n);
+include\fp_core.h:631:void fp_replicate_f64(double* output, size_t n, double value);
+include\fp_core.h:639:size_t fp_count_i64(const int64_t* input, size_t n, int64_t target);
+include\fp_core.h:663:void fp_descriptive_stats_f64(const double* data, size_t n, DescriptiveStats* stats);
+include\fp_core.h:672:void fp_moments_f64(const double* data, size_t n, double* moments);
+include\fp_core.h:697: * NOTE: If you need multiple percentiles from the same data, use fp_percentiles_f64
+include\fp_core.h:700:double fp_percentile_f64(const double* data, size_t n, double p);
+include\fp_core.h:705: * More efficient than calling fp_percentile_f64 repeatedly.
+include\fp_core.h:719: * RECOMMENDED: Use this instead of multiple fp_percentile_f64 calls to avoid
+include\fp_core.h:722:void fp_percentiles_f64(const double* data, size_t n,
+include\fp_core.h:741:void fp_quartiles_f64(const double* data, size_t n, Quartiles* quartiles);
+include\fp_core.h:763:double fp_covariance_f64(const double* x, const double* y, size_t n);
+include\fp_core.h:785:double fp_correlation_f64(const double* x, const double* y, size_t n);
+include\fp_core.h:831:void fp_linear_regression_f64(const double* x, const double* y, size_t n, LinearRegression* result);
+include\fp_core.h:845:double fp_predict_f64(double x_value, const LinearRegression* model);
+include\fp_core.h:876:size_t fp_detect_outliers_zscore_f64(const double* data, size_t n,
+include\fp_core.h:905:size_t fp_detect_outliers_iqr_f64(const double* data, size_t n,
+include\fp_core.h:937:void fp_sma_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:959:void fp_ema_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:980:void fp_wma_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1012:void fp_rolling_reduce_f64(
+include\fp_core.h:1020:void fp_rolling_reduce_i64(
+include\fp_core.h:1034:void fp_rolling_min_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1035:void fp_rolling_max_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1036:void fp_rolling_sum_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1037:void fp_rolling_mean_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1039:void fp_rolling_min_i64(const int64_t* data, size_t n, size_t window, int64_t* output);
+include\fp_core.h:1040:void fp_rolling_max_i64(const int64_t* data, size_t n, size_t window, int64_t* output);
+include\fp_core.h:1041:void fp_rolling_sum_i64(const int64_t* data, size_t n, size_t window, int64_t* output);
+include\fp_core.h:1048:void fp_rolling_range_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1049:void fp_rolling_std_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1050:void fp_rolling_variance_f64(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1057:void fp_rolling_sum_f64_optimized(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1058:void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, double* output);
+include\fp_core.h:1066: * The specialized functions (fp_reduce_add, fp_map_abs, etc.) provide optimal
+include\fp_core.h:1075: * specialized versions (e.g., fp_reduce_add_i64 instead of fp_foldl_i64 with add function).
+include\fp_core.h:1093: *   int64_t total = fp_foldl_i64(data, n, 0, sum_fn, NULL);
+include\fp_core.h:1102: *   int64_t count = fp_foldl_i64(data, n, 0, count_gt, &context);
+include\fp_core.h:1114:int64_t fp_foldl_i64(const int64_t* input, size_t n, int64_t init,
+include\fp_core.h:1118:double fp_foldl_f64(const double* input, size_t n, double init,
+include\fp_core.h:1130: *   fp_map_i64(input, output, n, double_fn, NULL);
+include\fp_core.h:1139: *   fp_map_i64(input, output, n, transform, &context);
+include\fp_core.h:1150:void fp_map_i64(const int64_t* input, int64_t* output, size_t n,
+include\fp_core.h:1154:void fp_map_f64(const double* input, double* output, size_t n,
+include\fp_core.h:1166: *   size_t count = fp_filter_i64(input, output, n, is_even, NULL);
+include\fp_core.h:1175: *   size_t count = fp_filter_i64(input, output, n, in_range, &range);
+include\fp_core.h:1187:size_t fp_filter_i64(const int64_t* input, int64_t* output, size_t n,
+include\fp_core.h:1191:size_t fp_filter_f64(const double* input, double* output, size_t n,
+include\fp_core.h:1203: *   fp_zipWith_i64(a, b, output, n, max_fn, NULL);
+include\fp_core.h:1213: *   fp_zipWith_f64(a, b, output, n, scaled_diff, &context);
+include\fp_core.h:1225:void fp_zipWith_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output, size_t n,
+include\fp_core.h:1229:void fp_zipWith_f64(const double* input_a, const double* input_b, double* output, size_t n,
+include\fp_core.h:1254:/* Types defined in fp_types.h (Mat4, Vec3f, Quaternion) */
+include\fp_core.h:1256:/* Quaternion operations (pure C functions, implemented in fp_quaternion_ops.c) */
+include\fp_core.h:1257:void fp_quat_identity(Quaternion* out);
+include\fp_core.h:1258:void fp_quat_from_axis_angle(Quaternion* out, const Vec3f* axis, float angle);
+include\fp_core.h:1259:void fp_quat_mul(Quaternion* out, const Quaternion* a, const Quaternion* b);
+include\fp_core.h:1260:void fp_quat_rotate_vec3(Vec3f* out, const Quaternion* q, const Vec3f* v);
+include\fp_core.h:1261:void fp_quat_to_euler(Vec3f* out, const Quaternion* q);
+include\fp_core.h:1274:void fp_mat4_identity(Mat4* output);
+include\fp_core.h:1292:void fp_mat4_mul(Mat4* output, const Mat4* a, const Mat4* b);
+include\fp_core.h:1309:void fp_mat4_mul_vec3(Vec3f* output, const Mat4* m, const Vec3f* v);
+include\fp_core.h:1324:void fp_mat4_transpose(Mat4* output, const Mat4* m);
+include\fp_core.h:1330: * MUCH faster than calling fp_mat4_mul_vec3 in a loop due to:
+include\fp_core.h:1339: *   Per-vertex cost: ~3-4 cycles (vs ~10-15 cycles for loop of fp_mat4_mul_vec3)
+include\fp_core.h:1352:void fp_mat4_mul_vec3_batch(Vec3f* output, const Mat4* m, const Vec3f* input, int count);
+include\fp_core.h:1369:void fp_mat4_translation(Mat4* out, float x, float y, float z);
+include\fp_core.h:1370:void fp_mat4_scale(Mat4* out, float sx, float sy, float sz);
+include\fp_core.h:1371:void fp_mat4_scale_uniform(Mat4* out, float s);
+include\fp_core.h:1374:void fp_mat4_rotation_x(Mat4* out, float angle_radians);
+include\fp_core.h:1375:void fp_mat4_rotation_y(Mat4* out, float angle_radians);
+include\fp_core.h:1376:void fp_mat4_rotation_z(Mat4* out, float angle_radians);
+include\fp_core.h:1377:void fp_mat4_rotation_axis(Mat4* out, float x, float y, float z, float angle_radians);
+include\fp_core.h:1378:void fp_mat4_rotation_euler(Mat4* out, float pitch_x, float yaw_y, float roll_z);
+include\fp_core.h:1381:void fp_mat4_lookat(Mat4* out,
+include\fp_core.h:1387:void fp_mat4_perspective(Mat4* out, float fov_radians, float aspect, float near, float far);
+include\fp_core.h:1388:void fp_mat4_ortho(Mat4* out, float left, float right, float bottom, float top, float near, float far);
+include\fp_core.h:1391:int fp_mat4_inverse(Mat4* out, const Mat4* m);
+include\fp_core.h:1456:void fp_map_transform_vec3_f32(
+include\fp_core.h:1466:void fp_zipWith_vec3_add_f32(
+include\fp_core.h:1476:void fp_map_quat_rotate_vec3_f32(
+include\fp_core.h:1486:void fp_reduce_vec3_add_f32(
+include\fp_core.h:1496:float fp_fold_vec3_dot_f32(
+include\fp_3d_math_wrapper.h:4:#include "fp_core.h" // For Vec3f, Mat4f, QuatF32
+include\fp_3d_math_wrapper.h:6:// C-kernels for fp_generic.h
+include\fp.h:11:typedef int64_t (*fp_unary_i64)(int64_t);
+include\fp.h:12:typedef int64_t (*fp_binary_i64)(int64_t, int64_t);
+include\fp.h:15:size_t  fp_map_i64   (const int64_t *in, int64_t *out, size_t n, fp_unary_i64 f);
+include\fp.h:16:int64_t fp_reduce_i64(const int64_t *a,  size_t n, int64_t init, fp_binary_i64 op);
+include\fp.h:19:size_t  fp_map_square_i64(const int64_t *in, int64_t *out, size_t n);
+include\fp.h:20:int64_t fp_reduce_add_i64(const int64_t *a,  size_t n, int64_t init);
+include\fp.h:23:int64_t fp_foldmap_sumsq_i64(const int64_t *in, size_t n, int64_t init);
+include\ecs.h:30:#include "fp_core.h"
+include\application.h:4:#include "fp_graphics_engine.h"
+include\application.h:5:#include "fp_mesh_generation.h"
+include\application.h:37:// Functions implemented by the application layer (demo_fp_opengl.c)
+include\fp_engine_types.h:6:#include "fp_core.h" // For Mat4, Vec3f, Quaternion
+include\fp_engine_types.h:8:// Forward declarations for FP_MeshData (defined in fp_mesh_generation.h)
+include\fp_engine_types.h:15:    Quaternion rotation; // Use Quaternion from fp_core.h
+include\fp_engine_algorithms.h:4:#include "fp_engine_types.h"
+include\fp_engine_algorithms.h:5:#include "fp_core.h" // For math functions
+include\fp_engine_algorithms.h:9:FP_AppState fp_update_camera(const FP_AppState* current_state,
+include\fp_engine_algorithms.h:15:FP_AppState fp_update_light_matrices(const FP_AppState* current_state);
+include\fp_engine_algorithms.h:19:FP_AppState fp_animate_objects(const FP_AppState* current_state, float dt);
+include\fp_engine_algorithms.h:22:void fp_transform_update_matrix(FP_Transform* transform);
+include\fp_generic.h:66: *   fp_foldl_generic(items, n, sizeof(Item), &total, sum_values, NULL);
+include\fp_generic.h:68:void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
+include\fp_generic.h:96: *   fp_map_generic(items, values, n, sizeof(Item), sizeof(double),
+include\fp_generic.h:99:void fp_map_generic(const void* input, void* output, size_t n,
+include\fp_generic.h:125: *   size_t count = fp_filter_generic(students, high_scorers, n,
+include\fp_generic.h:128:size_t fp_filter_generic(const void* input, void* output, size_t n,
+include\fp_generic.h:159: *   fp_zipWith_generic(persons, jobs, employees, n, sizeof(Person),
+include\fp_generic.h:162:void fp_zipWith_generic(const void* input_a, const void* input_b, void* output, size_t n,
+include\fp_generic.h:183:typedef int (*fp_compare_fn)(const void* a, const void* b, void* context);
+include\fp_generic.h:214: *   fp_quicksort_generic(data, sorted, 100, sizeof(int), compare_ints, NULL);
+include\fp_generic.h:216:void fp_quicksort_generic(const void* input, void* output, size_t n,
+include\fp_generic.h:218:                          fp_compare_fn compare,
+include\fp_generic.h:240:void fp_mergesort_generic(const void* input, void* output, size_t n,
+include\fp_generic.h:242:                          fp_compare_fn compare,
+include\fp_generic.h:268:void fp_partition_generic(const void* input,
+include\fp_generic.h:281:void fp_take_generic(const void* input, void* output, size_t n, size_t count,
+include\fp_generic.h:290:size_t fp_drop_generic(const void* input, void* output, size_t n, size_t count,
+include\fp_generic.h:299:void fp_reverse_generic(const void* input, void* output, size_t n,
+include\fp_generic.h:316:bool fp_find_generic(const void* input, size_t n, size_t elem_size,
+include\fp_generic.h:369: *   fp_compose_generic(input, output, 100,
+include\fp_generic.h:374:void fp_compose_generic(const void* input, void* output, size_t n,
+include\fp_generic.h:387: * Type-safe wrapper for fp_quicksort_generic
+include\fp_generic.h:393: *   fp_quicksort_generic(data, sorted, n, sizeof(MyStruct), compare_fn, ctx)
+include\fp_generic.h:396:    fp_quicksort_generic((input), (output), (n), sizeof(TYPE), (cmp), (ctx))
+include\fp_generic.h:399:    fp_mergesort_generic((input), (output), (n), sizeof(TYPE), (cmp), (ctx), (temp))
+include\fp_generic.h:402:    fp_map_generic((input), (output), (n), sizeof(IN_TYPE), sizeof(OUT_TYPE), (fn), (ctx))
+include\fp_generic.h:405:    fp_filter_generic((input), (output), (n), sizeof(TYPE), (pred), (ctx))
+include\fp_generic.h:408:    fp_reverse_generic((input), (output), (n), sizeof(TYPE))
+include\fp_generic.h:411:    fp_compose_generic((input), (output), (n), sizeof(TYPE_A), sizeof(TYPE_B), sizeof(TYPE_C), (g), (ctx_g), (f), (ctx_f), (temp))
+include\fp_graphics_engine.h:2: * fp_graphics_engine.h
+include\fp_graphics_engine.h:19:#include "fp_core.h"
+include\fp_graphics_engine.h:61: * This is a pure function that uses the fp_asm library for its core computation.
+include\fp_graphics_engine.h:67:void fp_mat4_mul_pure(Mat4* out, const Mat4* a, const Mat4* b);
+include\fp_graphics_engine.h:75:void fp_transform_to_matrix(Mat4* out, const Transform* t);
+include\fp_graphics_engine.h:83:void fp_view_matrix(Mat4* out, const Camera* cam);
+include\fp_graphics_engine.h:91:void fp_projection_matrix(Mat4* out, const CameraProjection* proj);
+include\fp_graphics_engine.h:101:void fp_get_mvp_matrix(Mat4* out_mvp, const Mat4* model, const Mat4* view, const Mat4* proj);
+include\fp_lighting.h:2: * fp_lighting.h
+include\fp_lighting.h:6: * All functions are pure and compose primitives from the fp_asm library
+include\fp_lighting.h:13:#include "fp_core.h"
+include\fp_lighting.h:47:void fp_lighting_diffuse_batch(
+include\fp_lighting.h:63:void fp_lighting_directional(
+include\fp_lighting.h:78:void fp_lighting_combine(
+include\fp_lighting.h:93:void fp_lighting_add_ambient(
+src\platform\platform_win32.c:4:#include "fp_mesh_generation.h" // For fp_mesh_free
+src\platform\platform_win32.c:26:// Forward declarations for application logic (from demo_fp_opengl.c)
+src\platform\platform_win32.c:57:    fp_mesh_destroy(&s.cube_mesh);
+src\platform\platform_win32.c:58:    fp_mesh_destroy(&s.plane_mesh);
+src\wrappers\fp_correlation_wrappers.c:2: * fp_correlation_wrappers.c
+src\wrappers\fp_correlation_wrappers.c:13: *   - fp_core_correlation.asm: 342 lines reimplementing sums
+src\wrappers\fp_correlation_wrappers.c:17: *   - fp_covariance_f64: ~15 lines composing from 3 primitives
+src\wrappers\fp_correlation_wrappers.c:18: *   - fp_correlation_f64: ~25 lines composing from covariance + stats
+src\wrappers\fp_correlation_wrappers.c:23:#include "../include/fp_core.h"
+src\wrappers\fp_correlation_wrappers.c:37:double fp_covariance_f64(const double* x, const double* y, size_t n) {
+src\wrappers\fp_correlation_wrappers.c:42:    double sum_x  = fp_reduce_add_f64(x, n);    // REUSE: ╬úx
+src\wrappers\fp_correlation_wrappers.c:43:    double sum_y  = fp_reduce_add_f64(y, n);    // REUSE: ╬úy
+src\wrappers\fp_correlation_wrappers.c:44:    double sum_xy = fp_fold_dotp_f64(x, y, n);  // REUSE: ╬ú(x┬╖y)
+src\wrappers\fp_correlation_wrappers.c:71:double fp_correlation_f64(const double* x, const double* y, size_t n) {
+src\wrappers\fp_correlation_wrappers.c:75:    double cov = fp_covariance_f64(x, y, n);
+src\wrappers\fp_correlation_wrappers.c:78:    double sum_x  = fp_reduce_add_f64(x, n);    // REUSE: ╬úx
+src\wrappers\fp_correlation_wrappers.c:79:    double sum_y  = fp_reduce_add_f64(y, n);    // REUSE: ╬úy
+src\wrappers\fp_correlation_wrappers.c:80:    double sum_x2 = fp_fold_dotp_f64(x, x, n);  // REUSE: ╬úx┬▓ = x┬╖x (COMPOSITION!)
+src\wrappers\fp_correlation_wrappers.c:81:    double sum_y2 = fp_fold_dotp_f64(y, y, n);  // REUSE: ╬úy┬▓ = y┬╖y (COMPOSITION!)
+src\wrappers\fp_correlation_wrappers.c:107: *   - Before: 342 lines of assembly (fp_core_correlation.asm)
+src\wrappers\fp_correlation_wrappers.c:114: *   1. fp_reduce_add_f64 (sum) - Already SIMD-optimized
+src\wrappers\fp_correlation_wrappers.c:115: *   2. fp_fold_dotp_f64 (dot product) - Already fused multiply+sum
+src\wrappers\fp_correlation_wrappers.c:147: *   - fp_correlation_f64 (composition, default)
+src\wrappers\fp_correlation_wrappers.c:148: *   - fp_correlation_f64_fused (assembly, opt-in)
+src\wrappers\fp_correlation_wrappers.c:164: *   - fp_core_reductions.o (provides fp_reduce_add_f64)
+src\wrappers\fp_correlation_wrappers.c:165: *   - fp_core_fused_folds.o (provides fp_fold_dotp_f64)
+src\wrappers\fp_correlation_wrappers.c:168: *   gcc -c src/wrappers/fp_correlation_wrappers.c \
+src\wrappers\fp_correlation_wrappers.c:169: *       -o build/obj/fp_correlation_wrappers.o \
+src\wrappers\fp_general_hof.c:2: * fp_general_hof.c
+src\wrappers\fp_general_hof.c:17: *   - Specialized versions (fp_reduce_add, fp_map_abs, etc.) remain for hot paths
+src\wrappers\fp_general_hof.c:27:#include "../include/fp_core.h"
+src\wrappers\fp_general_hof.c:46:int64_t fp_foldl_i64(const int64_t* input, size_t n, int64_t init,
+src\wrappers\fp_general_hof.c:61:double fp_foldl_f64(const double* input, size_t n, double init,
+src\wrappers\fp_general_hof.c:89:void fp_map_i64(const int64_t* input, int64_t* output, size_t n,
+src\wrappers\fp_general_hof.c:102:void fp_map_f64(const double* input, double* output, size_t n,
+src\wrappers\fp_general_hof.c:128:size_t fp_filter_i64(const int64_t* input, int64_t* output, size_t n,
+src\wrappers\fp_general_hof.c:145:size_t fp_filter_f64(const double* input, double* output, size_t n,
+src\wrappers\fp_general_hof.c:175:void fp_zipWith_i64(const int64_t* input_a, const int64_t* input_b, int64_t* output, size_t n,
+src\wrappers\fp_general_hof.c:188:void fp_zipWith_f64(const double* input_a, const double* input_b, double* output, size_t n,
+src\wrappers\fp_general_hof.c:225:void fp_compose_generic(const void* input, void* output, size_t n,
+src\engine_old\renderer_modern.c:11:#include "fp_core.h" // For Vec3f, Mat4, and FP_ASM math functions
+src\engine_old\renderer_modern.c:12:#include "fp_engine_types.h" // For FP_AppState, FP_Light, FP_Camera, FP_SceneObject
+src\engine_old\renderer_modern.c:13:#include "fp_mesh_generation.h" // For FP_MeshData
+src\engine_old\renderer_modern.c:14:#include "fp_engine_algorithms.h" // For fp_transform_update_matrix
+src\engine_old\renderer_modern.c:879:            fp_transform_update_matrix(&obj->transform);
+src\engine_old\ecs.c:479:    fp_mat4_translation(&t, transform->position.x, transform->position.y, transform->position.z);
+src\engine_old\ecs.c:480:    fp_mat4_rotation_quat(&r, transform->rotation.x, transform->rotation.y, transform->rotation.z, transform->rotation.w);
+src\engine_old\ecs.c:481:    fp_mat4_scale(&s, transform->scale.x, transform->scale.y, transform->scale.z);
+src\engine_old\ecs.c:483:    fp_mat4_mul(&temp_mul, &t, &r);
+src\engine_old\ecs.c:484:    fp_mat4_mul(&transform->local_matrix, &temp_mul, &s);
+src\algorithms\fp_fft.c:1:// fp_fft.c
+src\algorithms\fp_fft.c:121:void fp_fft(Complex* data, int n) {
+src\algorithms\fp_fft.c:155:void fp_ifft(Complex* data, int n) {
+src\algorithms\fp_fft.c:164:    fp_fft(data, n);
+src\algorithms\fp_fft.c:180:void fp_rfft(const double* real_data, Complex* freq_data, int n) {
+src\algorithms\fp_fft.c:189:    fp_fft(temp, n);
+src\algorithms\fp_fft.c:203:void fp_irfft(const Complex* freq_data, double* real_data, int n) {
+src\algorithms\fp_fft.c:221:    fp_ifft(temp, n);
+src\algorithms\fp_fft.c:239:void fp_fft_convolve(const double* x, int n, const double* h, int m, double* y) {
+src\algorithms\fp_fft.c:263:    fp_fft(X, fft_size);
+src\algorithms\fp_fft.c:264:    fp_fft(H, fft_size);
+src\algorithms\fp_fft.c:272:    fp_ifft(Y, fft_size);
+src\algorithms\fp_fft.c:289:void fp_fft_power_spectrum(const Complex* freq_data, double* power, int n) {
+src\algorithms\fp_fft.c:297:void fp_fft_magnitude_spectrum(const Complex* freq_data, double* magnitude, int n) {
+src\algorithms\fp_fft.c:304:void fp_fft_phase_spectrum(const Complex* freq_data, double* phase, int n) {
+src\algorithms\fp_fft.c:311:void fp_fft_filter(Complex* freq_data, const double* filter, int n) {
+src\algorithms\fp_fft.c:323:void fp_generate_sine(double* signal, int n, double frequency, double amplitude, double phase, double sample_rate) {
+src\algorithms\fp_fft.c:331:void fp_generate_cosine(double* signal, int n, double frequency, double amplitude, double phase, double sample_rate) {
+src\algorithms\fp_fft.c:339:void fp_generate_square(double* signal, int n, double frequency, double amplitude, double sample_rate) {
+src\algorithms\fp_fft.c:348:void fp_add_noise(double* signal, int n, double noise_level) {
+src\algorithms\fp_fft.c:364:double fp_fft_parseval_check(const double* time_signal, const Complex* freq_signal, int n) {
+src\algorithms\fp_fft.c:378:int fp_fft_is_power_of_2(int n) {
+src\algorithms\fp_fft.c:383:int fp_fft_next_power_of_2(int n) {
+src\algorithms\fp_fft.c:395:void fp_fft_print_complex_array(const char* name, const Complex* data, int n, int max_print) {
+src\algorithms\fp_fft.c:408:void fp_fft_print_real_array(const char* name, const double* data, int n, int max_print) {
+src\algorithms\fp_fft.c:418:void fp_fft_print_spectrum_summary(const Complex* freq_data, int n, double sample_rate) {
+src\algorithms\fp_decision_tree.c:1:// fp_decision_tree.c
+src\algorithms\fp_decision_tree.c:388:DecisionTreeModel fp_decision_tree_train(
+src\algorithms\fp_decision_tree.c:435:int fp_decision_tree_predict(const DecisionTreeModel* model, const double* x) {
+src\algorithms\fp_decision_tree.c:453:void fp_decision_tree_predict_batch(
+src\algorithms\fp_decision_tree.c:460:        predictions[i] = fp_decision_tree_predict(model, &X[i * model->n_features]);
+src\algorithms\fp_decision_tree.c:465:double fp_decision_tree_accuracy(
+src\algorithms\fp_decision_tree.c:474:        int pred = fp_decision_tree_predict(model, &X_test[i * model->n_features]);
+src\algorithms\fp_decision_tree.c:507:void fp_decision_tree_print(const DecisionTreeModel* model) {
+src\algorithms\fp_decision_tree.c:525:int fp_decision_tree_depth(const DecisionTreeModel* model) {
+src\algorithms\fp_decision_tree.c:536:int fp_decision_tree_n_nodes(const DecisionTreeModel* model) {
+src\algorithms\fp_decision_tree.c:548:int fp_decision_tree_n_leaves(const DecisionTreeModel* model) {
+src\algorithms\fp_decision_tree.c:553:void fp_decision_tree_print_feature_importances(const DecisionTreeModel* model) {
+src\algorithms\fp_decision_tree.c:565:void fp_decision_tree_free(DecisionTreeModel* model) {
+src\algorithms\fp_kmeans.c:1:// fp_kmeans.c
+src\algorithms\fp_kmeans.c:6:// Performance: Uses fp_fold_sad_f64 for Euclidean distance (SIMD-accelerated!)
+src\algorithms\fp_kmeans.c:10:// 2. Assign each point to nearest centroid (uses fp_fold_sad)
+src\algorithms\fp_kmeans.c:19:#include "fp_core.h"
+src\algorithms\fp_kmeans.c:32:// Uses fp_fold_sad_f64 for SIMD-accelerated distance calculation
+src\algorithms\fp_kmeans.c:135:// Uses fp_reduce_add_f64 for SIMD-accelerated summation
+src\algorithms\fp_kmeans.c:154:        // Add point to cluster sum (using fp_zip_add would be ideal here)
+src\algorithms\fp_kmeans.c:193:KMeansResult fp_kmeans_f64(
+src\algorithms\fp_kmeans.c:237:void fp_kmeans_free(KMeansResult* result) {
+src\algorithms\fp_kmeans.c:244:void fp_kmeans_print(const KMeansResult* result, int k, int d) {
+src\algorithms\fp_lighting.c:2: * fp_lighting.c - Lighting System for 3D Rendering
+src\algorithms\fp_lighting.c:8:#include "fp_core.h"
+src\ecs.c:2:#include "../include/fp_core.h"
+src\engine\fp_engine_algorithms.c:1:#include "../../include/fp_engine_algorithms.h"
+src\engine\fp_engine_algorithms.c:59:FP_AppState fp_update_camera(const FP_AppState* current_state,
+src\engine\fp_engine_algorithms.c:72:    fp_mat4_lookat(&new_state.camera.view_matrix,
+src\engine\fp_engine_algorithms.c:81:FP_AppState fp_update_light_matrices(const FP_AppState* current_state) {
+src\engine\fp_engine_algorithms.c:93:        fp_mat4_lookat(&light_view,
+src\engine\fp_engine_algorithms.c:102:        fp_mat4_ortho(&light_projection, -ortho_size, ortho_size, -ortho_size, ortho_size, near_plane, far_plane);
+src\engine\fp_engine_algorithms.c:105:        fp_mat4_mul(&light->shadow_matrix, &light_projection, &light_view);
+src\engine\fp_engine_algorithms.c:112:FP_AppState fp_animate_objects(const FP_AppState* current_state, float dt) {
+src\engine\fp_engine_algorithms.c:133:        fp_quat_from_axis_angle(&obj->transform.rotation, &axis, angle);
+src\engine\fp_engine_algorithms.c:140:void fp_transform_update_matrix(FP_Transform* transform) {
+src\engine\fp_engine_algorithms.c:146:    fp_mat4_translation(&translation_matrix, transform->position.x, transform->position.y, transform->position.z);
+src\engine\fp_engine_algorithms.c:149:    fp_mat4_scale(&scale_matrix, transform->scale.x, transform->scale.y, transform->scale.z);
+src\engine\fp_engine_algorithms.c:151:    // Convert quaternion to Euler angles for fp_mat4_rotation_euler
+src\engine\fp_engine_algorithms.c:153:    fp_quat_to_euler(&euler_angles, &transform->rotation);
+src\engine\fp_engine_algorithms.c:155:    fp_mat4_rotation_euler(&rotation_matrix, euler_angles.x, euler_angles.y, euler_angles.z);
+src\engine\fp_engine_algorithms.c:158:    // fp_mat4_mul computes output = a * b.
+src\engine\fp_engine_algorithms.c:163:    fp_mat4_mul(&temp_matrix, &rotation_matrix, &scale_matrix);
+src\engine\fp_engine_algorithms.c:164:    fp_mat4_mul(&transform->local_matrix, &translation_matrix, &temp_matrix);
+src\wrappers\fp_moving_averages_wrappers.c:2: * fp_moving_averages_wrappers.c
+src\wrappers\fp_moving_averages_wrappers.c:13: *   - fp_sma_f64: 120 lines of assembly reimplementing rolling sum
+src\wrappers\fp_moving_averages_wrappers.c:17: *   - fp_sma_f64: 1-line wrapper to fp_rolling_mean_f64_optimized
+src\wrappers\fp_moving_averages_wrappers.c:24:#include "../include/fp_core.h"
+src\wrappers\fp_moving_averages_wrappers.c:34: * This is EXACTLY what fp_rolling_mean_f64_optimized computes!
+src\wrappers\fp_moving_averages_wrappers.c:40:void fp_sma_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_moving_averages_wrappers.c:41:    fp_rolling_mean_f64_optimized(data, n, window, output);  // ONE LINE!
+src\wrappers\fp_moving_averages_wrappers.c:60:void fp_ema_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_moving_averages_wrappers.c:97: * Future optimization: Compose using fp_fold_dotp_f64 with precomputed weights
+src\wrappers\fp_moving_averages_wrappers.c:102:void fp_wma_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_moving_averages_wrappers.c:127: *   - Before: 120 lines of assembly (fp_core_moving_averages.asm lines 26-145)
+src\wrappers\fp_moving_averages_wrappers.c:135: *   2. fp_rolling_mean_f64_optimized already implements O(1) sliding window
+src\wrappers\fp_moving_averages_wrappers.c:146: *   - Could potentially use fp_fold_dotp_f64 with weight vector
+src\wrappers\fp_moving_averages_wrappers.c:151: *   gcc -c src/wrappers/fp_moving_averages_wrappers.c \
+src\wrappers\fp_moving_averages_wrappers.c:152: *       -o build/obj/fp_moving_averages_wrappers.o \
+src\wrappers\fp_moving_averages_wrappers.c:156: *   - fp_rolling_window.o (provides fp_rolling_mean_f64_optimized)
+src\wrappers\fp_moving_averages_wrappers.c:157: *   - fp_core_reductions.o (transitively used by rolling_mean)
+src\wrappers\fp_generic.c:8:#include "../../include/fp_generic.h"
+src\wrappers\fp_generic.c:16:void fp_foldl_generic(const void* input, size_t n, size_t elem_size,
+src\wrappers\fp_generic.c:29:void fp_map_generic(const void* input, void* output, size_t n,
+src\wrappers\fp_generic.c:43:size_t fp_filter_generic(const void* input, void* output, size_t n,
+src\wrappers\fp_generic.c:64:void fp_zipWith_generic(const void* input_a, const void* input_b, void* output, size_t n,
+src\wrappers\fp_generic.c:104:                        fp_compare_fn compare, void* context,
+src\wrappers\fp_generic.c:127:                                fp_compare_fn compare, void* context,
+src\wrappers\fp_generic.c:144:void fp_quicksort_generic(const void* input, void* output, size_t n,
+src\wrappers\fp_generic.c:146:                          fp_compare_fn compare,
+src\wrappers\fp_generic.c:170:                  fp_compare_fn compare, void* context,
+src\wrappers\fp_generic.c:218:                                fp_compare_fn compare, void* context,
+src\wrappers\fp_generic.c:230:void fp_mergesort_generic(const void* input, void* output, size_t n,
+src\wrappers\fp_generic.c:232:                          fp_compare_fn compare,
+src\wrappers\fp_generic.c:250:void fp_partition_generic(const void* input,
+src\wrappers\fp_generic.c:282:void fp_take_generic(const void* input, void* output, size_t n, size_t count,
+src\wrappers\fp_generic.c:290:size_t fp_drop_generic(const void* input, void* output, size_t n, size_t count,
+src\wrappers\fp_generic.c:300:void fp_reverse_generic(const void* input, void* output, size_t n,
+src\wrappers\fp_generic.c:314:bool fp_find_generic(const void* input, size_t n, size_t elem_size,
+src\wrappers\fp_percentile_wrappers.c:2: * fp_percentile_wrappers.c
+src\wrappers\fp_percentile_wrappers.c:17:#include "../include/fp_core.h"
+src\wrappers\fp_percentile_wrappers.c:20:extern double fp_percentile_sorted_f64(const double* sorted_data, size_t n, double p);
+src\wrappers\fp_percentile_wrappers.c:21:extern void fp_percentiles_sorted_f64(const double* sorted_data, size_t n,
+src\wrappers\fp_percentile_wrappers.c:24:extern void fp_quartiles_sorted_f64(const double* sorted_data, size_t n, Quartiles* quartiles);
+src\wrappers\fp_percentile_wrappers.c:25:extern size_t fp_detect_outliers_iqr_sorted_f64(const double* sorted_data, size_t n,
+src\wrappers\fp_percentile_wrappers.c:40:double fp_percentile_f64(const double* data, size_t n, double p) {
+src\wrappers\fp_percentile_wrappers.c:53:    double result = fp_percentile_sorted_f64(sorted, n, p);
+src\wrappers\fp_percentile_wrappers.c:64:void fp_percentiles_f64(const double* data, size_t n,
+src\wrappers\fp_percentile_wrappers.c:78:    fp_percentiles_sorted_f64(sorted, n, p_values, n_percentiles, results);
+src\wrappers\fp_percentile_wrappers.c:87:void fp_quartiles_f64(const double* data, size_t n, Quartiles* quartiles) {
+src\wrappers\fp_percentile_wrappers.c:106:    fp_quartiles_sorted_f64(sorted, n, quartiles);
+src\wrappers\fp_percentile_wrappers.c:115: * Composes from fp_quartiles_f64 instead of calling assembly
+src\wrappers\fp_percentile_wrappers.c:123:size_t fp_detect_outliers_iqr_f64(const double* data, size_t n,
+src\wrappers\fp_percentile_wrappers.c:129:    fp_quartiles_f64(data, n, &quartiles);
+src\wrappers\fp_percentile_wrappers.c:164: * Composes from fp_descriptive_stats_f64 instead of calling assembly
+src\wrappers\fp_percentile_wrappers.c:178:size_t fp_detect_outliers_zscore_f64(const double* data, size_t n,
+src\wrappers\fp_percentile_wrappers.c:187:    fp_descriptive_stats_f64(data, n, &stats);
+src\engine\fp_graphics_lighting.c:2: * fp_graphics_lighting.c
+src\engine\fp_graphics_lighting.c:15: * - fp_fold_dotp_f32: Compute normal ┬╖ light_dir (dot product)
+src\engine\fp_graphics_lighting.c:16: * - fp_map_scale_f32: Scale intensities by light strength
+src\engine\fp_graphics_lighting.c:17: * - fp_zip_add_f32: Combine multiple light contributions
+src\engine\fp_graphics_lighting.c:22:#include "fp_core.h"
+src\engine\fp_graphics_lighting.c:57: *   1. Dot product (normal ┬╖ light_dir) = fp_fold_dotp_f32
+src\engine\fp_graphics_lighting.c:68:float fp_lighting_diffuse_single(
+src\engine\fp_graphics_lighting.c:74:    float dot = fp_fold_dotp_f32(normal, light_dir, 3);
+src\engine\fp_graphics_lighting.c:88: *     1. Compute dot product using fp_fold_dotp_f32
+src\engine\fp_graphics_lighting.c:99:void fp_lighting_diffuse_batch(
+src\engine\fp_graphics_lighting.c:110:        float dot = fp_fold_dotp_f32(normal, light_dir, 3);
+src\engine\fp_graphics_lighting.c:129: *   - Uses fp_fold_dotp_f32 for each vertex's normal ┬╖ light_dir
+src\engine\fp_graphics_lighting.c:130: *   - Uses fp_map_scale_f32 to scale all intensities by light strength
+src\engine\fp_graphics_lighting.c:132:void fp_lighting_directional(
+src\engine\fp_graphics_lighting.c:139:    fp_lighting_diffuse_batch(
+src\engine\fp_graphics_lighting.c:149:    fp_map_scale_f32(intensities, intensities, light->color[0], vertex_count);
+src\engine\fp_graphics_lighting.c:163: *   2. Compute distance using fp_fold_dotp_f32 (for magnitude)
+src\engine\fp_graphics_lighting.c:165: *   4. Compute diffuse using fp_fold_dotp_f32
+src\engine\fp_graphics_lighting.c:168:float fp_lighting_point_single(
+src\engine\fp_graphics_lighting.c:180:    // Compute distance squared using fp_fold_dotp_f32
+src\engine\fp_graphics_lighting.c:181:    float dist_sq = fp_fold_dotp_f32(light_vec, light_vec, 3);
+src\engine\fp_graphics_lighting.c:198:    float dot = fp_fold_dotp_f32(normal, light_dir, 3);
+src\engine\fp_graphics_lighting.c:211:void fp_lighting_point(
+src\engine\fp_graphics_lighting.c:222:        intensities[i] = fp_lighting_point_single(pos, normal, light);
+src\engine\fp_graphics_lighting.c:234: *   - Uses fp_zip_add_f32 to sum light contributions
+src\engine\fp_graphics_lighting.c:241:void fp_lighting_combine(
+src\engine\fp_graphics_lighting.c:248:    fp_zip_add_f32(light1, light2, combined, vertex_count);
+src\engine\fp_graphics_lighting.c:268: *   - Uses fp_map_offset_f32 to add constant ambient to all vertices
+src\engine\fp_graphics_lighting.c:275:void fp_lighting_add_ambient(
+src\engine\fp_graphics_lighting.c:282:    fp_map_offset_f32(intensities, output, vertex_count, ambient_intensity);
+src\wrappers\fp_regression_wrappers.c:2: * fp_regression_wrappers.c
+src\wrappers\fp_regression_wrappers.c:13: *   - fp_linear_regression_f64: 391 lines of assembly
+src\wrappers\fp_regression_wrappers.c:18: *   - fp_linear_regression_f64: ~25 lines of C
+src\wrappers\fp_regression_wrappers.c:19: *   - Reuses: fp_reduce_add_f64, fp_fold_sumsq_f64, fp_fold_dotp_f64
+src\wrappers\fp_regression_wrappers.c:24:#include "../include/fp_core.h"
+src\wrappers\fp_regression_wrappers.c:39:void fp_linear_regression_f64(
+src\wrappers\fp_regression_wrappers.c:54:    double sum_x = fp_reduce_add_f64(x, n);    // REUSE: ╬úx
+src\wrappers\fp_regression_wrappers.c:55:    double sum_y = fp_reduce_add_f64(y, n);    // REUSE: ╬úy
+src\wrappers\fp_regression_wrappers.c:56:    double sum_x2 = fp_fold_dotp_f64(x, x, n); // REUSE: ╬úx┬▓ = x┬╖x (COMPOSITION!)
+src\wrappers\fp_regression_wrappers.c:57:    double sum_y2 = fp_fold_dotp_f64(y, y, n); // REUSE: ╬úy┬▓ = y┬╖y (COMPOSITION!)
+src\wrappers\fp_regression_wrappers.c:58:    double sum_xy = fp_fold_dotp_f64(x, y, n); // REUSE: ╬úxy
+src\wrappers\fp_regression_wrappers.c:105: *   - Before: 391 lines of assembly (fp_core_linear_regression.asm)
+src\wrappers\fp_regression_wrappers.c:112: *   1. fp_reduce_add_f64 (sum) - Already SIMD-optimized
+src\wrappers\fp_regression_wrappers.c:113: *   2. fp_fold_dotp_f64 (dot product) - Already fused multiply+sum
+src\wrappers\fp_regression_wrappers.c:119: *   fp_fold_sumsq_f64 - we compose it from dot_product!
+src\wrappers\fp_regression_wrappers.c:137: *   - fp_linear_regression_f64 (composition, default)
+src\wrappers\fp_regression_wrappers.c:138: *   - fp_linear_regression_f64_fused (assembly, opt-in)
+src\wrappers\fp_regression_wrappers.c:153: *   - fp_core_reductions.o (provides fp_reduce_add_f64)
+src\wrappers\fp_regression_wrappers.c:154: *   - fp_core_fused_folds.o (provides fp_fold_sumsq_f64, fp_fold_dotp_f64)
+src\wrappers\fp_regression_wrappers.c:157: *   gcc -c src/wrappers/fp_regression_wrappers.c \
+src\wrappers\fp_regression_wrappers.c:158: *       -o build/obj/fp_regression_wrappers.o \
+src\algorithms\fp_linear_regression.c:1:// fp_linear_regression.c
+src\algorithms\fp_linear_regression.c:13:// - fp_fold_dotp_f64: dot products (x┬╖w, predictions)
+src\algorithms\fp_linear_regression.c:14:// - fp_map_axpy_f64: weight updates (w = w - ╬▒┬╖gradient)
+src\algorithms\fp_linear_regression.c:15:// - fp_fold_sumsq_f64: loss computation
+src\algorithms\fp_linear_regression.c:16:// - fp_reduce_add_f64: summations
+src\algorithms\fp_linear_regression.c:22:#include "fp_core.h"
+src\algorithms\fp_linear_regression.c:56:        // Add weighted sum of features using fp_fold_dotp_f64
+src\algorithms\fp_linear_regression.c:57:        // Could optimize this by using fp_fold_dotp_f64 directly
+src\algorithms\fp_linear_regression.c:73:    // Could use fp_fold_sumsq_f64 here after computing differences
+src\algorithms\fp_linear_regression.c:88:LinearRegressionModel fp_linear_regression_closed_form(
+src\algorithms\fp_linear_regression.c:181:GradientDescentResult fp_linear_regression_gradient_descent(
+src\algorithms\fp_linear_regression.c:228:        // This could use fp_map_axpy_f64 for SIMD acceleration
+src\algorithms\fp_linear_regression.c:250:void fp_linear_regression_predict(
+src\algorithms\fp_linear_regression.c:263:double fp_linear_regression_r2_score(
+src\algorithms\fp_linear_regression.c:294:void fp_linear_regression_free(LinearRegressionModel* model) {
+src\algorithms\fp_linear_regression.c:298:void fp_gradient_descent_free(GradientDescentResult* result) {
+src\algorithms\fp_linear_regression.c:307:void fp_linear_regression_print(const LinearRegressionModel* model) {
+src\algorithms\fp_linear_regression.c:317:void fp_gradient_descent_print_summary(const GradientDescentResult* result) {
+src\engine\fp_graphics_postprocess.c:2: * fp_graphics_postprocess.c
+src\engine\fp_graphics_postprocess.c:15: * - fp_map_scale_f32: Scale pixel values (brightness, tone mapping)
+src\engine\fp_graphics_postprocess.c:16: * - fp_zip_add_f32: Combine images/effects
+src\engine\fp_graphics_postprocess.c:17: * - fp_map_offset_f32: Adjust brightness levels
+src\engine\fp_graphics_postprocess.c:18: * - fp_reduce_add_f32: Sum for averaging
+src\engine\fp_graphics_postprocess.c:24:#include "fp_core.h"
+src\engine\fp_graphics_postprocess.c:36: *   - Uses fp_zip_add_f32 to combine shifted arrays
+src\engine\fp_graphics_postprocess.c:37: *   - Uses fp_map_scale_f32 to divide by 3
+src\engine\fp_graphics_postprocess.c:44:void fp_postprocess_blur_horizontal(
+src\engine\fp_graphics_postprocess.c:77:    fp_zip_add_f32(left, center, temp, total_pixels);
+src\engine\fp_graphics_postprocess.c:80:    fp_zip_add_f32(temp, right, output, total_pixels);
+src\engine\fp_graphics_postprocess.c:83:    fp_map_scale_f32(output, output, total_pixels, 1.0f / 3.0f);
+src\engine\fp_graphics_postprocess.c:106:void fp_postprocess_bright_pass(
+src\engine\fp_graphics_postprocess.c:126: *   3. Combine with original using fp_zip_add_f32
+src\engine\fp_graphics_postprocess.c:127: *   4. Scale intensity using fp_map_scale_f32
+src\engine\fp_graphics_postprocess.c:129:void fp_postprocess_bloom(
+src\engine\fp_graphics_postprocess.c:141:    fp_postprocess_bright_pass(input, bright, pixel_count, threshold);
+src\engine\fp_graphics_postprocess.c:145:    fp_postprocess_blur_horizontal(bright, blurred, width, height);
+src\engine\fp_graphics_postprocess.c:148:    fp_map_scale_f32(blurred, blurred, pixel_count, intensity);
+src\engine\fp_graphics_postprocess.c:151:    fp_zip_add_f32(input, blurred, output, pixel_count);
+src\engine\fp_graphics_postprocess.c:173: *   - Uses fp_map_scale_f32 for scaling operations
+src\engine\fp_graphics_postprocess.c:175:void fp_postprocess_tonemap_reinhard(
+src\engine\fp_graphics_postprocess.c:192: *   - Uses fp_map_scale_f32 to apply exposure
+src\engine\fp_graphics_postprocess.c:194:void fp_postprocess_tonemap_exposure(
+src\engine\fp_graphics_postprocess.c:202:    fp_map_scale_f32(input, scaled, pixel_count, exposure);
+src\engine\fp_graphics_postprocess.c:222: *   - Uses fp_map_offset_f32 to add brightness
+src\engine\fp_graphics_postprocess.c:224:void fp_postprocess_brightness(
+src\engine\fp_graphics_postprocess.c:231:    fp_map_offset_f32(input, output, pixel_count, brightness_offset);
+src\engine\fp_graphics_postprocess.c:246: *   - Uses fp_map_offset_f32 to shift to origin
+src\engine\fp_graphics_postprocess.c:247: *   - Uses fp_map_scale_f32 to scale
+src\engine\fp_graphics_postprocess.c:248: *   - Uses fp_map_offset_f32 to shift back
+src\engine\fp_graphics_postprocess.c:250:void fp_postprocess_contrast(
+src\engine\fp_graphics_postprocess.c:259:    fp_map_offset_f32(input, temp, pixel_count, -0.5f);
+src\engine\fp_graphics_postprocess.c:262:    fp_map_scale_f32(temp, temp, pixel_count, contrast);
+src\engine\fp_graphics_postprocess.c:265:    fp_map_offset_f32(temp, output, pixel_count, 0.5f);
+src\engine\fp_graphics_postprocess.c:288:void fp_postprocess_gamma(
+src\engine\fp_lighting.c:1:#include "fp_lighting.h"
+src\engine\fp_lighting.c:2:#include "fp_core.h"
+src\engine\fp_lighting.c:4:void fp_lighting_diffuse_batch(
+src\engine\fp_lighting.c:20:void fp_lighting_directional(
+src\engine\fp_lighting.c:35:    fp_lighting_diffuse_batch(normals, intensities, &light_dir_padded, light->intensity, vertex_count);
+src\engine\fp_lighting.c:38:    fp_map_scale_f32(intensities, intensities, vertex_count, light->color[0]);
+src\engine\fp_lighting.c:41:void fp_lighting_combine(
+src\engine\fp_lighting.c:47:    // Compose fp_zip_add_f32 to combine lighting contributions
+src\engine\fp_lighting.c:48:    fp_zip_add_f32(light1, light2, combined, vertex_count);
+src\engine\fp_lighting.c:58:void fp_lighting_add_ambient(
+src\engine\fp_lighting.c:64:    // Compose fp_map_offset_f32 to add the ambient term
+src\engine\fp_lighting.c:65:    fp_map_offset_f32(intensities, output, vertex_count, ambient_intensity);
+src\wrappers\fp_rolling_window.c:2: * fp_rolling_window.c
+src\wrappers\fp_rolling_window.c:23:#include "../include/fp_core.h"
+src\wrappers\fp_rolling_window.c:39:void fp_rolling_reduce_f64(
+src\wrappers\fp_rolling_window.c:57:void fp_rolling_reduce_i64(
+src\wrappers\fp_rolling_window.c:85:void fp_rolling_min_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:86:    fp_rolling_reduce_f64(data, n, window, fp_reduce_min_f64, output);
+src\wrappers\fp_rolling_window.c:90:void fp_rolling_max_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:91:    fp_rolling_reduce_f64(data, n, window, fp_reduce_max_f64, output);
+src\wrappers\fp_rolling_window.c:95:void fp_rolling_sum_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:96:    fp_rolling_reduce_f64(data, n, window, fp_reduce_add_f64, output);
+src\wrappers\fp_rolling_window.c:100:void fp_rolling_min_i64(const int64_t* data, size_t n, size_t window, int64_t* output) {
+src\wrappers\fp_rolling_window.c:101:    fp_rolling_reduce_i64(data, n, window, fp_reduce_min_i64, output);
+src\wrappers\fp_rolling_window.c:104:void fp_rolling_max_i64(const int64_t* data, size_t n, size_t window, int64_t* output) {
+src\wrappers\fp_rolling_window.c:105:    fp_rolling_reduce_i64(data, n, window, fp_reduce_max_i64, output);
+src\wrappers\fp_rolling_window.c:108:void fp_rolling_sum_i64(const int64_t* data, size_t n, size_t window, int64_t* output) {
+src\wrappers\fp_rolling_window.c:109:    fp_rolling_reduce_i64(data, n, window, fp_reduce_add_i64, output);
+src\wrappers\fp_rolling_window.c:121:void fp_rolling_mean_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:128:    fp_rolling_sum_f64(data, n, window, output);
+src\wrappers\fp_rolling_window.c:133:    // In-place scaling (could also use fp_map_scale_f64!)
+src\wrappers\fp_rolling_window.c:139:void fp_rolling_range_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:149:    fp_rolling_max_f64(data, n, window, output);      // max into output
+src\wrappers\fp_rolling_window.c:150:    fp_rolling_min_f64(data, n, window, temp_min);    // min into temp
+src\wrappers\fp_rolling_window.c:167:void fp_rolling_std_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:172:    // For each window, use fp_descriptive_stats_f64 which is already optimized!
+src\wrappers\fp_rolling_window.c:175:        fp_descriptive_stats_f64(&data[i], window, &stats);
+src\wrappers\fp_rolling_window.c:180:void fp_rolling_variance_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:185:    // For each window, use fp_descriptive_stats_f64
+src\wrappers\fp_rolling_window.c:188:        fp_descriptive_stats_f64(&data[i], window, &stats);
+src\wrappers\fp_rolling_window.c:201:void fp_rolling_sum_f64_optimized(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:219:void fp_rolling_mean_f64_optimized(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:225:    fp_rolling_sum_f64_optimized(data, n, window, output);
+src\wrappers\fp_rolling_window.c:239: * Example: Rolling product (if we had fp_reduce_product_f64)
+src\wrappers\fp_rolling_window.c:241: * void fp_rolling_product_f64(const double* data, size_t n, size_t window, double* output) {
+src\wrappers\fp_rolling_window.c:242: *     fp_rolling_reduce_f64(data, n, window, fp_reduce_product_f64, output);
+src\algorithms\fp_matrix_ops.c:2: * fp_matrix_ops.c - Comprehensive 3D Matrix Creation Operations
+src\algorithms\fp_matrix_ops.c:13:#include "fp_core.h"
+src\algorithms\fp_matrix_ops.c:18:void fp_mat4_translation(Mat4* out, float x, float y, float z) {
+src\algorithms\fp_matrix_ops.c:25:void fp_mat4_scale(Mat4* out, float sx, float sy, float sz) {
+src\algorithms\fp_matrix_ops.c:32:void fp_mat4_scale_uniform(Mat4* out, float s) {
+src\algorithms\fp_matrix_ops.c:33:    fp_mat4_scale(out, s, s, s);
+src\algorithms\fp_matrix_ops.c:38:void fp_mat4_rotation_x(Mat4* out, float angle_radians) {
+src\algorithms\fp_matrix_ops.c:48:void fp_mat4_rotation_y(Mat4* out, float angle_radians) {
+src\algorithms\fp_matrix_ops.c:58:void fp_mat4_rotation_z(Mat4* out, float angle_radians) {
+src\algorithms\fp_matrix_ops.c:68:void fp_mat4_rotation_axis(Mat4* out, float x, float y, float z, float angle_radians) {
+src\algorithms\fp_matrix_ops.c:72:        fp_mat4_identity(out);
+src\algorithms\fp_matrix_ops.c:90:void fp_mat4_rotation_euler(Mat4* out, float pitch_x, float yaw_y, float roll_z) {
+src\algorithms\fp_matrix_ops.c:93:    fp_mat4_rotation_x(&rx, pitch_x);
+src\algorithms\fp_matrix_ops.c:94:    fp_mat4_rotation_y(&ry, yaw_y);
+src\algorithms\fp_matrix_ops.c:95:    fp_mat4_rotation_z(&rz, roll_z);
+src\algorithms\fp_matrix_ops.c:97:    fp_mat4_mul(&temp, &ry, &rx);    // temp = Ry * Rx
+src\algorithms\fp_matrix_ops.c:98:    fp_mat4_mul(out, &rz, &temp);    // out = Rz * temp
+src\algorithms\fp_matrix_ops.c:103:void fp_mat4_lookat(Mat4* out,
+src\algorithms\fp_matrix_ops.c:113:        fp_mat4_identity(out);
+src\algorithms\fp_matrix_ops.c:126:        fp_mat4_identity(out);
+src\algorithms\fp_matrix_ops.c:147:void fp_mat4_perspective(Mat4* out, float fov_radians, float aspect, float near, float far) {
+src\algorithms\fp_matrix_ops.c:157:void fp_mat4_ortho(Mat4* out, float left, float right, float bottom, float top, float near, float far) {
+src\algorithms\fp_matrix_ops.c:170:int fp_mat4_inverse(Mat4* out, const Mat4* m) {
+src\engine\fp_mesh_generation.c:1:#include "../../include/fp_mesh_generation.h"
+src\engine\fp_mesh_generation.c:26:FP_MeshData fp_mesh_create_cube() {
+src\engine\fp_mesh_generation.c:104:FP_MeshData fp_mesh_create_plane(float size) {
+src\engine\fp_mesh_generation.c:152:void fp_mesh_destroy(FP_MeshData* mesh) {
+src\engine\fp_msaa.c:1:#include "fp_msaa.h"
+src\engine\fp_msaa.c:4:FP_MSAA_Framebuffer fp_msaa_create_framebuffer(int width, int height, int samples) {
+src\engine\fp_msaa.c:28:        fp_msaa_destroy_framebuffer(&fbo); // Clean up
+src\engine\fp_msaa.c:38:void fp_msaa_destroy_framebuffer(FP_MSAA_Framebuffer* msaa_fbo) {
+src\engine\fp_msaa.c:47:void fp_msaa_resolve_framebuffer(const FP_MSAA_Framebuffer* msaa_fbo, GLuint target_fbo) {
+src\algorithms\fp_monte_carlo.c:1:// fp_monte_carlo.c
+src\algorithms\fp_monte_carlo.c:32:void fp_monte_carlo_seed(unsigned long long seed) {
+src\algorithms\fp_monte_carlo.c:91:PiEstimationResult fp_monte_carlo_estimate_pi(int n_samples) {
+src\algorithms\fp_monte_carlo.c:121:void fp_monte_carlo_pi_convergence(int* sample_sizes, int n_sizes, PiEstimationResult* results) {
+src\algorithms\fp_monte_carlo.c:123:        results[i] = fp_monte_carlo_estimate_pi(sample_sizes[i]);
+src\algorithms\fp_monte_carlo.c:144:IntegrationResult fp_monte_carlo_integrate(
+src\algorithms\fp_monte_carlo.c:201:OptionPricingResult fp_monte_carlo_option_price(
+src\algorithms\fp_monte_carlo.c:259:double fp_monte_carlo_black_scholes_exact(double S0, double K, double r, double sigma, double T) {
+src\algorithms\fp_monte_carlo.c:277:RandomWalkResult fp_monte_carlo_random_walk_2d(int n_steps, double step_size) {
+src\algorithms\fp_monte_carlo.c:315:RandomWalkEnsemble fp_monte_carlo_random_walk_ensemble(
+src\algorithms\fp_monte_carlo.c:326:        RandomWalkResult walk = fp_monte_carlo_random_walk_2d(n_steps_per_walk, step_size);
+src\algorithms\fp_monte_carlo.c:355:void fp_monte_carlo_print_pi_result(const PiEstimationResult* result) {
+src\algorithms\fp_monte_carlo.c:367:void fp_monte_carlo_print_integration_result(const IntegrationResult* result) {
+src\algorithms\fp_monte_carlo.c:382:void fp_monte_carlo_print_option_result(const OptionPricingResult* result) {
+src\algorithms\fp_monte_carlo.c:392:void fp_monte_carlo_print_random_walk_result(const RandomWalkResult* result) {
+src\algorithms\fp_monte_carlo.c:401:void fp_monte_carlo_print_walk_ensemble_result(const RandomWalkEnsemble* result) {
+src\engine\fp_shadow_mapping.c:1:#include "fp_shadow_mapping.h"
+src\engine\fp_shadow_mapping.c:4:FP_ShadowMap fp_shadow_create_map() {
+src\engine\fp_shadow_mapping.c:27:        fp_shadow_destroy_map(&shadow_map);
+src\engine\fp_shadow_mapping.c:36:void fp_shadow_destroy_map(FP_ShadowMap* shadow_map) {
+src\engine\fp_transforms.c:1:#include "fp_graphics_engine.h"
+src\engine\fp_transforms.c:2:#include "fp_core.h"
+src\engine\fp_transforms.c:7: * fp_mat4_mul function from the core assembly library. This adheres to the
+src\engine\fp_transforms.c:8: * philosophy of "Composition over Re-implementation". The fp_mat4_mul is the
+src\engine\fp_transforms.c:11:void fp_mat4_mul_pure(Mat4* out, const Mat4* a, const Mat4* b) {
+src\engine\fp_transforms.c:13:    fp_mat4_mul(out, a, b);
+src\engine\fp_transforms.c:16:void fp_transform_to_matrix(Mat4* out, const Transform* t) {
+src\engine\fp_transforms.c:21:    fp_mat4_translation(&trans_mat, t->position.x, t->position.y, t->position.z);
+src\engine\fp_transforms.c:22:    fp_mat4_rotation_euler(&rot_mat, t->euler_rotation.x, t->euler_rotation.y, t->euler_rotation.z);
+src\engine\fp_transforms.c:23:    fp_mat4_scale(&scale_mat, t->scale.x, t->scale.y, t->scale.z);
+src\engine\fp_transforms.c:27:    fp_mat4_mul_pure(&temp_mat, &rot_mat, &scale_mat);
+src\engine\fp_transforms.c:29:    fp_mat4_mul_pure(out, &trans_mat, &temp_mat);
+src\engine\fp_transforms.c:32:void fp_view_matrix(Mat4* out, const Camera* cam) {
+src\engine\fp_transforms.c:35:    fp_mat4_lookat(out,
+src\engine\fp_transforms.c:41:void fp_projection_matrix(Mat4* out, const CameraProjection* proj) {
+src\engine\fp_transforms.c:42:    fp_mat4_perspective(out, proj->fov_radians, proj->aspect_ratio, proj->near_plane, proj->far_plane);
+src\engine\fp_transforms.c:45:void fp_get_mvp_matrix(Mat4* out_mvp, const Mat4* model, const Mat4* view, const Mat4* proj) {
+src\engine\fp_transforms.c:48:    fp_mat4_mul_pure(&view_model, view, model);
+src\engine\fp_transforms.c:50:    fp_mat4_mul_pure(out_mvp, proj, &view_model);
+src\algorithms\fp_naive_bayes.c:1:// fp_naive_bayes.c
+src\algorithms\fp_naive_bayes.c:75:GaussianNBModel fp_gaussian_nb_train(
+src\algorithms\fp_naive_bayes.c:150:NBPrediction fp_gaussian_nb_predict(
+src\algorithms\fp_naive_bayes.c:205:MultinomialNBModel fp_multinomial_nb_train(
+src\algorithms\fp_naive_bayes.c:260:NBPrediction fp_multinomial_nb_predict(
+src\algorithms\fp_naive_bayes.c:307:double fp_nb_accuracy(
+src\algorithms\fp_naive_bayes.c:316:        NBPrediction pred = fp_gaussian_nb_predict(model, &X_test[i * model->n_features]);
+src\algorithms\fp_naive_bayes.c:327:void fp_nb_confusion_matrix(
+src\algorithms\fp_naive_bayes.c:335:        NBPrediction pred = fp_gaussian_nb_predict(model, &X_test[i * model->n_features]);
+src\algorithms\fp_naive_bayes.c:348:void fp_nb_generate_gaussian_data(
+src\algorithms\fp_naive_bayes.c:380:void fp_nb_print_gaussian_model(const GaussianNBModel* model) {
+src\algorithms\fp_naive_bayes.c:391:void fp_nb_print_prediction(const NBPrediction* pred, int n_classes) {
+src\algorithms\fp_naive_bayes.c:400:void fp_nb_print_confusion_matrix(int** confusion, int n_classes) {
+src\algorithms\fp_naive_bayes.c:418:void fp_nb_free_gaussian_model(GaussianNBModel* model) {
+src\algorithms\fp_naive_bayes.c:425:void fp_nb_free_multinomial_model(MultinomialNBModel* model) {
+src\algorithms\fp_naive_bayes.c:432:void fp_nb_free_prediction(NBPrediction* pred) {
+src\engine\renderer.c:3:#include "fp_core.h"
+src\engine\renderer.c:4:#include "fp_math.h"
+src\engine\renderer.c:5:#include "fp_graphics_engine.h"
+src\engine\renderer.c:6:#include "fp_mesh_generation.h"
+src\engine\renderer.c:220:    res.shadow_map = fp_shadow_create_map();
+src\engine\renderer.c:232:    res.msaa_fbo = fp_msaa_create_framebuffer(1280, 720, 4);
+src\engine\renderer.c:245:    fp_msaa_destroy_framebuffer(&res->msaa_fbo);
+src\engine\renderer.c:246:    fp_shadow_destroy_map(&res->shadow_map);
+src\engine\renderer.c:273:    // fp_mat4_ortho(&light_proj, -10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 40.0f);
+src\engine\renderer.c:274:    // fp_mat4_lookat(&light_view, state->light.position.x, state->light.position.y, state->light.position.z, state->light.target.x, state->light.target.y, state->light.target.z, 0.0f, 1.0f, 0.0f);
+src\engine\renderer.c:275:    // fp_mat4_mul(&light_space_matrix, &light_proj, &light_view);
+src\engine\renderer.c:286:    //         fp_transform_to_matrix(&model_mat, &state->objects[i].transform);
+src\engine\renderer.c:331:    fp_view_matrix(&view_mat, &state->camera);
+src\engine\renderer.c:332:    fp_projection_matrix(&proj_mat, &state->camera.projection);
+src\engine\renderer.c:338:        fp_transform_to_matrix(&obj_model_mat, &obj->transform);
+src\engine\renderer.c:339:        fp_get_mvp_matrix(&mvp_mat, &obj_model_mat, &view_mat, &proj_mat);
+src\engine\renderer.c:340:        fp_mat4_inverse(&inv_model_mat, &obj_model_mat);
+src\engine\renderer.c:341:        fp_mat4_transpose(&normal_mat, &inv_model_mat);
+src\engine\renderer.c:368:    // fp_msaa_resolve_framebuffer(&res->msaa_fbo, 0);
+src\algorithms\fp_neural_network.c:1:// fp_neural_network.c
+src\algorithms\fp_neural_network.c:98:NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs) {
+src\algorithms\fp_neural_network.c:132:double* fp_neural_network_forward(
+src\algorithms\fp_neural_network.c:207:    double* output = fp_neural_network_forward(net, input, &hidden);
+src\algorithms\fp_neural_network.c:261:TrainingResult fp_neural_network_train(
+src\algorithms\fp_neural_network.c:273:    result.network = fp_neural_network_create(n_inputs, n_hidden, n_outputs);
+src\algorithms\fp_neural_network.c:288:            double* output = fp_neural_network_forward(&result.network, input, &hidden);
+src\algorithms\fp_neural_network.c:315:        double* output = fp_neural_network_forward(&result.network, input, &hidden);
+src\algorithms\fp_neural_network.c:339:double* fp_neural_network_predict(
+src\algorithms\fp_neural_network.c:344:    double* output = fp_neural_network_forward(net, input, &hidden);
+src\algorithms\fp_neural_network.c:350:int fp_neural_network_predict_class(
+src\algorithms\fp_neural_network.c:354:    double* output = fp_neural_network_predict(net, input);
+src\algorithms\fp_neural_network.c:372:double fp_neural_network_accuracy(
+src\algorithms\fp_neural_network.c:384:        int pred_class = fp_neural_network_predict_class(net, input);
+src\algorithms\fp_neural_network.c:404:void fp_neural_network_free(NeuralNetwork* net) {
+src\algorithms\fp_neural_network.c:411:void fp_training_result_free(TrainingResult* result) {
+src\algorithms\fp_neural_network.c:412:    fp_neural_network_free(&result->network);
+src\algorithms\fp_neural_network.c:420:void fp_neural_network_print_summary(const NeuralNetwork* net) {
+src\algorithms\fp_neural_network.c:430:void fp_training_result_print(const TrainingResult* result) {
+src\algorithms\fp_pca.c:1:// fp_pca.c
+src\algorithms\fp_pca.c:262:PCAResult fp_pca_fit(
+src\algorithms\fp_pca.c:327:void fp_pca_transform(
+src\algorithms\fp_pca.c:359:void fp_pca_inverse_transform(
+src\algorithms\fp_pca.c:381:double fp_pca_reconstruction_error(
+src\algorithms\fp_pca.c:391:    fp_pca_transform(model, X, X_pca, n);
+src\algorithms\fp_pca.c:395:    fp_pca_inverse_transform(model, X_pca, X_reconstructed, n);
+src\algorithms\fp_pca.c:418:void fp_pca_generate_ellipse_data(
+src\algorithms\fp_pca.c:451:void fp_pca_generate_low_rank_data(
+src\algorithms\fp_pca.c:495:void fp_pca_print_model_summary(const PCAModel* model) {
+src\algorithms\fp_pca.c:514:void fp_pca_print_components(const PCAModel* model, int max_features) {
+src\algorithms\fp_pca.c:533:void fp_pca_free_model(PCAModel* model) {
+src\algorithms\fp_quaternion_ops.c:1:#include "../../include/fp_core.h"
+src\algorithms\fp_quaternion_ops.c:8:void fp_quat_identity(Quaternion* out) {
+src\algorithms\fp_quaternion_ops.c:15:void fp_quat_from_axis_angle(Quaternion* out, const Vec3f* axis, float angle) {
+src\algorithms\fp_quaternion_ops.c:29:void fp_quat_mul(Quaternion* out, const Quaternion* a, const Quaternion* b) {
+src\algorithms\fp_quaternion_ops.c:36:void fp_quat_rotate_vec3(Vec3f* out, const Quaternion* q, const Vec3f* v) {
+src\algorithms\fp_quaternion_ops.c:41:    fp_quat_mul(&temp1, q, &vec_quat);
+src\algorithms\fp_quaternion_ops.c:42:    fp_quat_mul(&temp2, &temp1, &inv_q);
+src\algorithms\fp_quaternion_ops.c:50:void fp_quat_to_euler(Vec3f* out, const Quaternion* q) {
+src\algorithms\fp_radix_sort.c:1:// fp_radix_sort.c
+src\algorithms\fp_radix_sort.c:20:#include "fp_core.h"
+src\algorithms\fp_radix_sort.c:35:void fp_radix_sort_u8(const uint8_t* in, uint8_t* out, size_t n) {
+src\algorithms\fp_radix_sort.c:90:void fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n) {
+src\algorithms\fp_radix_sort.c:150:void fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n) {
+src\algorithms\fp_ray_tracer.c:2: * fp_ray_tracer.c
+src\algorithms\fp_ray_tracer.c:16:#include "../../include/fp_ray_tracer.h"
+src\algorithms\fp_ray_tracer.c:43:// NOTE: These are now implemented in fp_vector_ops.c and declared in fp_core.h
+src\algorithms\fp_time_series.c:1:// fp_time_series.c
+src\algorithms\fp_time_series.c:114:ForecastResult fp_forecast_sma(
+src\algorithms\fp_time_series.c:171:ForecastResult fp_forecast_exponential_smoothing(
+src\algorithms\fp_time_series.c:221:ForecastResult fp_forecast_double_exponential_smoothing(
+src\algorithms\fp_time_series.c:274:ForecastResult fp_forecast_linear_trend(
+src\algorithms\fp_time_series.c:337:ForecastResult fp_forecast_seasonal_naive(
+src\algorithms\fp_time_series.c:389:void fp_generate_trend_series(
+src\algorithms\fp_time_series.c:406:void fp_generate_seasonal_series(
+src\algorithms\fp_time_series.c:424:void fp_generate_trend_seasonal_series(
+src\algorithms\fp_time_series.c:444:void fp_generate_random_walk(
+src\algorithms\fp_time_series.c:464:double fp_forecast_mape(const double* actual, const double* predicted, int n) {
+src\algorithms\fp_time_series.c:477:double fp_forecast_mae(const double* actual, const double* predicted, int n) {
+src\algorithms\fp_time_series.c:486:double fp_forecast_rmse(const double* actual, const double* predicted, int n) {
+src\algorithms\fp_time_series.c:499:void fp_forecast_print_result(const ForecastResult* result) {
+src\algorithms\fp_time_series.c:520:void fp_forecast_free_result(ForecastResult* result) {
+src\algorithms\fp_vector_ops.c:2: * fp_vector_ops.c - 3D Vector Operations
+src\algorithms\fp_vector_ops.c:12:#include "fp_core.h"

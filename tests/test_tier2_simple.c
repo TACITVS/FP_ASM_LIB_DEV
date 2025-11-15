@@ -6,6 +6,10 @@ int main() {
     printf("Testing TIER 2 operations...\n\n");
 
     // Test 1: Sort i64
+    // NOTE: The fp_sort_i64 function does not exist in the library.
+    // The library's design philosophy is to not provide in-place sorting functions
+    // to maintain functional purity. See fp_core.h for more details.
+    /*
     int64_t arr1[] = {5, 2, 8, 1, 9};
     printf("Before sort: ");
     for (int i = 0; i < 5; i++) printf("%lld ", arr1[i]);
@@ -23,6 +27,7 @@ int main() {
         if (arr1[i] < arr1[i-1]) sorted = 0;
     }
     printf("Is sorted: %s\n\n", sorted ? "YES" : "NO");
+    */
 
     // Test 2: Unique
     int64_t arr2[] = {1, 2, 2, 3, 3, 3, 4};

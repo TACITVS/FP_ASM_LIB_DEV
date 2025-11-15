@@ -157,6 +157,7 @@ fp_map_scale_u64:
 .cleanup:
     pop rbp
     ret
+    ret
 
 ; ============================================================================
 ; fp_map_offset_u64: Offset operation (out = x + c)

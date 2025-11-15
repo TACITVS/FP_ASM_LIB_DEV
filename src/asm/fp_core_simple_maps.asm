@@ -312,6 +312,7 @@ fp_map_clamp_f64:
     ; Save non-volatile registers used (R12, R13)
     push r12
     push r13
+    mov  r11, rsp            ; Remember stack location of saved regs
     and  rsp, 0xFFFFFFFFFFFFFFE0  ; Align stack to 32 bytes
     sub  rsp, 128            ; Space for YMM6-YMM9 save
     vmovdqa [rsp],     ymm6
@@ -385,9 +386,9 @@ fp_map_clamp_f64:
     vmovdqa ymm8, [rsp+64]
     vmovdqa ymm9, [rsp+96]
     add  rsp, 128            ; Deallocate YMM save space
-    pop  r13                 ; Pop non-volatile registers BEFORE rsp restore
+    mov  rsp, r11            ; Restore stack pointer to saved-register area
+    pop  r13                 ; Pop non-volatile registers
     pop  r12
     mov  rsp, rbp            ; Restore RSP to before alignment/shadow space
     pop  rbp
     ret
-
