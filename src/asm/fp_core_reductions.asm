@@ -29,6 +29,11 @@ section .text
 ; =============================================================================
 ; int64_t fp_reduce_add_i64(const int64_t* in, size_t n)
 ; (Unchanged - Performed great)
+;
+; OVERFLOW BEHAVIOR:
+;   - Integer addition wraps on overflow (modular arithmetic)
+;   - Caller responsible for ensuring sum fits in int64_t range
+;   - No overflow detection provided
 ; =============================================================================
 fp_reduce_add_i64:
     PROLOGUE
