@@ -104,33 +104,10 @@ fp_filter_gt_i64_simd:
     vmovdqa ymm2, [compaction_idx_lut + r11]
     vpermd ymm3, ymm2, ymm0     ; Rearrange qwords so survivors are packed
 
-    cmp edx, 4
-    je .store4
-    cmp edx, 3
-    je .store3
-    cmp edx, 2
-    je .store2
-
-.store1:
-    vmovq [r13], xmm3
-    add r13, 8
-    jmp .skip
-
-.store2:
-    vmovdqu [r13], xmm3
-    add r13, 16
-    jmp .skip
-
-.store3:
-    vmovdqu [r13], xmm3
-    vextracti128 xmm1, ymm3, 1
-    vmovq [r13+16], xmm1
-    add r13, 24
-    jmp .skip
-
-.store4:
-    vmovdqu [r13], ymm3
-    add r13, 32
+    ; Branch-free store: Always store 32 bytes, pointer advances by actual count
+    ; This is faster than branching (stores are cheap, branches are expensive)
+    vmovdqu [r13], ymm3         ; Store all 32 bytes (overwrite okay)
+    lea r13, [r13 + rdx*8]      ; Advance by actual survivor count * 8 bytes
 
 .skip:
     add r12, 32                 ; input += 4
