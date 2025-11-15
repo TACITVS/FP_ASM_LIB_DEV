@@ -38,6 +38,11 @@ build/bin/
 build/obj/
 build/tmp/
 .build/
+cmake-build*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
 
 # IDE and editor files
 .vscode/
