@@ -55,6 +55,8 @@ fp_reduce_add_i32:
     cmp rcx, 32
     jb .loop8
 
+    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+
     vmovdqu ymm4, [r12]             ; Load 8x i32
     vmovdqu ymm5, [r12 + 32]        ; Load 8x i32
     vmovdqu ymm6, [r12 + 64]        ; Load 8x i32
@@ -146,6 +148,8 @@ fp_reduce_mul_i32:
 .loop32:
     cmp rcx, 32
     jb .loop8
+
+    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
 
     vmovdqu ymm4, [r12]
     vmovdqu ymm5, [r12 + 32]
@@ -253,6 +257,8 @@ fp_reduce_min_i32:
     cmp rcx, 32
     jb .loop8
 
+    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
+
     vmovdqu ymm4, [r12]
     vmovdqu ymm5, [r12 + 32]
     vmovdqu ymm6, [r12 + 64]
@@ -337,6 +343,8 @@ fp_reduce_max_i32:
 .loop32:
     cmp rcx, 32
     jb .loop8
+
+    prefetcht0 [r12 + 256]          ; Prefetch 2 iterations ahead
 
     vmovdqu ymm4, [r12]
     vmovdqu ymm5, [r12 + 32]
