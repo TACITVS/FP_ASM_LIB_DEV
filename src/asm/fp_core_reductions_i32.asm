@@ -14,6 +14,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .text
 
 ; ============================================================================
@@ -111,15 +113,8 @@ fp_reduce_add_i32:
     vpaddd ymm2, ymm2, ymm3
     vpaddd ymm0, ymm0, ymm2
 
-    ; Horizontal sum of 8x i32 in ymm0
-    vextracti128 xmm1, ymm0, 1      ; Extract upper 128 bits
-    vpaddd xmm0, xmm0, xmm1         ; Sum upper/lower halves (4+4 = 4 elements)
-
-    vpshufd xmm1, xmm0, 0x4E        ; Shuffle [2,3,0,1]
-    vpaddd xmm0, xmm0, xmm1         ; Sum (2 elements)
-
-    vpshufd xmm1, xmm0, 0xB1        ; Shuffle [1,0,3,2]
-    vpaddd xmm0, xmm0, xmm1         ; Sum (1 element)
+    ; Horizontal sum using macro
+    HSUM_I32_YMM 0, 1
 
     vmovd eax, xmm0                 ; Extract result
 
@@ -208,14 +203,8 @@ fp_reduce_mul_i32:
     vpmulld ymm2, ymm2, ymm3
     vpmulld ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmulld xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_I32_YMM 0, 1
 
     vmovd r8d, xmm0                 ; r8d = SIMD product
 
@@ -234,14 +223,8 @@ fp_reduce_mul_i32:
     vpmulld ymm2, ymm2, ymm3
     vpmulld ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmulld xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_I32_YMM 0, 1
 
     vmovd eax, xmm0
 
@@ -325,14 +308,8 @@ fp_reduce_min_i32:
     vpminsd ymm2, ymm2, ymm3
     vpminsd ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpminsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpminsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpminsd xmm0, xmm0, xmm1
+    ; Horizontal min using macro
+    HMIN_I32_YMM 0, 1
 
     vmovd edx, xmm0                 ; Current min in edx
 
@@ -355,14 +332,8 @@ fp_reduce_min_i32:
     vpminsd ymm2, ymm2, ymm3
     vpminsd ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpminsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpminsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpminsd xmm0, xmm0, xmm1
+    ; Horizontal min using macro
+    HMIN_I32_YMM 0, 1
 
     vmovd eax, xmm0
 
@@ -442,14 +413,8 @@ fp_reduce_max_i32:
     vpmaxsd ymm2, ymm2, ymm3
     vpmaxsd ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmaxsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmaxsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmaxsd xmm0, xmm0, xmm1
+    ; Horizontal max using macro
+    HMAX_I32_YMM 0, 1
 
     vmovd edx, xmm0                 ; Current max in edx
 
@@ -472,14 +437,8 @@ fp_reduce_max_i32:
     vpmaxsd ymm2, ymm2, ymm3
     vpmaxsd ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmaxsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmaxsd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmaxsd xmm0, xmm0, xmm1
+    ; Horizontal max using macro
+    HMAX_I32_YMM 0, 1
 
     vmovd eax, xmm0
 
