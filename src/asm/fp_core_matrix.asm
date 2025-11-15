@@ -310,35 +310,63 @@ fp_mat4_mul_vec3_batch:
     vmovups xmm6, [rdx + 32]         ; Column 2: [m8, m9, m10, m11]
     vmovups xmm7, [rdx + 48]         ; Column 3: [m12, m13, m14, m15]
 
-    ; Setup loop: R10 = byte offset (increment by 16), R9 = count
+    ; Setup loop: R10 = byte offset, R9 = count
     xor r10, r10                     ; R10 = byte offset (starts at 0)
 
-.loop:
-    ; Load vertex at current byte offset
-    vmovups xmm0, [r8 + r10]         ; Load vertex (x, y, z, pad)
+    ; Main loop: Process 2 vertices per iteration (2x unroll)
+.loop2:
+    cmp r9, 2
+    jb .loop1                        ; Less than 2 vertices remaining
 
-    ; Broadcast x and multiply by column 0
-    vbroadcastss xmm1, xmm0          ; xmm1 = [x, x, x, x]
-    vmulps xmm8, xmm4, xmm1          ; xmm8 = column0 * x
+    ; Prefetch next cache line (64 bytes ahead = ~4 vertices)
+    prefetcht0 [r8 + r10 + 64]
 
-    ; Extract y, broadcast, and FMA with column 1
-    vshufps xmm2, xmm0, xmm0, 0x55   ; xmm2 = [y, y, y, y]
-    vfmadd231ps xmm8, xmm5, xmm2     ; xmm8 += column1 * y
+    ; === Vertex 0 ===
+    vmovups xmm0, [r8 + r10]         ; Load vertex 0
+    vbroadcastss xmm1, xmm0          ; Broadcast x0
+    vmulps xmm8, xmm4, xmm1          ; column0 * x0
+    vshufps xmm2, xmm0, xmm0, 0x55   ; Broadcast y0
+    vfmadd231ps xmm8, xmm5, xmm2     ; += column1 * y0
+    vshufps xmm3, xmm0, xmm0, 0xAA   ; Broadcast z0
+    vfmadd231ps xmm8, xmm6, xmm3     ; += column2 * z0
+    vaddps xmm8, xmm8, xmm7          ; += column3
 
-    ; Extract z, broadcast, and FMA with column 2
-    vshufps xmm3, xmm0, xmm0, 0xAA   ; xmm3 = [z, z, z, z]
-    vfmadd231ps xmm8, xmm6, xmm3     ; xmm8 += column2 * z
+    ; === Vertex 1 (interleaved to hide FMA latency) ===
+    vmovups xmm10, [r8 + r10 + 16]   ; Load vertex 1
+    vbroadcastss xmm11, xmm10        ; Broadcast x1
+    vmulps xmm9, xmm4, xmm11         ; column0 * x1
+    vshufps xmm12, xmm10, xmm10, 0x55 ; Broadcast y1
+    vfmadd231ps xmm9, xmm5, xmm12    ; += column1 * y1
+    vshufps xmm13, xmm10, xmm10, 0xAA ; Broadcast z1
+    vfmadd231ps xmm9, xmm6, xmm13    ; += column2 * z1
+    vaddps xmm9, xmm9, xmm7          ; += column3
 
-    ; Add translation column
-    vaddps xmm8, xmm8, xmm7          ; xmm8 += column3
+    ; Store both results
+    vmovups [rcx + r10], xmm8        ; Store vertex 0
+    vmovups [rcx + r10 + 16], xmm9   ; Store vertex 1
 
-    ; Store result at current byte offset
-    vmovups [rcx + r10], xmm8        ; Store transformed vertex
+    add r10, 32                      ; Advance 2 vertices (32 bytes)
+    sub r9, 2                        ; Decrement count by 2
+    jmp .loop2
 
-    ; Increment byte offset and check loop
-    add r10, 16                      ; Move to next vertex (16 bytes)
-    dec r9                           ; Decrement count
-    jnz .loop                        ; Loop while count > 0
+    ; Scalar loop: Process remaining vertices one at a time
+.loop1:
+    test r9, r9
+    jz .done
+
+    vmovups xmm0, [r8 + r10]         ; Load vertex
+    vbroadcastss xmm1, xmm0          ; Broadcast x
+    vmulps xmm8, xmm4, xmm1          ; column0 * x
+    vshufps xmm2, xmm0, xmm0, 0x55   ; Broadcast y
+    vfmadd231ps xmm8, xmm5, xmm2     ; += column1 * y
+    vshufps xmm3, xmm0, xmm0, 0xAA   ; Broadcast z
+    vfmadd231ps xmm8, xmm6, xmm3     ; += column2 * z
+    vaddps xmm8, xmm8, xmm7          ; += column3
+    vmovups [rcx + r10], xmm8        ; Store result
+
+    add r10, 16                      ; Move to next vertex
+    dec r9
+    jnz .loop1
 
 .done:
     EPILOGUE
