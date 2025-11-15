@@ -46,3 +46,90 @@
     vzeroupper                      ; Clear upper YMM lanes
     ret
 %endmacro
+
+; --- Horizontal Reduction Macros ---
+
+; Horizontal sum of 4x f32 in XMM register (result in xmm%1[0])
+; Uses vhaddps for optimal performance
+; Args: %1 = source/dest register
+%macro HSUM_F32_XMM 1
+    vhaddps xmm%1, xmm%1, xmm%1     ; [a+b, c+d, a+b, c+d]
+    vhaddps xmm%1, xmm%1, xmm%1     ; [a+b+c+d, ...]
+%endmacro
+
+; Horizontal sum of 8x f32 in YMM register (result in xmm%1[0])
+; Reduces to XMM then applies HSUM_F32_XMM
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_F32_YMM 2
+    vextractf128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vaddps xmm%1, xmm%1, xmm%2      ; Sum upper/lower halves
+    HSUM_F32_XMM %1
+%endmacro
+
+; Horizontal sum of 4x i32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_I32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpaddd xmm%1, xmm%1, xmm%2      ; Sum pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpaddd xmm%1, xmm%1, xmm%2      ; Final sum
+%endmacro
+
+; Horizontal sum of 8x i32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_I32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpaddd xmm%1, xmm%1, xmm%2      ; Sum upper/lower halves
+    HSUM_I32_XMM %1, %2
+%endmacro
+
+; Horizontal product of 4x i32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_I32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmulld xmm%1, xmm%1, xmm%2     ; Multiply pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmulld xmm%1, xmm%1, xmm%2     ; Final multiply
+%endmacro
+
+; Horizontal product of 8x i32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_I32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmulld xmm%1, xmm%1, xmm%2     ; Multiply upper/lower halves
+    HPROD_I32_XMM %1, %2
+%endmacro
+
+; Horizontal min of 4x i32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_I32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpminsd xmm%1, xmm%1, xmm%2     ; Min of pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpminsd xmm%1, xmm%1, xmm%2     ; Final min
+%endmacro
+
+; Horizontal min of 8x i32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_I32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpminsd xmm%1, xmm%1, xmm%2     ; Min of upper/lower halves
+    HMIN_I32_XMM %1, %2
+%endmacro
+
+; Horizontal max of 4x i32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_I32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmaxsd xmm%1, xmm%1, xmm%2     ; Max of pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmaxsd xmm%1, xmm%1, xmm%2     ; Final max
+%endmacro
+
+; Horizontal max of 8x i32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_I32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmaxsd xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves
+    HMAX_I32_XMM %1, %2
+%endmacro
