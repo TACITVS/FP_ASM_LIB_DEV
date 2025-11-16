@@ -14,6 +14,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .text
 
 ; ============================================================================
@@ -85,11 +87,8 @@ fp_reduce_add_u64:
     vpaddq ymm2, ymm2, ymm3
     vpaddq ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpaddq xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpaddq xmm0, xmm0, xmm1
+    ; Horizontal sum using macro
+    HSUM_U64_YMM 0, 1
 
     vmovq rax, xmm0
 
