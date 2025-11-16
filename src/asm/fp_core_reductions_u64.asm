@@ -41,24 +41,24 @@ fp_reduce_add_u64:
     vpxor ymm2, ymm2, ymm2
     vpxor ymm3, ymm3, ymm3
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop16:
     cmp rcx, 16
     jb .loop4
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpaddq ymm0, ymm0, ymm4
     vpaddq ymm1, ymm1, ymm5
     vpaddq ymm2, ymm2, ymm6
     vpaddq ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 16
     jmp .loop16
 
@@ -66,10 +66,10 @@ fp_reduce_add_u64:
     cmp rcx, 4
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpaddq ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 4
     jmp .loop4
 
@@ -78,11 +78,11 @@ fp_reduce_add_u64:
     jz .horizontal_sum
 
 .tail_loop:
-    mov rax, [r12]
+    mov rax, [r10]
     vpxor ymm4, ymm4, ymm4
     vpinsrq xmm4, xmm4, rax, 0
     vpaddq ymm0, ymm0, ymm4
-    add r12, 8
+    add r10, 8
     dec rcx
     jnz .tail_loop
 
@@ -123,7 +123,7 @@ fp_reduce_mul_u64:
     push rbp
     mov rbp, rsp
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
     ; Initialize 4 accumulators
@@ -136,19 +136,19 @@ fp_reduce_mul_u64:
     cmp rcx, 4
     jb .loop1
 
-    mov r11, [r12]
+    mov r11, [r10]
     imul rax, r11               ; Multiply rax by r11 (lower 64 bits)
 
-    mov r11, [r12 + 8]
+    mov r11, [r10 + 8]
     imul r8, r11
 
-    mov r11, [r12 + 16]
+    mov r11, [r10 + 16]
     imul r9, r11
 
-    mov r11, [r12 + 24]
+    mov r11, [r10 + 24]
     imul r10, r11
 
-    add r12, 32
+    add r10, 32
     sub rcx, 4
     jmp .loop4
 
@@ -157,9 +157,9 @@ fp_reduce_mul_u64:
     jz .reduce
 
 .loop1_iter:
-    mov r11, [r12]
+    mov r11, [r10]
     imul rax, r11
-    add r12, 8
+    add r10, 8
     dec rcx
     jnz .loop1_iter
 
@@ -196,11 +196,11 @@ fp_reduce_min_u64:
     test rdx, rdx
     jz .return_max              ; Return UINT64_MAX for empty array
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
     ; Initialize 4 accumulators with first element
-    mov rax, [r12]
+    mov rax, [r10]
     mov r8, rax
     mov r9, rax
     mov r10, rax
@@ -209,23 +209,23 @@ fp_reduce_min_u64:
     cmp rcx, 4
     jb .loop1
 
-    mov r11, [r12]
+    mov r11, [r10]
     cmp r11, rax
     cmovb rax, r11
 
-    mov r11, [r12 + 8]
+    mov r11, [r10 + 8]
     cmp r11, r8
     cmovb r8, r11
 
-    mov r11, [r12 + 16]
+    mov r11, [r10 + 16]
     cmp r11, r9
     cmovb r9, r11
 
-    mov r11, [r12 + 24]
+    mov r11, [r10 + 24]
     cmp r11, r10
     cmovb r10, r11
 
-    add r12, 32
+    add r10, 32
     sub rcx, 4
     jmp .loop4
 
@@ -234,10 +234,10 @@ fp_reduce_min_u64:
     jz .reduce
 
 .loop1_iter:
-    mov r11, [r12]
+    mov r11, [r10]
     cmp r11, rax
     cmovb rax, r11
-    add r12, 8
+    add r10, 8
     dec rcx
     jnz .loop1_iter
 
@@ -285,11 +285,11 @@ fp_reduce_max_u64:
     test rdx, rdx
     jz .return_zero             ; Return 0 for empty array
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
     ; Initialize 4 accumulators with first element
-    mov rax, [r12]
+    mov rax, [r10]
     mov r8, rax
     mov r9, rax
     mov r10, rax
@@ -298,23 +298,23 @@ fp_reduce_max_u64:
     cmp rcx, 4
     jb .loop1
 
-    mov r11, [r12]
+    mov r11, [r10]
     cmp r11, rax
     cmova rax, r11
 
-    mov r11, [r12 + 8]
+    mov r11, [r10 + 8]
     cmp r11, r8
     cmova r8, r11
 
-    mov r11, [r12 + 16]
+    mov r11, [r10 + 16]
     cmp r11, r9
     cmova r9, r11
 
-    mov r11, [r12 + 24]
+    mov r11, [r10 + 24]
     cmp r11, r10
     cmova r10, r11
 
-    add r12, 32
+    add r10, 32
     sub rcx, 4
     jmp .loop4
 
@@ -323,10 +323,10 @@ fp_reduce_max_u64:
     jz .reduce
 
 .loop1_iter:
-    mov r11, [r12]
+    mov r11, [r10]
     cmp r11, rax
     cmova rax, r11
-    add r12, 8
+    add r10, 8
     dec rcx
     jnz .loop1_iter
 

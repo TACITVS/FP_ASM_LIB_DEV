@@ -42,24 +42,24 @@ fp_reduce_add_i8:
     vpxor ymm2, ymm2, ymm2
     vpxor ymm3, ymm3, ymm3
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop128:
     cmp rcx, 128
     jb .loop32
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpaddb ymm0, ymm0, ymm4
     vpaddb ymm1, ymm1, ymm5
     vpaddb ymm2, ymm2, ymm6
     vpaddb ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 128
     jmp .loop128
 
@@ -67,10 +67,10 @@ fp_reduce_add_i8:
     cmp rcx, 32
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpaddb ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 32
     jmp .loop32
 
@@ -80,10 +80,10 @@ fp_reduce_add_i8:
 
 .tail_loop:
     vpxor ymm4, ymm4, ymm4
-    movsx eax, byte [r12]
+    movsx eax, byte [r10]
     vpinsrb xmm4, xmm4, eax, 0
     vpaddb ymm0, ymm0, ymm4
-    add r12, 1
+    add r10, 1
     dec rcx
     jnz .tail_loop
 
@@ -142,7 +142,7 @@ fp_reduce_mul_i8:
     push rbp
     mov rbp, rsp
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
     ; Initialize accumulator to 1
@@ -152,9 +152,9 @@ fp_reduce_mul_i8:
     jz .done
 
 .loop:
-    movsx r8d, byte [r12]
+    movsx r8d, byte [r10]
     imul eax, r8d
-    add r12, 1
+    add r10, 1
     dec rcx
     jnz .loop
 
@@ -195,24 +195,24 @@ fp_reduce_min_i8:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop128:
     cmp rcx, 128
     jb .loop32
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpminsb ymm0, ymm0, ymm4
     vpminsb ymm1, ymm1, ymm5
     vpminsb ymm2, ymm2, ymm6
     vpminsb ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 128
     jmp .loop128
 
@@ -220,10 +220,10 @@ fp_reduce_min_i8:
     cmp rcx, 32
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpminsb ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 32
     jmp .loop32
 
@@ -232,11 +232,11 @@ fp_reduce_min_i8:
     jz .horizontal_min
 
 .tail_loop:
-    movsx eax, byte [r12]
+    movsx eax, byte [r10]
     vpinsrb xmm4, xmm4, eax, 0
     vpbroadcastb ymm4, xmm4
     vpminsb ymm0, ymm0, ymm4
-    add r12, 1
+    add r10, 1
     dec rcx
     jnz .tail_loop
 
@@ -310,24 +310,24 @@ fp_reduce_max_i8:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop128:
     cmp rcx, 128
     jb .loop32
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpmaxsb ymm0, ymm0, ymm4
     vpmaxsb ymm1, ymm1, ymm5
     vpmaxsb ymm2, ymm2, ymm6
     vpmaxsb ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 128
     jmp .loop128
 
@@ -335,10 +335,10 @@ fp_reduce_max_i8:
     cmp rcx, 32
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpmaxsb ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 32
     jmp .loop32
 
@@ -347,11 +347,11 @@ fp_reduce_max_i8:
     jz .horizontal_max
 
 .tail_loop:
-    movsx eax, byte [r12]
+    movsx eax, byte [r10]
     vpinsrb xmm4, xmm4, eax, 0
     vpbroadcastb ymm4, xmm4
     vpmaxsb ymm0, ymm0, ymm4
-    add r12, 1
+    add r10, 1
     dec rcx
     jnz .tail_loop
 
