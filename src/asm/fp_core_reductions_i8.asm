@@ -28,6 +28,10 @@ section .text
 
 global fp_reduce_add_i8
 fp_reduce_add_i8:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -118,6 +122,10 @@ fp_reduce_add_i8:
     pop rbp
     ret
 
+.error_null:
+    xor eax, eax                 ; Return 0 for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_mul_i8: Product of i8 array
 ; ============================================================================
@@ -127,6 +135,10 @@ fp_reduce_add_i8:
 
 global fp_reduce_mul_i8
 fp_reduce_mul_i8:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
 
@@ -151,6 +163,10 @@ fp_reduce_mul_i8:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 1                   ; Return 1 for null pointer (identity for multiply)
+    ret
+
 ; ============================================================================
 ; fp_reduce_min_i8: Minimum of i8 array (signed)
 ; ============================================================================
@@ -158,6 +174,10 @@ fp_reduce_mul_i8:
 
 global fp_reduce_min_i8
 fp_reduce_min_i8:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -258,6 +278,10 @@ fp_reduce_min_i8:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 0x7F                ; Return INT8_MAX for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_i8: Maximum of i8 array (signed)
 ; ============================================================================
@@ -265,6 +289,10 @@ fp_reduce_min_i8:
 
 global fp_reduce_max_i8
 fp_reduce_max_i8:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -363,4 +391,8 @@ fp_reduce_max_i8:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    ret
+
+.error_null:
+    mov eax, 0x80                ; Return INT8_MIN for null pointer
     ret
