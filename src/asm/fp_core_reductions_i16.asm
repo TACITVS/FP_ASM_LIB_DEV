@@ -14,6 +14,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .text
 
 ; ============================================================================
@@ -85,17 +87,8 @@ fp_reduce_add_i16:
     vpaddw ymm2, ymm2, ymm3
     vpaddw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpaddw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpaddw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpaddw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpaddw xmm0, xmm0, xmm1
+    ; Horizontal sum using macro
+    HSUM_I16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
     cwde  ; Sign-extend AX to EAX, then to RAX
@@ -196,17 +189,8 @@ fp_reduce_mul_i16:
     vpmullw ymm2, ymm2, ymm3
     vpmullw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpmullw xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_I16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
     cwde
@@ -287,17 +271,8 @@ fp_reduce_min_i16:
     vpminsw ymm2, ymm2, ymm3
     vpminsw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpminsw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpminsw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpminsw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpminsw xmm0, xmm0, xmm1
+    ; Horizontal min using macro
+    HMIN_I16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
     cwde
@@ -377,17 +352,8 @@ fp_reduce_max_i16:
     vpmaxsw ymm2, ymm2, ymm3
     vpmaxsw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmaxsw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmaxsw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmaxsw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpmaxsw xmm0, xmm0, xmm1
+    ; Horizontal max using macro
+    HMAX_I16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
     cwde
