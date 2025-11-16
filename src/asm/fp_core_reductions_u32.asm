@@ -14,6 +14,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .text
 
 ; ============================================================================
@@ -85,14 +87,8 @@ fp_reduce_add_u32:
     vpaddd ymm2, ymm2, ymm3
     vpaddd ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpaddd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpaddd xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpaddd xmm0, xmm0, xmm1
+    ; Horizontal sum using macro
+    HSUM_U32_YMM 0, 1
 
     vmovd eax, xmm0
 
@@ -161,14 +157,8 @@ fp_reduce_mul_u32:
     vpmulld ymm2, ymm2, ymm3
     vpmulld ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmulld xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_U32_YMM 0, 1
 
     vmovd r8d, xmm0
 
@@ -187,14 +177,8 @@ fp_reduce_mul_u32:
     vpmulld ymm2, ymm2, ymm3
     vpmulld ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmulld xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmulld xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_U32_YMM 0, 1
 
     vmovd eax, xmm0
 
@@ -275,14 +259,8 @@ fp_reduce_min_u32:
     vpminud ymm2, ymm2, ymm3
     vpminud ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpminud xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpminud xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpminud xmm0, xmm0, xmm1
+    ; Horizontal min using macro
+    HMIN_U32_YMM 0, 1
 
     vmovd eax, xmm0
 
@@ -362,14 +340,8 @@ fp_reduce_max_u32:
     vpmaxud ymm2, ymm2, ymm3
     vpmaxud ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmaxud xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmaxud xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmaxud xmm0, xmm0, xmm1
+    ; Horizontal max using macro
+    HMAX_U32_YMM 0, 1
 
     vmovd eax, xmm0
 

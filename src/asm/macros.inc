@@ -184,3 +184,75 @@
     vmaxps xmm%1, xmm%1, xmm%2      ; Max of upper/lower halves
     HMAX_F32_XMM %1, %2
 %endmacro
+
+; Horizontal sum of 4x u32 in XMM register (result in xmm%1[0])
+; Note: Same as i32 (vpaddd works for both signed and unsigned)
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_U32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpaddd xmm%1, xmm%1, xmm%2      ; Sum pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpaddd xmm%1, xmm%1, xmm%2      ; Final sum
+%endmacro
+
+; Horizontal sum of 8x u32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_U32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpaddd xmm%1, xmm%1, xmm%2      ; Sum upper/lower halves
+    HSUM_U32_XMM %1, %2
+%endmacro
+
+; Horizontal product of 4x u32 in XMM register (result in xmm%1[0])
+; Note: Same as i32 (vpmulld works for both signed and unsigned)
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_U32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmulld xmm%1, xmm%1, xmm%2     ; Multiply pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmulld xmm%1, xmm%1, xmm%2     ; Final multiply
+%endmacro
+
+; Horizontal product of 8x u32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_U32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmulld xmm%1, xmm%1, xmm%2     ; Multiply upper/lower halves
+    HPROD_U32_XMM %1, %2
+%endmacro
+
+; Horizontal min of 4x u32 in XMM register (result in xmm%1[0])
+; Note: Uses vpminud for UNSIGNED comparison (different from i32)
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_U32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpminud xmm%1, xmm%1, xmm%2     ; Min of pairs (unsigned)
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpminud xmm%1, xmm%1, xmm%2     ; Final min
+%endmacro
+
+; Horizontal min of 8x u32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_U32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpminud xmm%1, xmm%1, xmm%2     ; Min of upper/lower halves (unsigned)
+    HMIN_U32_XMM %1, %2
+%endmacro
+
+; Horizontal max of 4x u32 in XMM register (result in xmm%1[0])
+; Note: Uses vpmaxud for UNSIGNED comparison (different from i32)
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_U32_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmaxud xmm%1, xmm%1, xmm%2     ; Max of pairs (unsigned)
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmaxud xmm%1, xmm%1, xmm%2     ; Final max
+%endmacro
+
+; Horizontal max of 8x u32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_U32_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmaxud xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves (unsigned)
+    HMAX_U32_XMM %1, %2
+%endmacro
