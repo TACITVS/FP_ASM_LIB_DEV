@@ -12,7 +12,10 @@
 ;   - fp_reduce_max_u16:  Maximum of u16 array (unsigned comparison)
 
 bits 64
-default rel
+
+
+%include "macros.inc"
+
 
 section .text
 
@@ -85,17 +88,8 @@ fp_reduce_add_u16:
     vpaddw ymm2, ymm2, ymm3
     vpaddw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpaddw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpaddw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpaddw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpaddw xmm0, xmm0, xmm1
+    ; Horizontal sum using macro
+    HSUM_U16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
     ; Zero-extend already in EAX
@@ -167,17 +161,8 @@ fp_reduce_mul_u16:
     vpmullw ymm2, ymm2, ymm3
     vpmullw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpmullw xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_U16_YMM 0, 1
 
     vpextrw r8d, xmm0, 0
 
@@ -197,17 +182,8 @@ fp_reduce_mul_u16:
     vpmullw ymm2, ymm2, ymm3
     vpmullw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmullw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpmullw xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_U16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
 
@@ -287,17 +263,8 @@ fp_reduce_min_u16:
     vpminuw ymm2, ymm2, ymm3
     vpminuw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpminuw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpminuw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpminuw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpminuw xmm0, xmm0, xmm1
+    ; Horizontal min using macro
+    HMIN_U16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
 
@@ -376,17 +343,8 @@ fp_reduce_max_u16:
     vpmaxuw ymm2, ymm2, ymm3
     vpmaxuw ymm0, ymm0, ymm2
 
-    vextracti128 xmm1, ymm0, 1
-    vpmaxuw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0x4E
-    vpmaxuw xmm0, xmm0, xmm1
-
-    vpshufd xmm1, xmm0, 0xB1
-    vpmaxuw xmm0, xmm0, xmm1
-
-    vpshuflw xmm1, xmm0, 0xB1
-    vpmaxuw xmm0, xmm0, xmm1
+    ; Horizontal max using macro
+    HMAX_U16_YMM 0, 1
 
     vpextrw eax, xmm0, 0
 

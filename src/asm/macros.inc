@@ -256,3 +256,161 @@
     vpmaxud xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves (unsigned)
     HMAX_U32_XMM %1, %2
 %endmacro
+
+; ============================================================================
+; i16 Horizontal Reduction Macros
+; ============================================================================
+
+; Horizontal sum of 8x i16 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_I16_XMM 2
+    vphaddw xmm%1, xmm%1, xmm%1     ; Horizontal add pairs
+    vphaddw xmm%1, xmm%1, xmm%1     ; Horizontal add pairs again
+    vphaddw xmm%1, xmm%1, xmm%1     ; Final horizontal add
+%endmacro
+
+; Horizontal sum of 16x i16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_I16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpaddw xmm%1, xmm%1, xmm%2      ; Sum upper/lower halves
+    HSUM_I16_XMM %1, %2
+%endmacro
+
+; Horizontal product of 8x i16 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_I16_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmullw xmm%1, xmm%1, xmm%2     ; Multiply pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmullw xmm%1, xmm%1, xmm%2
+    vpsrldq xmm%2, xmm%1, 2         ; Shift by 1 word
+    vpmullw xmm%1, xmm%1, xmm%2
+%endmacro
+
+; Horizontal product of 16x i16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_I16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmullw xmm%1, xmm%1, xmm%2     ; Multiply upper/lower halves
+    HPROD_I16_XMM %1, %2
+%endmacro
+
+; Horizontal min of 8x i16 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_I16_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpminsw xmm%1, xmm%1, xmm%2     ; Min of pairs (signed)
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpminsw xmm%1, xmm%1, xmm%2
+    vpsrldq xmm%2, xmm%1, 2         ; Shift by 1 word
+    vpminsw xmm%1, xmm%1, xmm%2
+%endmacro
+
+; Horizontal min of 16x i16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_I16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpminsw xmm%1, xmm%1, xmm%2     ; Min of upper/lower halves (signed)
+    HMIN_I16_XMM %1, %2
+%endmacro
+
+; Horizontal max of 8x i16 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_I16_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmaxsw xmm%1, xmm%1, xmm%2     ; Max of pairs (signed)
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmaxsw xmm%1, xmm%1, xmm%2
+    vpsrldq xmm%2, xmm%1, 2         ; Shift by 1 word
+    vpmaxsw xmm%1, xmm%1, xmm%2
+%endmacro
+
+; Horizontal max of 16x i16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_I16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmaxsw xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves (signed)
+    HMAX_I16_XMM %1, %2
+%endmacro
+
+; ============================================================================
+; u16 Horizontal Reduction Macros
+; ============================================================================
+
+; Horizontal sum of 8x u16 in XMM register (result in xmm%1[0])
+; Note: Same as i16 (vpaddw works for both signed and unsigned)
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_U16_XMM 2
+    vphaddw xmm%1, xmm%1, xmm%1     ; Horizontal add pairs
+    vphaddw xmm%1, xmm%1, xmm%1     ; Horizontal add pairs again
+    vphaddw xmm%1, xmm%1, xmm%1     ; Final horizontal add
+%endmacro
+
+; Horizontal sum of 16x u16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_U16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpaddw xmm%1, xmm%1, xmm%2      ; Sum upper/lower halves
+    HSUM_U16_XMM %1, %2
+%endmacro
+
+; Horizontal product of 8x u16 in XMM register (result in xmm%1[0])
+; Note: Same as i16 (vpmullw works for both signed and unsigned)
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_U16_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmullw xmm%1, xmm%1, xmm%2     ; Multiply pairs
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmullw xmm%1, xmm%1, xmm%2
+    vpsrldq xmm%2, xmm%1, 2         ; Shift by 1 word
+    vpmullw xmm%1, xmm%1, xmm%2
+%endmacro
+
+; Horizontal product of 16x u16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_U16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmullw xmm%1, xmm%1, xmm%2     ; Multiply upper/lower halves
+    HPROD_U16_XMM %1, %2
+%endmacro
+
+; Horizontal min of 8x u16 in XMM register (result in xmm%1[0])
+; Note: Uses vpminuw for UNSIGNED comparison
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_U16_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpminuw xmm%1, xmm%1, xmm%2     ; Min of pairs (unsigned)
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpminuw xmm%1, xmm%1, xmm%2
+    vpsrldq xmm%2, xmm%1, 2         ; Shift by 1 word
+    vpminuw xmm%1, xmm%1, xmm%2
+%endmacro
+
+; Horizontal min of 16x u16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_U16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpminuw xmm%1, xmm%1, xmm%2     ; Min of upper/lower halves (unsigned)
+    HMIN_U16_XMM %1, %2
+%endmacro
+
+; Horizontal max of 8x u16 in XMM register (result in xmm%1[0])
+; Note: Uses vpmaxuw for UNSIGNED comparison
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_U16_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle [2,3,0,1]
+    vpmaxuw xmm%1, xmm%1, xmm%2     ; Max of pairs (unsigned)
+    vpshufd xmm%2, xmm%1, 0xB1      ; Shuffle [1,0,3,2]
+    vpmaxuw xmm%1, xmm%1, xmm%2
+    vpsrldq xmm%2, xmm%1, 2         ; Shift by 1 word
+    vpmaxuw xmm%1, xmm%1, xmm%2
+%endmacro
+
+; Horizontal max of 16x u16 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_U16_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpmaxuw xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves (unsigned)
+    HMAX_U16_XMM %1, %2
+%endmacro
