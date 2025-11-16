@@ -133,3 +133,54 @@
     vpmaxsd xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves
     HMAX_I32_XMM %1, %2
 %endmacro
+
+; Horizontal product of 4x f32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_F32_XMM 2
+    vshufps xmm%2, xmm%1, xmm%1, 0x4E ; Shuffle [2,3,0,1]
+    vmulps xmm%1, xmm%1, xmm%2         ; Multiply pairs
+    vshufps xmm%2, xmm%1, xmm%1, 0xB1 ; Shuffle [1,0,3,2]
+    vmulps xmm%1, xmm%1, xmm%2         ; Final multiply
+%endmacro
+
+; Horizontal product of 8x f32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HPROD_F32_YMM 2
+    vextractf128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vmulps xmm%1, xmm%1, xmm%2      ; Multiply upper/lower halves
+    HPROD_F32_XMM %1, %2
+%endmacro
+
+; Horizontal min of 4x f32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_F32_XMM 2
+    vshufps xmm%2, xmm%1, xmm%1, 0x4E ; Shuffle [2,3,0,1]
+    vminps xmm%1, xmm%1, xmm%2         ; Min of pairs
+    vshufps xmm%2, xmm%1, xmm%1, 0xB1 ; Shuffle [1,0,3,2]
+    vminps xmm%1, xmm%1, xmm%2         ; Final min
+%endmacro
+
+; Horizontal min of 8x f32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMIN_F32_YMM 2
+    vextractf128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vminps xmm%1, xmm%1, xmm%2      ; Min of upper/lower halves
+    HMIN_F32_XMM %1, %2
+%endmacro
+
+; Horizontal max of 4x f32 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_F32_XMM 2
+    vshufps xmm%2, xmm%1, xmm%1, 0x4E ; Shuffle [2,3,0,1]
+    vmaxps xmm%1, xmm%1, xmm%2         ; Max of pairs
+    vshufps xmm%2, xmm%1, xmm%1, 0xB1 ; Shuffle [1,0,3,2]
+    vmaxps xmm%1, xmm%1, xmm%2         ; Final max
+%endmacro
+
+; Horizontal max of 8x f32 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HMAX_F32_YMM 2
+    vextractf128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vmaxps xmm%1, xmm%1, xmm%2      ; Max of upper/lower halves
+    HMAX_F32_XMM %1, %2
+%endmacro

@@ -14,6 +14,8 @@
 bits 64
 default rel
 
+%include "macros.inc"
+
 section .text
 
 ; ============================================================================
@@ -105,11 +107,8 @@ fp_reduce_add_f32:
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
 
-    ; Horizontal sum of 8x f32 in ymm0 using vhaddps
-    vextractf128 xmm1, ymm0, 1      ; Extract upper 128 bits
-    vaddps xmm0, xmm0, xmm1         ; Sum upper/lower halves (4+4 = 4 elements)
-    vhaddps xmm0, xmm0, xmm0        ; [a+b, c+d, a+b, c+d]
-    vhaddps xmm0, xmm0, xmm0        ; [a+b+c+d, ...]
+    ; Horizontal sum using macro
+    HSUM_F32_YMM 0, 1
 
     ; Result already in xmm0 (Windows ABI: float return in xmm0)
 
@@ -190,14 +189,8 @@ fp_reduce_mul_f32:
     vmulps ymm2, ymm2, ymm3
     vmulps ymm0, ymm0, ymm2
 
-    vextractf128 xmm1, ymm0, 1
-    vmulps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vmulps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vmulps xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_F32_YMM 0, 1
 
 .tail_loop:
     vmovss xmm4, [r10]              ; Load value
@@ -213,14 +206,8 @@ fp_reduce_mul_f32:
     vmulps ymm2, ymm2, ymm3
     vmulps ymm0, ymm0, ymm2
 
-    vextractf128 xmm1, ymm0, 1
-    vmulps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vmulps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vmulps xmm0, xmm0, xmm1
+    ; Horizontal product using macro
+    HPROD_F32_YMM 0, 1
 
 .epilogue:
     vzeroupper
@@ -317,14 +304,8 @@ fp_reduce_min_f32:
     vminps ymm2, ymm2, ymm3
     vminps ymm0, ymm0, ymm2
 
-    vextractf128 xmm1, ymm0, 1
-    vminps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vminps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vminps xmm0, xmm0, xmm1
+    ; Horizontal min using macro
+    HMIN_F32_YMM 0, 1
 
     vzeroupper
     mov rsp, rbp
@@ -422,14 +403,8 @@ fp_reduce_max_f32:
     vmaxps ymm2, ymm2, ymm3
     vmaxps ymm0, ymm0, ymm2
 
-    vextractf128 xmm1, ymm0, 1
-    vmaxps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0x4E
-    vmaxps xmm0, xmm0, xmm1
-
-    vshufps xmm1, xmm0, xmm0, 0xB1
-    vmaxps xmm0, xmm0, xmm1
+    ; Horizontal max using macro
+    HMAX_F32_YMM 0, 1
 
     vzeroupper
     mov rsp, rbp
