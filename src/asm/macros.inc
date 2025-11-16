@@ -414,3 +414,22 @@
     vpmaxuw xmm%1, xmm%1, xmm%2     ; Max of upper/lower halves (unsigned)
     HMAX_U16_XMM %1, %2
 %endmacro
+
+; ============================================================================
+; u64 Horizontal Reduction Macros
+; ============================================================================
+
+; Horizontal sum of 2x u64 in XMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_U64_XMM 2
+    vpshufd xmm%2, xmm%1, 0x4E      ; Shuffle to swap 64-bit values
+    vpaddq xmm%1, xmm%1, xmm%2      ; Sum the two 64-bit values
+%endmacro
+
+; Horizontal sum of 4x u64 in YMM register (result in xmm%1[0])
+; Args: %1 = source/dest register, %2 = temp register
+%macro HSUM_U64_YMM 2
+    vextracti128 xmm%2, ymm%1, 1    ; Extract upper 128 bits
+    vpaddq xmm%1, xmm%1, xmm%2      ; Sum upper/lower halves
+    HSUM_U64_XMM %1, %2
+%endmacro
