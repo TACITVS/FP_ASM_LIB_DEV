@@ -130,7 +130,7 @@ fp_reduce_mul_u64:
     mov rax, 1
     mov r8, 1
     mov r9, 1
-    mov r10, 1
+    mov rdx, 1
 
 .loop4:
     cmp rcx, 4
@@ -146,7 +146,7 @@ fp_reduce_mul_u64:
     imul r9, r11
 
     mov r11, [r10 + 24]
-    imul r10, r11
+    imul rdx, r11
 
     add r10, 32
     sub rcx, 4
@@ -166,7 +166,7 @@ fp_reduce_mul_u64:
 .reduce:
     imul rax, r8
     imul rax, r9
-    imul rax, r10
+    imul rax, rdx
 
     vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
     pop rbp
@@ -203,7 +203,7 @@ fp_reduce_min_u64:
     mov rax, [r10]
     mov r8, rax
     mov r9, rax
-    mov r10, rax
+    mov rdx, rax
 
 .loop4:
     cmp rcx, 4
@@ -222,8 +222,8 @@ fp_reduce_min_u64:
     cmovb r9, r11
 
     mov r11, [r10 + 24]
-    cmp r11, r10
-    cmovb r10, r11
+    cmp r11, rdx
+    cmovb rdx, r11
 
     add r10, 32
     sub rcx, 4
@@ -248,8 +248,8 @@ fp_reduce_min_u64:
     cmp r9, rax
     cmovb rax, r9
 
-    cmp r10, rax
-    cmovb rax, r10
+    cmp rdx, rax
+    cmovb rax, rdx
 
     vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
     pop rbp
@@ -292,7 +292,7 @@ fp_reduce_max_u64:
     mov rax, [r10]
     mov r8, rax
     mov r9, rax
-    mov r10, rax
+    mov rdx, rax
 
 .loop4:
     cmp rcx, 4
@@ -311,8 +311,8 @@ fp_reduce_max_u64:
     cmova r9, r11
 
     mov r11, [r10 + 24]
-    cmp r11, r10
-    cmova r10, r11
+    cmp r11, rdx
+    cmova rdx, r11
 
     add r10, 32
     sub rcx, 4
@@ -337,8 +337,8 @@ fp_reduce_max_u64:
     cmp r9, rax
     cmova rax, r9
 
-    cmp r10, rax
-    cmova rax, r10
+    cmp rdx, rax
+    cmova rax, rdx
 
     vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
     pop rbp
