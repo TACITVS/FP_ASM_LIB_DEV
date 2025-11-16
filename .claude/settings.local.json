@@ -1,12 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(build_fp_shadow_mapping.bat)",
-      "Bash(./fp_shadow_mapping.exe:*)",
-      "Bash(./fp_shadow_NEW.exe)",
-      "Bash(stdbuf -oL -eL gcc:*)",
-      "Bash(compile.log)",
-      "Bash(test_hello.c)"
+      "Bash(cmd.exe /c \"build_test_critical.bat\")"
     ],
     "deny": [],
     "ask": []

@@ -173,6 +173,41 @@ All functions documented in [`include/fp_core.h`](include/fp_core.h) with:
 
 ---
 
+## 📁 Project Structure
+
+```
+fp_asm_lib/
+├── include/           # Public API headers
+├── src/               # Source code
+│   ├── asm/          # Hand-optimized x64 AVX2 assembly
+│   ├── wrappers/     # C wrappers for assembly functions
+│   ├── algorithms/   # Algorithm implementations
+│   └── platform/     # Platform-specific code
+├── tests/             # Test suites
+│   ├── unit/         # Unit tests (comprehensive per-type tests)
+│   ├── integration/  # Integration tests
+│   └── critical/     # Critical correctness tests
+├── benchmarks/        # Performance benchmarks
+│   ├── src/          # Benchmark source files
+│   └── results/      # Benchmark results/logs
+├── examples/          # Example programs and demos
+│   ├── algorithms/   # Algorithm demonstrations
+│   ├── graphics/     # Graphics demos (OpenGL, etc.)
+│   └── basic/        # Basic usage examples
+├── docs/              # Documentation
+│   ├── api/          # API documentation
+│   ├── guides/       # User guides
+│   └── reports/      # Performance and audit reports
+├── scripts/           # Build and utility scripts
+│   ├── build/        # Build scripts (.bat files)
+│   ├── test/         # Test runner scripts
+│   └── tools/        # Development tools
+└── build/             # Build output (not in git)
+    ├── obj/          # Object files
+    ├── lib/          # Built libraries
+    └── bin/          # Executables
+```
+
 ## 🛠️ Build Instructions
 
 ### Requirements
@@ -180,17 +215,29 @@ All functions documented in [`include/fp_core.h`](include/fp_core.h) with:
 - **Compiler**: GCC (MinGW64) or Clang
 - **Platform**: Windows x64 (Linux port planned)
 
-### Compile & Test
+### Quick Build
+
+```bash
+# Build and run all comprehensive tests
+cd scripts/build
+build_all_tests.bat
+
+# Build critical correctness tests
+cd scripts/build
+build_test_critical.bat
+```
+
+### Manual Build
 
 ```bash
 # Assemble a module
-nasm -f win64 src/asm/fp_core_reductions.asm -o build/obj/fp_core_reductions.o
+nasm -f win64 -I src/asm/ src/asm/fp_core_reductions_u64.asm -o build/obj/fp_core_reductions_u64.obj
 
-# Run general HOF tests
-build_test_general_hof.bat
+# Compile and link a test
+gcc tests/unit/test_u64_comprehensive.c build/obj/fp_core_reductions_u64.obj -o build/bin/test_u64.exe -Iinclude
 
-# Run performance benchmarks
-build_bench_general_hof.bat
+# Run the test
+build/bin/test_u64.exe
 ```
 
 ---
