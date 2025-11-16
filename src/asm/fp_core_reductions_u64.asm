@@ -172,6 +172,10 @@ fp_reduce_min_u64:
     push rbp
     mov rbp, rsp
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_max              ; Return UINT64_MAX for empty array
+
     mov r12, rcx
     mov rcx, rdx
 
@@ -231,6 +235,12 @@ fp_reduce_min_u64:
     pop rbp
     ret
 
+.return_max:
+    mov rax, 0xFFFFFFFFFFFFFFFF  ; Return UINT64_MAX for empty array
+    vzeroupper
+    pop rbp
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_u64: Maximum of u64 array (unsigned)
 ; ============================================================================
@@ -242,6 +252,10 @@ global fp_reduce_max_u64
 fp_reduce_max_u64:
     push rbp
     mov rbp, rsp
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_zero             ; Return 0 for empty array
 
     mov r12, rcx
     mov rcx, rdx
@@ -299,5 +313,11 @@ fp_reduce_max_u64:
     cmova rax, r10
 
     vzeroupper                  ; Clear YMM state to avoid AVX-SSE transition penalty
+    pop rbp
+    ret
+
+.return_zero:
+    xor rax, rax                ; Return 0 for empty array
+    vzeroupper
     pop rbp
     ret

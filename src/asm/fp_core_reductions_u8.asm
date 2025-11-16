@@ -163,6 +163,10 @@ fp_reduce_min_u8:
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_uint8_max         ; Return UINT8_MAX for empty array
+
     ; Load first element and broadcast
     movzx eax, byte [rcx]        ; Zero-extend for unsigned u8
     vpinsrb xmm0, xmm0, eax, 0
@@ -247,6 +251,13 @@ fp_reduce_min_u8:
     pop rbp
     ret
 
+.return_uint8_max:
+    mov eax, 0xFF                ; Return UINT8_MAX for empty array
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_u8: Maximum of u8 array (unsigned)
 ; ============================================================================
@@ -258,6 +269,10 @@ fp_reduce_max_u8:
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_zero              ; Return 0 for empty array
 
     ; Load first element and broadcast
     movzx eax, byte [rcx]        ; Zero-extend for unsigned u8
@@ -338,6 +353,13 @@ fp_reduce_max_u8:
     vpextrb eax, xmm0, 0           ; Extract final maximum
     movsx eax, al
 
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
+.return_zero:
+    xor eax, eax                 ; Return 0 for empty array
     vzeroupper
     mov rsp, rbp
     pop rbp

@@ -213,6 +213,10 @@ fp_reduce_min_i16:
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_int16_max        ; Return INT16_MAX for empty array
+
     ; Load first element and broadcast
     movsx eax, word [rcx]
     vpinsrw xmm0, xmm0, eax, 0
@@ -282,6 +286,13 @@ fp_reduce_min_i16:
     pop rbp
     ret
 
+.return_int16_max:
+    mov eax, 0x7FFF              ; Return INT16_MAX for empty array
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_i16: Maximum of i16 array (signed)
 ; ============================================================================
@@ -293,6 +304,10 @@ fp_reduce_max_i16:
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_int16_min        ; Return INT16_MIN for empty array
 
     ; Load first element and broadcast
     movsx eax, word [rcx]
@@ -358,6 +373,13 @@ fp_reduce_max_i16:
     vpextrw eax, xmm0, 0
     cwde
 
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
+.return_int16_min:
+    mov eax, 0x8000              ; Return INT16_MIN (-32768) for empty array
     vzeroupper
     mov rsp, rbp
     pop rbp
