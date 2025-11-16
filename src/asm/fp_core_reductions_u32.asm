@@ -41,24 +41,24 @@ fp_reduce_add_u32:
     vpxor ymm2, ymm2, ymm2
     vpxor ymm3, ymm3, ymm3
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpaddd ymm0, ymm0, ymm4
     vpaddd ymm1, ymm1, ymm5
     vpaddd ymm2, ymm2, ymm6
     vpaddd ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -66,10 +66,10 @@ fp_reduce_add_u32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpaddd ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -79,10 +79,10 @@ fp_reduce_add_u32:
 
 .tail_loop:
     vpxor ymm4, ymm4, ymm4
-    mov eax, [r12]
+    mov eax, [r10]
     vpinsrd xmm4, xmm4, eax, 0
     vpaddd ymm0, ymm0, ymm4
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -129,24 +129,24 @@ fp_reduce_mul_u32:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpmulld ymm0, ymm0, ymm4
     vpmulld ymm1, ymm1, ymm5
     vpmulld ymm2, ymm2, ymm6
     vpmulld ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -154,10 +154,10 @@ fp_reduce_mul_u32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpmulld ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -175,9 +175,9 @@ fp_reduce_mul_u32:
     vmovd r8d, xmm0
 
 .tail_loop:
-    mov eax, [r12]
+    mov eax, [r10]
     imul r8d, eax
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -233,24 +233,24 @@ fp_reduce_min_u32:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpminud ymm0, ymm0, ymm4        ; Unsigned min
     vpminud ymm1, ymm1, ymm5
     vpminud ymm2, ymm2, ymm6
     vpminud ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -258,10 +258,10 @@ fp_reduce_min_u32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpminud ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -270,11 +270,11 @@ fp_reduce_min_u32:
     jz .horizontal_min
 
 .tail_loop:
-    mov eax, [r12]
+    mov eax, [r10]
     vpinsrd xmm4, xmm4, eax, 0
     vpbroadcastd ymm4, xmm4
     vpminud ymm0, ymm0, ymm4
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
@@ -333,24 +333,24 @@ fp_reduce_max_u32:
     vmovdqa ymm2, ymm0
     vmovdqa ymm3, ymm0
 
-    mov r12, rcx
+    mov r10, rcx
     mov rcx, rdx
 
 .loop32:
     cmp rcx, 32
     jb .loop8
 
-    vmovdqu ymm4, [r12]
-    vmovdqu ymm5, [r12 + 32]
-    vmovdqu ymm6, [r12 + 64]
-    vmovdqu ymm7, [r12 + 96]
+    vmovdqu ymm4, [r10]
+    vmovdqu ymm5, [r10 + 32]
+    vmovdqu ymm6, [r10 + 64]
+    vmovdqu ymm7, [r10 + 96]
 
     vpmaxud ymm0, ymm0, ymm4        ; Unsigned max
     vpmaxud ymm1, ymm1, ymm5
     vpmaxud ymm2, ymm2, ymm6
     vpmaxud ymm3, ymm3, ymm7
 
-    add r12, 128
+    add r10, 128
     sub rcx, 32
     jmp .loop32
 
@@ -358,10 +358,10 @@ fp_reduce_max_u32:
     cmp rcx, 8
     jb .tail
 
-    vmovdqu ymm4, [r12]
+    vmovdqu ymm4, [r10]
     vpmaxud ymm0, ymm0, ymm4
 
-    add r12, 32
+    add r10, 32
     sub rcx, 8
     jmp .loop8
 
@@ -370,11 +370,11 @@ fp_reduce_max_u32:
     jz .horizontal_max
 
 .tail_loop:
-    mov eax, [r12]
+    mov eax, [r10]
     vpinsrd xmm4, xmm4, eax, 0
     vpbroadcastd ymm4, xmm4
     vpmaxud ymm0, ymm0, ymm4
-    add r12, 4
+    add r10, 4
     dec rcx
     jnz .tail_loop
 
