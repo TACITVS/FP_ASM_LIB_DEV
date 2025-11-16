@@ -27,6 +27,10 @@ section .text
 
 global fp_reduce_add_u64
 fp_reduce_add_u64:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -97,6 +101,10 @@ fp_reduce_add_u64:
     pop rbp
     ret
 
+.error_null:
+    xor rax, rax                 ; Return 0 for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_mul_u64: Product of u64 array
 ; ============================================================================
@@ -108,6 +116,10 @@ fp_reduce_add_u64:
 
 global fp_reduce_mul_u64
 fp_reduce_mul_u64:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
 
@@ -160,6 +172,10 @@ fp_reduce_mul_u64:
     pop rbp
     ret
 
+.error_null:
+    mov rax, 1                   ; Return 1 for null pointer (identity for multiply)
+    ret
+
 ; ============================================================================
 ; fp_reduce_min_u64: Minimum of u64 array (unsigned)
 ; ============================================================================
@@ -169,6 +185,10 @@ fp_reduce_mul_u64:
 
 global fp_reduce_min_u64
 fp_reduce_min_u64:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
 
@@ -241,6 +261,10 @@ fp_reduce_min_u64:
     pop rbp
     ret
 
+.error_null:
+    mov rax, 0xFFFFFFFFFFFFFFFF  ; Return UINT64_MAX for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_u64: Maximum of u64 array (unsigned)
 ; ============================================================================
@@ -250,6 +274,10 @@ fp_reduce_min_u64:
 
 global fp_reduce_max_u64
 fp_reduce_max_u64:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
 
@@ -320,4 +348,8 @@ fp_reduce_max_u64:
     xor rax, rax                ; Return 0 for empty array
     vzeroupper
     pop rbp
+    ret
+
+.error_null:
+    xor rax, rax                 ; Return 0 for null pointer
     ret

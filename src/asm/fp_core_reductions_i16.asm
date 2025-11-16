@@ -27,6 +27,10 @@ section .text
 
 global fp_reduce_add_i16
 fp_reduce_add_i16:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -98,6 +102,10 @@ fp_reduce_add_i16:
     pop rbp
     ret
 
+.error_null:
+    xor eax, eax                 ; Return 0 for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_mul_i16: Product of i16 array
 ; ============================================================================
@@ -107,6 +115,10 @@ fp_reduce_add_i16:
 
 global fp_reduce_mul_i16
 fp_reduce_mul_i16:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -201,6 +213,10 @@ fp_reduce_mul_i16:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 1                   ; Return 1 for null pointer (identity for multiply)
+    ret
+
 ; ============================================================================
 ; fp_reduce_min_i16: Minimum of i16 array (signed)
 ; ============================================================================
@@ -208,6 +224,10 @@ fp_reduce_mul_i16:
 
 global fp_reduce_min_i16
 fp_reduce_min_i16:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -293,6 +313,10 @@ fp_reduce_min_i16:
     pop rbp
     ret
 
+.error_null:
+    mov eax, 0x7FFF              ; Return INT16_MAX for null pointer
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_i16: Maximum of i16 array (signed)
 ; ============================================================================
@@ -300,6 +324,10 @@ fp_reduce_min_i16:
 
 global fp_reduce_max_i16
 fp_reduce_max_i16:
+    ; Null pointer check
+    test rcx, rcx
+    jz .error_null
+
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -383,4 +411,8 @@ fp_reduce_max_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    ret
+
+.error_null:
+    mov eax, 0x8000              ; Return INT16_MIN for null pointer
     ret
