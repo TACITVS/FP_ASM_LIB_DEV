@@ -163,6 +163,10 @@ fp_reduce_min_i8:
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_int8_max          ; Return INT8_MAX for empty array
+
     ; Load first element and broadcast
     movsx eax, byte [rcx]
     vpinsrb xmm0, xmm0, eax, 0
@@ -247,6 +251,13 @@ fp_reduce_min_i8:
     pop rbp
     ret
 
+.return_int8_max:
+    mov eax, 0x7F                ; Return INT8_MAX for empty array
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_i8: Maximum of i8 array (signed)
 ; ============================================================================
@@ -258,6 +269,10 @@ fp_reduce_max_i8:
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_int8_min          ; Return INT8_MIN for empty array
 
     ; Load first element and broadcast
     movsx eax, byte [rcx]
@@ -338,6 +353,13 @@ fp_reduce_max_i8:
     vpextrb eax, xmm0, 0           ; Extract final maximum
     movsx eax, al
 
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
+.return_int8_min:
+    mov eax, 0x80                ; Return INT8_MIN (-128) for empty array
     vzeroupper
     mov rsp, rbp
     pop rbp

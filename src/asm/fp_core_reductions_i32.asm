@@ -257,6 +257,10 @@ fp_reduce_min_i32:
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_int32_max        ; Return INT32_MAX for empty array
+
     ; Load first element as initial value
     vbroadcastss xmm0, [rcx]
     vinserti128 ymm0, ymm0, xmm0, 1
@@ -342,8 +346,9 @@ fp_reduce_min_i32:
     pop rbp
     ret
 
+.return_int32_max:
 .error_null:
-    mov eax, 0x7FFFFFFF             ; Return INT32_MAX for null pointer
+    mov eax, 0x7FFFFFFF             ; Return INT32_MAX for null/empty array
     ret
 
 ; ============================================================================
@@ -361,6 +366,10 @@ fp_reduce_max_i32:
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_int32_min        ; Return INT32_MIN for empty array
 
     ; Load first element as initial value
     vbroadcastss xmm0, [rcx]
@@ -447,6 +456,7 @@ fp_reduce_max_i32:
     pop rbp
     ret
 
+.return_int32_min:
 .error_null:
-    mov eax, 0x80000000             ; Return INT32_MIN for null pointer
+    mov eax, 0x80000000             ; Return INT32_MIN for null/empty array
     ret

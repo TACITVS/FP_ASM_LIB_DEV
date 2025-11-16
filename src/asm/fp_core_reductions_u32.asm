@@ -202,6 +202,10 @@ fp_reduce_min_u32:
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
 
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_uint32_max       ; Return UINT32_MAX for empty array
+
     ; Load first element and broadcast
     vbroadcastss xmm0, [rcx]
     vinserti128 ymm0, ymm0, xmm0, 1
@@ -269,6 +273,13 @@ fp_reduce_min_u32:
     pop rbp
     ret
 
+.return_uint32_max:
+    mov eax, 0xFFFFFFFF          ; Return UINT32_MAX for empty array
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
 ; ============================================================================
 ; fp_reduce_max_u32: Maximum of u32 array (unsigned)
 ; ============================================================================
@@ -282,6 +293,10 @@ fp_reduce_max_u32:
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+
+    ; Check for zero-length array before loading
+    test rdx, rdx
+    jz .return_zero              ; Return 0 for empty array
 
     ; Load first element and broadcast
     vbroadcastss xmm0, [rcx]
@@ -345,6 +360,13 @@ fp_reduce_max_u32:
 
     vmovd eax, xmm0
 
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+
+.return_zero:
+    xor eax, eax                 ; Return 0 for empty array
     vzeroupper
     mov rsp, rbp
     pop rbp
