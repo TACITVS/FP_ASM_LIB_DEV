@@ -32,6 +32,52 @@
 #endif
 
 // ============================================================================
+// Pattern 1: Array Statistics (Inline Helpers)
+// ============================================================================
+
+// Mean: sum / n
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += data[i];
+    }
+    return sum / (double)n;
+}
+
+// Variance: E[(X - mean)²] with Bessel's correction (n-1)
+static inline double fp_variance_inline(const double* data, size_t n, double mean) {
+    if (!data || n <= 1) return 0.0;
+    double sum_sq_diff = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq_diff += diff * diff;
+    }
+    return sum_sq_diff / (double)(n - 1);  // Bessel's correction for sample variance
+}
+
+// Mean Squared Error: mean((actual - predicted)²)
+static inline double fp_mse_inline(const double* actual, const double* predicted, size_t n) {
+    if (!actual || !predicted || n == 0) return 0.0;
+    double sum_sq_error = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double error = actual[i] - predicted[i];
+        sum_sq_error += error * error;
+    }
+    return sum_sq_error / (double)n;
+}
+
+// Mean Absolute Error: mean(|actual - predicted|)
+static inline double fp_mae_inline(const double* actual, const double* predicted, size_t n) {
+    if (!actual || !predicted || n == 0) return 0.0;
+    double sum_abs_error = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum_abs_error += fabs(actual[i] - predicted[i]);
+    }
+    return sum_abs_error / (double)n;
+}
+
+// ============================================================================
 // Data Structures
 // ============================================================================
 
@@ -67,24 +113,18 @@ typedef struct {
 // Basic Statistics
 // ============================================================================
 
+// REFACTORED: Now uses Pattern 1 fp_mean_inline()
 static double compute_mean(const double* data, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        sum += data[i];
-    }
-    return sum / n;
+    return fp_mean_inline(data, n);
 }
 
+// REFACTORED: Now uses Pattern 1 fp_variance_inline()
 static double compute_variance(const double* data, int n) {
-    double mean = compute_mean(data, n);
-    double sum_sq = 0.0;
-    for (int i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq += diff * diff;
-    }
-    return sum_sq / (n - 1);
+    double mean = fp_mean_inline(data, n);
+    return fp_variance_inline(data, n, mean);
 }
 
+// REFACTORED: Now uses Pattern 1 (via compute_variance)
 static double compute_std(const double* data, int n) {
     return sqrt(compute_variance(data, n));
 }
