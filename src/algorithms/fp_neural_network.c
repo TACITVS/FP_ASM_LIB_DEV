@@ -23,6 +23,59 @@
 #include <math.h>
 #include <time.h>
 
+// ============================================================================
+// Pattern 1: Array Statistics (Inline Helpers)
+// ============================================================================
+
+// Mean: sum / n
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += data[i];
+    }
+    return sum / (double)n;
+}
+
+// Mean Squared Error: mean((predicted - target)²)
+static inline double fp_mse_inline(const double* predicted, const double* target, size_t n) {
+    if (!predicted || !target || n == 0) return 0.0;
+    double sum_sq_error = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double error = predicted[i] - target[i];
+        sum_sq_error += error * error;
+    }
+    return sum_sq_error / (double)n;
+}
+
+// Dot product: sum(a[i] * b[i])
+static inline double fp_dot_product_inline(const double* a, const double* b, size_t n) {
+    if (!a || !b || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += a[i] * b[i];
+    }
+    return sum;
+}
+
+// Matrix-vector multiply: result = A * x + bias
+// A is m × n (row-major), x is n × 1, result is m × 1
+static inline void fp_matvec_add_bias_inline(
+    const double* A,    // m × n matrix (row-major)
+    const double* x,    // n × 1 vector
+    const double* bias, // m × 1 bias vector
+    double* result,     // m × 1 output
+    size_t m,           // number of rows
+    size_t n            // number of cols
+) {
+    for (size_t i = 0; i < m; i++) {
+        result[i] = bias[i];
+        for (size_t j = 0; j < n; j++) {
+            result[i] += A[i * n + j] * x[j];
+        }
+    }
+}
+
 // Neural network architecture
 typedef struct {
     int n_inputs;          // Input layer size
@@ -169,13 +222,9 @@ double* fp_neural_network_forward(
 // ============================================================================
 
 // Mean Squared Error loss
+// REFACTORED: Now uses Pattern 1 fp_mse_inline()
 static double mse_loss(const double* predicted, const double* target, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        double error = predicted[i] - target[i];
-        sum += error * error;
-    }
-    return sum / n;
+    return fp_mse_inline(predicted, target, n);
 }
 
 // Cross-entropy loss (for classification)
