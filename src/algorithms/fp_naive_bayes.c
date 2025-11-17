@@ -32,6 +32,78 @@
 #endif
 
 // ============================================================================
+// Pattern 1: Array Statistics (Inline Helpers)
+// ============================================================================
+
+// Mean: sum / n
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += data[i];
+    }
+    return sum / (double)n;
+}
+
+// Variance: E[(X - mean)²]
+static inline double fp_variance_inline(const double* data, size_t n, double mean) {
+    if (!data || n == 0) return 0.0;
+    double sum_sq_diff = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq_diff += diff * diff;
+    }
+    return sum_sq_diff / (double)n;
+}
+
+// Conditional mean: Mean of feature values where class == target_class
+// For Naive Bayes: mean of feature j for samples in class c
+static inline double fp_conditional_mean_inline(
+    const double* X,      // Feature matrix (n × d, row-major)
+    const int* y,         // Class labels (n)
+    size_t n,             // Number of samples
+    size_t n_features,    // Number of features
+    size_t feature_idx,   // Which feature to compute mean for
+    int target_class      // Which class to filter by
+) {
+    double sum = 0.0;
+    int count = 0;
+
+    for (size_t i = 0; i < n; i++) {
+        if (y[i] == target_class) {
+            sum += X[i * n_features + feature_idx];
+            count++;
+        }
+    }
+
+    return (count > 0) ? (sum / (double)count) : 0.0;
+}
+
+// Conditional variance: Variance of feature values where class == target_class
+static inline double fp_conditional_variance_inline(
+    const double* X,      // Feature matrix (n × d, row-major)
+    const int* y,         // Class labels (n)
+    size_t n,             // Number of samples
+    size_t n_features,    // Number of features
+    size_t feature_idx,   // Which feature to compute variance for
+    int target_class,     // Which class to filter by
+    double mean           // Precomputed mean
+) {
+    double sum_sq_diff = 0.0;
+    int count = 0;
+
+    for (size_t i = 0; i < n; i++) {
+        if (y[i] == target_class) {
+            double diff = X[i * n_features + feature_idx] - mean;
+            sum_sq_diff += diff * diff;
+            count++;
+        }
+    }
+
+    return (count > 0) ? (sum_sq_diff / (double)count) : 0.0;
+}
+
+// ============================================================================
 // Data Structures
 // ============================================================================
 
@@ -100,38 +172,23 @@ GaussianNBModel fp_gaussian_nb_train(
     }
 
     // Compute means per class and feature
-    for (int i = 0; i < n; i++) {
-        int c = y[i];
-        for (int j = 0; j < d; j++) {
-            model.means[c * d + j] += X[i * d + j];
-        }
-    }
-
+    // REFACTORED: Now uses Pattern 1 fp_conditional_mean_inline()
     for (int c = 0; c < n_classes; c++) {
-        if (model.class_counts[c] > 0) {
-            for (int j = 0; j < d; j++) {
-                model.means[c * d + j] /= model.class_counts[c];
-            }
+        for (int j = 0; j < d; j++) {
+            model.means[c * d + j] = fp_conditional_mean_inline(X, y, n, d, j, c);
         }
     }
 
     // Compute variances per class and feature
-    for (int i = 0; i < n; i++) {
-        int c = y[i];
-        for (int j = 0; j < d; j++) {
-            double diff = X[i * d + j] - model.means[c * d + j];
-            model.variances[c * d + j] += diff * diff;
-        }
-    }
-
+    // REFACTORED: Now uses Pattern 1 fp_conditional_variance_inline()
     for (int c = 0; c < n_classes; c++) {
-        if (model.class_counts[c] > 1) {
-            for (int j = 0; j < d; j++) {
-                model.variances[c * d + j] /= model.class_counts[c];
-                // Add small constant to avoid zero variance
-                if (model.variances[c * d + j] < 1e-9) {
-                    model.variances[c * d + j] = 1e-9;
-                }
+        for (int j = 0; j < d; j++) {
+            model.variances[c * d + j] = fp_conditional_variance_inline(
+                X, y, n, d, j, c, model.means[c * d + j]
+            );
+            // Add small constant to avoid zero variance
+            if (model.variances[c * d + j] < 1e-9) {
+                model.variances[c * d + j] = 1e-9;
             }
         }
     }
