@@ -78,6 +78,81 @@ static inline double fp_mae_inline(const double* actual, const double* predicted
 }
 
 // ============================================================================
+// Pattern 2: Sliding Window Operations (Inline Helpers)
+// ============================================================================
+
+// Sliding window sum: efficiently compute sum of each window using rolling sum
+// Returns array of sums (caller must free)
+// Example: data=[1,2,3,4,5], window=3 → [6, 9, 12] (sums of [1,2,3], [2,3,4], [3,4,5])
+// Complexity: O(n) instead of O(n*window) naive approach
+static inline double* fp_sliding_window_sum_inline(const double* data, size_t n, size_t window, size_t* out_count) {
+    if (!data || n < window || window == 0) {
+        *out_count = 0;
+        return NULL;
+    }
+
+    size_t count = n - window + 1;
+    double* result = (double*)malloc(count * sizeof(double));
+    if (!result) {
+        *out_count = 0;
+        return NULL;
+    }
+
+    // Initial window sum
+    double sum = 0.0;
+    for (size_t i = 0; i < window; i++) {
+        sum += data[i];
+    }
+    result[0] = sum;
+
+    // Slide window: add new element, remove old element (O(1) per step)
+    for (size_t i = 1; i < count; i++) {
+        sum = sum - data[i - 1] + data[i + window - 1];
+        result[i] = sum;
+    }
+
+    *out_count = count;
+    return result;
+}
+
+// Sliding window mean: moving average (optimized O(n))
+// Returns array of means (caller must free)
+static inline double* fp_sliding_window_mean_inline(const double* data, size_t n, size_t window, size_t* out_count) {
+    double* sums = fp_sliding_window_sum_inline(data, n, window, out_count);
+    if (!sums) return NULL;
+
+    // Convert sums to means in-place
+    for (size_t i = 0; i < *out_count; i++) {
+        sums[i] /= (double)window;
+    }
+
+    return sums;  // Now contains means instead of sums
+}
+
+// Compute MSE between actual values and sliding window predictions
+// Used for evaluating forecast accuracy on training data
+// This replaces the O(n*window) nested loop pattern with O(n) rolling window
+static inline double fp_sliding_window_mse_inline(const double* data, size_t n, size_t window) {
+    if (!data || n <= window) return 0.0;
+
+    size_t pred_count;
+    // Get predictions for all positions (using data up to i-1 to predict i)
+    double* predictions = fp_sliding_window_mean_inline(data, n - 1, window, &pred_count);
+    if (!predictions) return 0.0;
+
+    // Compute MSE: compare predictions with actual values (shifted by window)
+    double mse = 0.0;
+    for (size_t i = 0; i < pred_count; i++) {
+        double error = data[i + window] - predictions[i];
+        mse += error * error;
+    }
+    mse /= (double)pred_count;
+
+    free(predictions);
+    return mse;
+}
+
+// ============================================================================
 // Data Structures
 // ============================================================================
 
@@ -179,17 +254,8 @@ ForecastResult fp_forecast_sma(
     }
 
     // Compute training error for confidence intervals
-    double mse = 0.0;
-    for (int i = window; i < n; i++) {
-        double sum_window = 0.0;
-        for (int j = i - window; j < i; j++) {
-            sum_window += data[j];
-        }
-        double pred = sum_window / window;
-        double error = data[i] - pred;
-        mse += error * error;
-    }
-    mse /= (n - window);
+    // REFACTORED: Use Pattern 2 fp_sliding_window_mse_inline() - O(n) instead of O(n*window)
+    double mse = fp_sliding_window_mse_inline(data, n, window);
     result.mse = mse;
     result.mae = sqrt(mse);  // Approximation
 
