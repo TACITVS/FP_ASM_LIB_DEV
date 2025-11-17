@@ -30,6 +30,56 @@
 #include <float.h>
 
 // ============================================================================
+// Pattern 1: Array Statistics (Inline Helpers)
+// ============================================================================
+
+// Mean: sum / n
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += data[i];
+    }
+    return sum / (double)n;
+}
+
+// Variance: E[(X - mean)²]
+static inline double fp_variance_inline(const double* data, size_t n, double mean) {
+    if (!data || n == 0) return 0.0;
+    double sum_sq_diff = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq_diff += diff * diff;
+    }
+    return sum_sq_diff / (double)n;
+}
+
+// Mean and Variance in single pass (Welford's algorithm for numerical stability)
+typedef struct {
+    double mean;
+    double variance;
+} MeanVariance;
+
+static inline MeanVariance fp_mean_variance_inline(const double* data, size_t n) {
+    MeanVariance result = {0.0, 0.0};
+    if (!data || n == 0) return result;
+
+    double mean = 0.0;
+    double m2 = 0.0;
+
+    for (size_t i = 0; i < n; i++) {
+        double delta = data[i] - mean;
+        mean += delta / (double)(i + 1);
+        double delta2 = data[i] - mean;
+        m2 += delta * delta2;
+    }
+
+    result.mean = mean;
+    result.variance = (n > 0) ? (m2 / (double)n) : 0.0;
+    return result;
+}
+
+// ============================================================================
 // Data Structures
 // ============================================================================
 
@@ -141,24 +191,12 @@ static double gini_impurity(const int* y, int n, int n_classes) {
 }
 
 // Variance for regression
+// REFACTORED: Now uses Pattern 1 fp_mean_variance_inline() - single pass, numerically stable
 static double variance(const double* y, int n) {
     if (n == 0) return 0.0;
 
-    // Compute mean
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        sum += y[i];
-    }
-    double mean = sum / n;
-
-    // Compute variance
-    double var = 0.0;
-    for (int i = 0; i < n; i++) {
-        double diff = y[i] - mean;
-        var += diff * diff;
-    }
-
-    return var / n;
+    MeanVariance result = fp_mean_variance_inline(y, n);
+    return result.variance;
 }
 
 // ============================================================================
