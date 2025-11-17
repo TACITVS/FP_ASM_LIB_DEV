@@ -32,6 +32,64 @@
 #endif
 
 // ============================================================================
+// Pattern 1: Array Statistics (Inline Helpers)
+// ============================================================================
+
+// Mean: sum / n
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += data[i];
+    }
+    return sum / (double)n;
+}
+
+// Dot product: sum(a[i] * b[i])
+static inline double fp_dot_product_inline(const double* a, const double* b, size_t n) {
+    if (!a || !b || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += a[i] * b[i];
+    }
+    return sum;
+}
+
+// L2 norm: sqrt(sum(x[i]^2))
+static inline double fp_l2_norm_inline(const double* x, size_t n) {
+    if (!x || n == 0) return 0.0;
+    double sum_sq = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum_sq += x[i] * x[i];
+    }
+    return sqrt(sum_sq);
+}
+
+// Column mean: Mean of a specific column in row-major matrix
+// mean[col] = (1/n) * Σ X[i * num_cols + col]
+static inline double fp_column_mean_inline(const double* X, size_t n_rows,
+                                            size_t n_cols, size_t col) {
+    if (!X || n_rows == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n_rows; i++) {
+        sum += X[i * n_cols + col];
+    }
+    return sum / (double)n_rows;
+}
+
+// Column dot product: Dot product of two columns in row-major matrix
+// result = Σ X[i * num_cols + col1] * X[i * num_cols + col2]
+static inline double fp_column_dot_inline(const double* X, size_t n_rows,
+                                          size_t n_cols, size_t col1, size_t col2) {
+    if (!X || n_rows == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n_rows; i++) {
+        sum += X[i * n_cols + col1] * X[i * n_cols + col2];
+    }
+    return sum;
+}
+
+// ============================================================================
 // Data Structures
 // ============================================================================
 
@@ -75,17 +133,15 @@ static void matrix_vector_multiply(
 }
 
 // Vector dot product: result = x · y
+// REFACTORED: Now uses Pattern 1 fp_dot_product_inline()
 static double vector_dot(const double* x, const double* y, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        sum += x[i] * y[i];
-    }
-    return sum;
+    return fp_dot_product_inline(x, y, n);
 }
 
 // Vector norm: ||x||₂
+// REFACTORED: Now uses Pattern 1 fp_l2_norm_inline()
 static double vector_norm(const double* x, int n) {
-    return sqrt(vector_dot(x, x, n));
+    return fp_l2_norm_inline(x, n);
 }
 
 // Vector normalize: x = x / ||x||
@@ -117,13 +173,10 @@ static void vector_subtract(const double* x, const double* y, double* z, int n) 
 // ============================================================================
 
 // Compute feature means: mean[j] = (1/n) * Σ X[i,j]
+// REFACTORED: Now uses Pattern 1 fp_column_mean_inline()
 static void compute_means(const double* X, int n, int d, double* mean) {
     for (int j = 0; j < d; j++) {
-        mean[j] = 0.0;
-        for (int i = 0; i < n; i++) {
-            mean[j] += X[i * d + j];
-        }
-        mean[j] /= n;
+        mean[j] = fp_column_mean_inline(X, n, d, j);
     }
 }
 
@@ -138,17 +191,14 @@ static void center_data(double* X, int n, int d, const double* mean) {
 
 // Compute covariance matrix: C = (1/n) * X^T * X
 // X: n × d (centered data), C: d × d (symmetric)
+// REFACTORED: Now uses Pattern 1 fp_column_dot_inline()
 static void compute_covariance_matrix(
     const double* X, int n, int d, double* C
 ) {
     // C[i,j] = (1/n) * Σ(k=0..n-1) X[k,i] * X[k,j]
     for (int i = 0; i < d; i++) {
         for (int j = 0; j < d; j++) {
-            C[i * d + j] = 0.0;
-            for (int k = 0; k < n; k++) {
-                C[i * d + j] += X[k * d + i] * X[k * d + j];
-            }
-            C[i * d + j] /= n;
+            C[i * d + j] = fp_column_dot_inline(X, n, d, i, j) / n;
         }
     }
 }

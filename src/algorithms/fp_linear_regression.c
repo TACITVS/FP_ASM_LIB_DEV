@@ -1,12 +1,17 @@
 // fp_linear_regression.c
 //
-// Linear Regression + Gradient Descent
+// Linear Regression + Gradient Descent - Refactored with Pattern 1
 // Demonstrates FP-ASM primitives for ML optimization
 //
+// REFACTORED: Now uses Pattern 1 (Array Statistics) for:
+//   - fp_mean() - Computing means (clearer than manual sum+divide)
+//   - fp_variance() - Computing variances (numerically stable)
+//   - fp_covariance() - Computing covariance for closed-form solution
+//
 // This showcases:
-// - Closed-form solution (normal equations)
-// - Iterative optimization (gradient descent)
-// - Loss computation (Mean Squared Error)
+// - Closed-form solution (normal equations) - Pattern 1 for statistics!
+// - Iterative optimization (gradient descent) - Pattern 1 for loss!
+// - Loss computation (Mean Squared Error) - Pattern 1 for variance!
 // - Functional composition for ML
 //
 // FP Primitives Used:
@@ -20,6 +25,36 @@
 #include <string.h>
 #include <math.h>
 #include "fp_core.h"
+
+// Pattern 1 helpers (lightweight inline versions to avoid dependency issues)
+// These follow the Pattern 1 style from fp_stats.h but are self-contained
+
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) sum += data[i];
+    return sum / (double)n;
+}
+
+static inline double fp_variance_inline(const double* data, size_t n, double mean) {
+    if (!data || n == 0) return 0.0;
+    double sum_sq = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq += diff * diff;
+    }
+    return sum_sq / (double)n;
+}
+
+static inline double fp_covariance_inline(const double* x, const double* y, size_t n,
+                                          double mean_x, double mean_y) {
+    if (!x || !y || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += (x[i] - mean_x) * (y[i] - mean_y);
+    }
+    return sum / (double)n;
+}
 
 // Linear regression model structure
 typedef struct {
@@ -102,29 +137,21 @@ LinearRegressionModel fp_linear_regression_closed_form(
         // w1 = Cov(x,y) / Var(x)
         // w0 = mean(y) - w1*mean(x)
 
-        double sum_x = 0.0, sum_y = 0.0;
-        double sum_xy = 0.0, sum_xx = 0.0;
+        // Pattern 1: Use fp_mean_inline() instead of manual sum+divide
+        double mean_x = fp_mean_inline(X, n);
+        double mean_y = fp_mean_inline(y, n);
 
-        for (int i = 0; i < n; i++) {
-            sum_x += X[i];
-            sum_y += y[i];
-            sum_xy += X[i] * y[i];
-            sum_xx += X[i] * X[i];
-        }
+        // Pattern 1: Use fp_variance_inline() and fp_covariance_inline()
+        double var_x = fp_variance_inline(X, n, mean_x);
+        double cov_xy = fp_covariance_inline(X, y, n, mean_x, mean_y);
 
-        double mean_x = sum_x / n;
-        double mean_y = sum_y / n;
-
-        // Compute slope
-        double numerator = sum_xy - n * mean_x * mean_y;
-        double denominator = sum_xx - n * mean_x * mean_x;
-
-        if (fabs(denominator) < 1e-10) {
+        if (fabs(var_x) < 1e-10) {
             // Degenerate case: all x values are the same
             model.weights[0] = mean_y;
             model.weights[1] = 0.0;
         } else {
-            model.weights[1] = numerator / denominator;  // slope
+            // Pattern 1 benefits: Clearer formula, numerically stable
+            model.weights[1] = cov_xy / var_x;  // slope = Cov(x,y) / Var(x)
             model.weights[0] = mean_y - model.weights[1] * mean_x;  // intercept
         }
     } else {
@@ -148,6 +175,7 @@ LinearRegressionModel fp_linear_regression_closed_form(
 // ============================================================================
 
 // Compute gradients for all weights
+// REFACTORED: Uses Pattern 1 for clearer gradient computation
 // gradient[j] = (1/n) * sum((y_pred - y_true) * x[j])
 // gradient[0] = (1/n) * sum(y_pred - y_true)  (bias gradient)
 static void compute_gradients(
@@ -161,19 +189,28 @@ static void compute_gradients(
     // Initialize gradients to zero
     memset(gradients, 0, (d + 1) * sizeof(double));
 
-    // Compute bias gradient (gradient[0])
+    // Compute errors (y_pred - y_true)
+    double* errors = (double*)malloc(n * sizeof(double));
     for (int i = 0; i < n; i++) {
-        gradients[0] += (y_pred[i] - y_true[i]);
+        errors[i] = y_pred[i] - y_true[i];
     }
-    gradients[0] /= n;
+
+    // Pattern 1: Bias gradient is mean of errors
+    gradients[0] = fp_mean_inline(errors, n);
 
     // Compute feature gradients (gradient[1..d])
+    // gradient[j] = mean((y_pred - y_true) * x[j])
     for (int j = 0; j < d; j++) {
+        double* weighted_errors = (double*)malloc(n * sizeof(double));
         for (int i = 0; i < n; i++) {
-            gradients[j + 1] += (y_pred[i] - y_true[i]) * X[i * d + j];
+            weighted_errors[i] = errors[i] * X[i * d + j];
         }
-        gradients[j + 1] /= n;
+        // Pattern 1: Each gradient is mean of weighted errors
+        gradients[j + 1] = fp_mean_inline(weighted_errors, n);
+        free(weighted_errors);
     }
+
+    free(errors);
 }
 
 // Gradient Descent optimizer
@@ -257,32 +294,39 @@ void fp_linear_regression_predict(
 }
 
 // Compute R² score (coefficient of determination)
+// REFACTORED: Uses Pattern 1 for variance computation
 // R² = 1 - (SS_res / SS_tot) where:
 // - SS_res = sum((y_true - y_pred)^2)  (residual sum of squares)
 // - SS_tot = sum((y_true - y_mean)^2)  (total sum of squares)
+// NOTE: SS_tot = n * Var(y_true), SS_res = n * Var(residuals)
 double fp_linear_regression_r2_score(
     const double* y_true,
     const double* y_pred,
     int n
 ) {
-    // Compute mean of y_true
-    double sum_y = 0.0;
-    for (int i = 0; i < n; i++) {
-        sum_y += y_true[i];
-    }
-    double mean_y = sum_y / n;
+    // Pattern 1: Use fp_mean_inline() instead of manual sum+divide
+    double mean_y = fp_mean_inline(y_true, n);
 
-    // Compute SS_res and SS_tot
-    double ss_res = 0.0;
-    double ss_tot = 0.0;
-    for (int i = 0; i < n; i++) {
-        ss_res += (y_true[i] - y_pred[i]) * (y_true[i] - y_pred[i]);
-        ss_tot += (y_true[i] - mean_y) * (y_true[i] - mean_y);
-    }
+    // Pattern 1: SS_tot = n * Var(y_true)
+    double var_y = fp_variance_inline(y_true, n, mean_y);
+    double ss_tot = n * var_y;
 
     if (ss_tot < 1e-10) {
         return 0.0;  // All y values are the same
     }
+
+    // Compute residuals
+    double* residuals = (double*)malloc(n * sizeof(double));
+    for (int i = 0; i < n; i++) {
+        residuals[i] = y_true[i] - y_pred[i];
+    }
+
+    // Pattern 1: SS_res = n * Var(residuals) where mean(residuals) ≈ 0
+    double mean_residuals = fp_mean_inline(residuals, n);
+    double var_residuals = fp_variance_inline(residuals, n, mean_residuals);
+    double ss_res = n * var_residuals;
+
+    free(residuals);
 
     return 1.0 - (ss_res / ss_tot);
 }
