@@ -21,6 +21,50 @@
 #include <math.h>
 #include <time.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// ============================================================================
+// Pattern 1: Array Statistics (Inline Helpers)
+// ============================================================================
+
+// Mean: sum / n
+static inline double fp_mean_inline(const double* data, size_t n) {
+    if (!data || n == 0) return 0.0;
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += data[i];
+    }
+    return sum / (double)n;
+}
+
+// Variance: E[X²] - E[X]²
+static inline double fp_variance_inline(const double* data, size_t n, double mean) {
+    if (!data || n == 0) return 0.0;
+    double sum_sq_diff = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq_diff += diff * diff;
+    }
+    return sum_sq_diff / (double)n;
+}
+
+// Variance from precomputed sums: Var = E[X²] - E[X]²
+// This is useful for single-pass algorithms where sum and sum_sq are already computed
+static inline double fp_variance_from_sums(double sum, double sum_sq, size_t n) {
+    if (n == 0) return 0.0;
+    double mean = sum / (double)n;
+    double mean_sq = sum_sq / (double)n;
+    return mean_sq - mean * mean;
+}
+
+// Standard error: sqrt(Var / n)
+static inline double fp_std_error_inline(double variance, size_t n) {
+    if (n == 0) return 0.0;
+    return sqrt(variance / (double)n);
+}
+
 // ============================================================================
 // Random Number Generation
 // ============================================================================
@@ -141,6 +185,7 @@ typedef struct {
     int n_samples;
 } IntegrationResult;
 
+// REFACTORED: Now uses Pattern 1 helpers
 IntegrationResult fp_monte_carlo_integrate(
     MonteCarloFunction f,
     double a,
@@ -160,8 +205,8 @@ IntegrationResult fp_monte_carlo_integrate(
     }
 
     double mean = sum / n_samples;
-    double variance = (sum_sq / n_samples) - (mean * mean);
-    double std_error = sqrt(variance / n_samples);
+    double variance = fp_variance_from_sums(sum, sum_sq, n_samples);
+    double std_error = fp_std_error_inline(variance, n_samples);
 
     double integral = (b - a) * mean;
 
@@ -198,6 +243,7 @@ typedef struct {
     double T;                  // Time to maturity
 } OptionPricingResult;
 
+// REFACTORED: Now uses Pattern 1 helpers
 OptionPricingResult fp_monte_carlo_option_price(
     double S0,      // Initial stock price
     double K,       // Strike price
@@ -226,8 +272,8 @@ OptionPricingResult fp_monte_carlo_option_price(
     }
 
     double mean_payoff = sum_payoff / n_sims;
-    double variance = (sum_payoff_sq / n_sims) - (mean_payoff * mean_payoff);
-    double std_error = sqrt(variance / n_sims);
+    double variance = fp_variance_from_sums(sum_payoff, sum_payoff_sq, n_sims);
+    double std_error = fp_std_error_inline(variance, n_sims);
 
     OptionPricingResult result;
     result.option_price = discount * mean_payoff;
@@ -312,6 +358,7 @@ typedef struct {
     int n_steps_per_walk;
 } RandomWalkEnsemble;
 
+// REFACTORED: Now uses Pattern 1 helpers
 RandomWalkEnsemble fp_monte_carlo_random_walk_ensemble(
     int n_walks,
     int n_steps_per_walk,
@@ -335,7 +382,7 @@ RandomWalkEnsemble fp_monte_carlo_random_walk_ensemble(
     }
 
     double mean = sum_final_dist / n_walks;
-    double variance = (sum_final_dist_sq / n_walks) - (mean * mean);
+    double variance = fp_variance_from_sums(sum_final_dist, sum_final_dist_sq, n_walks);
 
     RandomWalkEnsemble result;
     result.mean_final_distance = mean;

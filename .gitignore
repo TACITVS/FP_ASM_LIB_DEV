@@ -69,6 +69,12 @@ bench_*.exe
 demo_*.exe
 *.log
 
+# Compilation logs and error dumps
+compile_*.txt
+*_errors.txt
+*_compile_*.txt
+*_syntax_check.txt
+
 # Temporary files
 *.tmp
 *.temp
