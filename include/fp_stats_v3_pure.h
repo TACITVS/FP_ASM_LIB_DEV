@@ -29,19 +29,9 @@
  * PURE FP COMBINATORS (Building Blocks)
  * ============================================================================ */
 
-// Identity function
-static inline double fp_id(double x) { return x; }
-
-// Const function
-static inline double fp_const(double c, double x) { (void)x; return c; }
-
-// Composition: (f . g)(x) = f(g(x))
+// NOTE: fp_id and fp_compose_f64 are already defined in fp_compose.h
+// We don't need to redefine them here.
 typedef double (*UnaryF64)(double);
-static inline UnaryF64 fp_compose_f64(UnaryF64 f, UnaryF64 g) {
-    // This returns a closure... but we can't in C
-    // So we use a vtable instead (see below)
-    return NULL; // Placeholder
-}
 
 /* ============================================================================
  * BASIC STATISTICS (PURE FP - No Loops!)
