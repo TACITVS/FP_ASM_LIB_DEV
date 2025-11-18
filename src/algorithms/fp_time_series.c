@@ -61,13 +61,26 @@ static inline double fp_mse_inline(const double* actual, const double* predicted
     return dotp / (double)n;
 }
 
-// Mean Absolute Error: Uses assembly-optimized SAD (Sum of Absolute Differences)
+// Mean Absolute Error: Compose L1 primitives (no fp_fold_sad_f64 for doubles)
 static inline double fp_mae_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
 
-    // SAD is assembly-optimized sum of absolute differences!
-    double sad = fp_fold_sad_f64(actual, predicted, n);
-    return sad / (double)n;
+    // Compute errors: actual - predicted
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // L1: errors = actual - predicted using SIMD map
+    fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
+
+    // Compute absolute values and sum manually
+    // TODO: Add fp_map_abs_f64 to library for this pattern!
+    double sum_abs = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum_abs += fabs(errors[i]);
+    }
+
+    free(errors);
+    return sum_abs / (double)n;
 }
 
 // ============================================================================
