@@ -41,7 +41,7 @@
 //
 // Here we add domain-specific helpers for time series forecasting
 
-// Mean Squared Error: Uses assembly-optimized dot product
+// Mean Squared Error: Pure FP composition of L1 primitives
 // MSE = mean((actual - predicted)²) = dotp(errors, errors) / n
 static inline double fp_mse_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
@@ -50,12 +50,11 @@ static inline double fp_mse_inline(const double* actual, const double* predicted
     double* errors = (double*)malloc(n * sizeof(double));
     if (!errors) return 0.0;
 
-    // Compute errors: actual - predicted
-    for (size_t i = 0; i < n; i++) {
-        errors[i] = actual[i] - predicted[i];
-    }
+    // L1: Compute errors using fp_map_axpy (SIMD!)
+    // errors = -1.0 * predicted + actual = actual - predicted
+    fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
 
-    // MSE = dotp(errors, errors) / n using assembly primitive!
+    // L0: MSE = dotp(errors, errors) / n using assembly primitive!
     double dotp = fp_fold_dotp_f64(errors, errors, n);
     free(errors);
 
