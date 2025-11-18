@@ -26,59 +26,53 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "../include/fp_core.h"          // Assembly primitives
+#include "../include/fp_stats_v3_pure.h" // Pure FP statistics (uses assembly)
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 // ============================================================================
-// Pattern 1: Array Statistics (Inline Helpers)
+// Pattern 1: Array Statistics (Compose Assembly Primitives)
 // ============================================================================
+// NOTE: Basic stats (mean, variance, std) now use fp_stats_v3_pure.h
+// which composes assembly primitives like fp_reduce_add_f64()
+//
+// Here we add domain-specific helpers for time series forecasting
 
-// Mean: sum / n
-static inline double fp_mean_inline(const double* data, size_t n) {
-    if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
-    return sum / (double)n;
-}
-
-// Variance: E[(X - mean)²] with Bessel's correction (n-1)
-static inline double fp_variance_inline(const double* data, size_t n, double mean) {
-    if (!data || n <= 1) return 0.0;
-    double sum_sq_diff = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq_diff += diff * diff;
-    }
-    return sum_sq_diff / (double)(n - 1);  // Bessel's correction for sample variance
-}
-
-// Mean Squared Error: mean((actual - predicted)²)
+// Mean Squared Error: Uses assembly-optimized dot product
+// MSE = mean((actual - predicted)²) = dotp(errors, errors) / n
 static inline double fp_mse_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
-    double sum_sq_error = 0.0;
+
+    // Allocate error array
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // Compute errors: actual - predicted
     for (size_t i = 0; i < n; i++) {
-        double error = actual[i] - predicted[i];
-        sum_sq_error += error * error;
+        errors[i] = actual[i] - predicted[i];
     }
-    return sum_sq_error / (double)n;
+
+    // MSE = dotp(errors, errors) / n using assembly primitive!
+    double dotp = fp_fold_dotp_f64(errors, errors, n);
+    free(errors);
+
+    return dotp / (double)n;
 }
 
-// Mean Absolute Error: mean(|actual - predicted|)
+// Mean Absolute Error: Uses assembly-optimized SAD (Sum of Absolute Differences)
 static inline double fp_mae_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
-    double sum_abs_error = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum_abs_error += fabs(actual[i] - predicted[i]);
-    }
-    return sum_abs_error / (double)n;
+
+    // SAD is assembly-optimized sum of absolute differences!
+    double sad = fp_fold_sad_f64(actual, predicted, n);
+    return sad / (double)n;
 }
 
 // ============================================================================
-// Pattern 2: Sliding Window Operations (Inline Helpers)
+// Pattern 2: Sliding Window Operations (Using Assembly Primitives)
 // ============================================================================
 
 // Sliding window sum: efficiently compute sum of each window using rolling sum
@@ -98,14 +92,12 @@ static inline double* fp_sliding_window_sum_inline(const double* data, size_t n,
         return NULL;
     }
 
-    // Initial window sum
-    double sum = 0.0;
-    for (size_t i = 0; i < window; i++) {
-        sum += data[i];
-    }
+    // Initial window sum using assembly-optimized reduce!
+    double sum = fp_reduce_add_f64(data, window);
     result[0] = sum;
 
     // Slide window: add new element, remove old element (O(1) per step)
+    // This part must be sequential, but we optimized the initial sum
     for (size_t i = 1; i < count; i++) {
         sum = sum - data[i - 1] + data[i + window - 1];
         result[i] = sum;
@@ -185,23 +177,24 @@ typedef struct {
 } ARIMAModel;
 
 // ============================================================================
-// Basic Statistics
+// Basic Statistics (Using fp_stats_v3_pure.h - Assembly Optimized)
 // ============================================================================
 
-// REFACTORED: Now uses Pattern 1 fp_mean_inline()
+// REFACTORED: Uses fp_mean_pure() which uses fp_reduce_add_f64() assembly primitive
 static double compute_mean(const double* data, int n) {
-    return fp_mean_inline(data, n);
+    return fp_mean_pure(data, n);
 }
 
-// REFACTORED: Now uses Pattern 1 fp_variance_inline()
+// REFACTORED: Uses fp_variance_pure() from fp_stats_v3_pure.h
 static double compute_variance(const double* data, int n) {
-    double mean = fp_mean_inline(data, n);
-    return fp_variance_inline(data, n, mean);
+    double mean = fp_mean_pure(data, n);
+    return fp_variance_pure(data, n, mean);
 }
 
-// REFACTORED: Now uses Pattern 1 (via compute_variance)
+// REFACTORED: Uses fp_std_pure() from fp_stats_v3_pure.h
 static double compute_std(const double* data, int n) {
-    return sqrt(compute_variance(data, n));
+    double mean = fp_mean_pure(data, n);
+    return fp_std_pure(data, n, mean);
 }
 
 // Compute autocorrelation at lag k
