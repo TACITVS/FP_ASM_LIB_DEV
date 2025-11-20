@@ -101,4 +101,15 @@ __pycache__/
 !build/obj/.gitkeep
 !build/bin/.gitkeep
 # ...other ignored files...
-nul
+nul# Untracked build-related files and logs
+build_test_decision_tree.bat
+build_test_kmeans.bat
+build_test_linear_regression.bat
+build_test_monte_carlo.bat
+build_test_naive_bayes.bat
+build_test_pca.bat
+dt_error.txt
+kmeans_output.txt
+linear_regression_output.txt
+nn_error_manual.txt
+pca_error.txt
