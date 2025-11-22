@@ -26,55 +26,134 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "../include/fp_core.h"          // Assembly primitives
+#include "../include/fp_stats_v3_pure.h" // Pure FP statistics (uses assembly)
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 // ============================================================================
-// Pattern 1: Array Statistics (Inline Helpers)
+// Pattern 1: Array Statistics (Compose Assembly Primitives)
 // ============================================================================
+// NOTE: Basic stats (mean, variance, std) now use fp_stats_v3_pure.h
+// which composes assembly primitives like fp_reduce_add_f64()
+//
+// Here we add domain-specific helpers for time series forecasting
 
-// Mean: sum / n
-static inline double fp_mean_inline(const double* data, size_t n) {
-    if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
-    return sum / (double)n;
-}
-
-// Variance: E[(X - mean)²] with Bessel's correction (n-1)
-static inline double fp_variance_inline(const double* data, size_t n, double mean) {
-    if (!data || n <= 1) return 0.0;
-    double sum_sq_diff = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq_diff += diff * diff;
-    }
-    return sum_sq_diff / (double)(n - 1);  // Bessel's correction for sample variance
-}
-
-// Mean Squared Error: mean((actual - predicted)²)
+// Mean Squared Error: Pure FP composition of L1 primitives
+// MSE = mean((actual - predicted)²) = dotp(errors, errors) / n
 static inline double fp_mse_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
-    double sum_sq_error = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double error = actual[i] - predicted[i];
-        sum_sq_error += error * error;
-    }
-    return sum_sq_error / (double)n;
+
+    // Allocate error array
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // L1: Compute errors using fp_map_axpy (SIMD!)
+    // errors = -1.0 * predicted + actual = actual - predicted
+    fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
+
+    // L0: MSE = dotp(errors, errors) / n using assembly primitive!
+    double dotp = fp_fold_dotp_f64(errors, errors, n);
+    free(errors);
+
+    return dotp / (double)n;
 }
 
-// Mean Absolute Error: mean(|actual - predicted|)
+// Mean Absolute Error: Compose L1 primitives (no fp_fold_sad_f64 for doubles)
 static inline double fp_mae_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
-    double sum_abs_error = 0.0;
+
+    // Compute errors: actual - predicted
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // L1: errors = actual - predicted using SIMD map
+    fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
+
+    // Compute absolute values and sum manually
+    // TODO: Add fp_map_abs_f64 to library for this pattern!
+    double sum_abs = 0.0;
     for (size_t i = 0; i < n; i++) {
-        sum_abs_error += fabs(actual[i] - predicted[i]);
+        sum_abs += fabs(errors[i]);
     }
-    return sum_abs_error / (double)n;
+
+    free(errors);
+    return sum_abs / (double)n;
+}
+
+// ============================================================================
+// Pattern 2: Sliding Window Operations (Using Assembly Primitives)
+// ============================================================================
+
+// Sliding window sum: efficiently compute sum of each window using rolling sum
+// Returns array of sums (caller must free)
+// Example: data=[1,2,3,4,5], window=3 → [6, 9, 12] (sums of [1,2,3], [2,3,4], [3,4,5])
+// Complexity: O(n) instead of O(n*window) naive approach
+static inline double* fp_sliding_window_sum_inline(const double* data, size_t n, size_t window, size_t* out_count) {
+    if (!data || n < window || window == 0) {
+        *out_count = 0;
+        return NULL;
+    }
+
+    size_t count = n - window + 1;
+    double* result = (double*)malloc(count * sizeof(double));
+    if (!result) {
+        *out_count = 0;
+        return NULL;
+    }
+
+    // Initial window sum using assembly-optimized reduce!
+    double sum = fp_reduce_add_f64(data, window);
+    result[0] = sum;
+
+    // Slide window: add new element, remove old element (O(1) per step)
+    // This part must be sequential, but we optimized the initial sum
+    for (size_t i = 1; i < count; i++) {
+        sum = sum - data[i - 1] + data[i + window - 1];
+        result[i] = sum;
+    }
+
+    *out_count = count;
+    return result;
+}
+
+// Sliding window mean: moving average (optimized O(n))
+// Returns array of means (caller must free)
+static inline double* fp_sliding_window_mean_inline(const double* data, size_t n, size_t window, size_t* out_count) {
+    double* sums = fp_sliding_window_sum_inline(data, n, window, out_count);
+    if (!sums) return NULL;
+
+    // Convert sums to means in-place
+    for (size_t i = 0; i < *out_count; i++) {
+        sums[i] /= (double)window;
+    }
+
+    return sums;  // Now contains means instead of sums
+}
+
+// Compute MSE between actual values and sliding window predictions
+// Used for evaluating forecast accuracy on training data
+// This replaces the O(n*window) nested loop pattern with O(n) rolling window
+static inline double fp_sliding_window_mse_inline(const double* data, size_t n, size_t window) {
+    if (!data || n <= window) return 0.0;
+
+    size_t pred_count;
+    // Get predictions for all positions (using data up to i-1 to predict i)
+    double* predictions = fp_sliding_window_mean_inline(data, n - 1, window, &pred_count);
+    if (!predictions) return 0.0;
+
+    // Compute MSE: compare predictions with actual values (shifted by window)
+    double mse = 0.0;
+    for (size_t i = 0; i < pred_count; i++) {
+        double error = data[i + window] - predictions[i];
+        mse += error * error;
+    }
+    mse /= (double)pred_count;
+
+    free(predictions);
+    return mse;
 }
 
 // ============================================================================
@@ -110,23 +189,24 @@ typedef struct {
 } ARIMAModel;
 
 // ============================================================================
-// Basic Statistics
+// Basic Statistics (Using fp_stats_v3_pure.h - Assembly Optimized)
 // ============================================================================
 
-// REFACTORED: Now uses Pattern 1 fp_mean_inline()
+// REFACTORED: Uses fp_mean_pure() which uses fp_reduce_add_f64() assembly primitive
 static double compute_mean(const double* data, int n) {
-    return fp_mean_inline(data, n);
+    return fp_mean_pure(data, n);
 }
 
-// REFACTORED: Now uses Pattern 1 fp_variance_inline()
+// REFACTORED: Uses fp_variance_pure() from fp_stats_v3_pure.h
 static double compute_variance(const double* data, int n) {
-    double mean = fp_mean_inline(data, n);
-    return fp_variance_inline(data, n, mean);
+    double mean = fp_mean_pure(data, n);
+    return fp_variance_pure(data, n, mean);
 }
 
-// REFACTORED: Now uses Pattern 1 (via compute_variance)
+// REFACTORED: Uses fp_std_pure() from fp_stats_v3_pure.h
 static double compute_std(const double* data, int n) {
-    return sqrt(compute_variance(data, n));
+    double mean = fp_mean_pure(data, n);
+    return fp_std_pure(data, n, mean);
 }
 
 // Compute autocorrelation at lag k
@@ -179,17 +259,8 @@ ForecastResult fp_forecast_sma(
     }
 
     // Compute training error for confidence intervals
-    double mse = 0.0;
-    for (int i = window; i < n; i++) {
-        double sum_window = 0.0;
-        for (int j = i - window; j < i; j++) {
-            sum_window += data[j];
-        }
-        double pred = sum_window / window;
-        double error = data[i] - pred;
-        mse += error * error;
-    }
-    mse /= (n - window);
+    // REFACTORED: Use Pattern 2 fp_sliding_window_mse_inline() - O(n) instead of O(n*window)
+    double mse = fp_sliding_window_mse_inline(data, n, window);
     result.mse = mse;
     result.mae = sqrt(mse);  // Approximation
 

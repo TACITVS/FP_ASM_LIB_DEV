@@ -8,7 +8,7 @@
 #include <time.h>
 
 #include <malloc.h>
-#define ALIGNED_MALLOC(size, alignment) _aligned_malloc(size, alignment)
+#define ALIGNED_MALLOC(size, alignment) ((void*)_aligned_malloc(size, alignment))
 #define ALIGNED_FREE(ptr) _aligned_free(ptr)
 
 #define BENCH_N (1024 * 1024) // Number of vectors
