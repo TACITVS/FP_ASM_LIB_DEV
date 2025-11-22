@@ -82,14 +82,14 @@ void fp_descriptive_stats(const double* data, size_t n, DescriptiveStats* stats)
 ```haskell
 percentile p xs = sorted !! index
   where
-    sorted = sort xs
+    sorted = sort xs -- NOTE: sort is not currently implemented
     index = floor (p * fromIntegral (length xs))
 
 quartiles xs = (percentile 0.25 xs, percentile 0.5 xs, percentile 0.75 xs)
 ```
 
 **Implementation Plan**:
-- Use existing `fp_sort_f64`
+- Prerequisite: Requires a sorting algorithm (e.g., `fp_sort_f64`) which is not currently implemented.
 - Implement linear interpolation for exact percentiles
 - Create batch percentile calculation for efficiency
 
@@ -222,7 +222,7 @@ void fp_linear_predict_f64(const double* x, size_t n,
 -- IQR Method
 outliers_iqr xs = filter is_outlier xs
   where
-    sorted = sort xs
+    sorted = sort xs -- NOTE: sort is not currently implemented
     q1 = percentile 0.25 sorted
     q3 = percentile 0.75 sorted
     iqr = q3 - q1
@@ -859,7 +859,7 @@ standardize xs = map (\x -> (x - mean_val) / stddev_val) xs
 -- Robust scaling (using median and IQR)
 robust_scale xs = map (\x -> (x - median_val) / iqr) xs
   where
-    sorted = sort xs
+    sorted = sort xs -- NOTE: sort is not currently implemented
     median_val = percentile 0.5 sorted
     q1 = percentile 0.25 sorted
     q3 = percentile 0.75 sorted
