@@ -45,34 +45,27 @@ fp_const_t fp_const_i64(int64_t value) {
     return result;
 }
 
-// Flip implementation structures
-typedef struct {
-    fp_binary_f64_t original;
-} fp_flipped_f64_t;
+// Flip implementation
+// Creates a wrapper that swaps argument order when applied
 
-typedef struct {
-    fp_binary_i64_t original;
-} fp_flipped_i64_t;
-
-static double fp_flipped_call_f64(double x, double y, void* ctx) {
-    fp_flipped_f64_t* flipped = (fp_flipped_f64_t*)ctx;
-    return flipped->original(y, x);
+fp_flipped_f64_t fp_flip_f64(fp_binary_f64_t fn) {
+    fp_flipped_f64_t flipped = { .original = fn };
+    return flipped;
 }
 
-static int64_t fp_flipped_call_i64(int64_t x, int64_t y, void* ctx) {
-    fp_flipped_i64_t* flipped = (fp_flipped_i64_t*)ctx;
-    return flipped->original(y, x);
+fp_flipped_i64_t fp_flip_i64(fp_binary_i64_t fn) {
+    fp_flipped_i64_t flipped = { .original = fn };
+    return flipped;
 }
 
-// Note: These return function pointers that require context
-// In practice, users should use the flipped_call functions directly
-fp_binary_f64_t fp_flip_f64(fp_binary_f64_t fn) {
-    // This is a simplified version - actual usage requires context passing
-    return fn;  // Placeholder - full implementation needs closure support
+double fp_apply_flip_f64(fp_flipped_f64_t flipped, double x, double y) {
+    if (!flipped.original) return 0.0;
+    return flipped.original(y, x);  // Swapped arguments
 }
 
-fp_binary_i64_t fp_flip_i64(fp_binary_i64_t fn) {
-    return fn;  // Placeholder - full implementation needs closure support
+int64_t fp_apply_flip_i64(fp_flipped_i64_t flipped, int64_t x, int64_t y) {
+    if (!flipped.original) return 0;
+    return flipped.original(y, x);  // Swapped arguments
 }
 
 /* ============================================================================
@@ -940,20 +933,190 @@ fp_lazy_seq_t* fp_lazy_from_array_f64(const double* array, size_t n) {
     return seq;
 }
 
-// Lazy map/filter/take (simplified - would need more complex state management for full implementation)
+// Lazy map state - wraps source sequence with transformation
+typedef struct {
+    fp_lazy_seq_t* source;
+    double (*transform)(double);
+} fp_lazy_map_state_t;
+
+static double lazy_map_next(fp_lazy_seq_t* seq) {
+    fp_lazy_map_state_t* state = (fp_lazy_map_state_t*)seq->state;
+    double source_val = state->source->next(state->source);
+    return state->transform(source_val);
+}
+
+static bool lazy_map_has_next(fp_lazy_seq_t* seq) {
+    fp_lazy_map_state_t* state = (fp_lazy_map_state_t*)seq->state;
+    return state->source->has_next(state->source);
+}
+
+static void lazy_map_cleanup(fp_lazy_seq_t* seq) {
+    if (seq && seq->state) {
+        fp_lazy_map_state_t* state = (fp_lazy_map_state_t*)seq->state;
+        // Clean up source sequence
+        if (state->source) {
+            fp_lazy_free_f64(state->source);
+        }
+        free(state);
+    }
+}
+
 fp_lazy_seq_t* fp_lazy_map_f64(fp_lazy_seq_t* seq, double (*fn)(double)) {
-    // TODO: Implement lazy map transformation
-    return seq;  // Placeholder
+    if (!seq || !fn) return seq;
+
+    fp_lazy_seq_t* mapped = malloc(sizeof(fp_lazy_seq_t));
+    if (!mapped) return seq;
+
+    fp_lazy_map_state_t* state = malloc(sizeof(fp_lazy_map_state_t));
+    if (!state) {
+        free(mapped);
+        return seq;
+    }
+
+    state->source = seq;
+    state->transform = fn;
+
+    mapped->next = lazy_map_next;
+    mapped->has_next = lazy_map_has_next;
+    mapped->state = state;
+    mapped->cleanup = lazy_map_cleanup;
+
+    return mapped;
+}
+
+// Lazy filter state - wraps source sequence with predicate
+typedef struct {
+    fp_lazy_seq_t* source;
+    bool (*predicate)(double);
+    double cached_value;
+    bool has_cached;
+} fp_lazy_filter_state_t;
+
+static double lazy_filter_next(fp_lazy_seq_t* seq) {
+    fp_lazy_filter_state_t* state = (fp_lazy_filter_state_t*)seq->state;
+
+    // Return cached value if available
+    if (state->has_cached) {
+        state->has_cached = false;
+        return state->cached_value;
+    }
+
+    // Find next matching value
+    while (state->source->has_next(state->source)) {
+        double val = state->source->next(state->source);
+        if (state->predicate(val)) {
+            return val;
+        }
+    }
+
+    return 0.0;  // Should not reach here if has_next was checked
+}
+
+static bool lazy_filter_has_next(fp_lazy_seq_t* seq) {
+    fp_lazy_filter_state_t* state = (fp_lazy_filter_state_t*)seq->state;
+
+    // Already have a cached value
+    if (state->has_cached) return true;
+
+    // Search for next matching value
+    while (state->source->has_next(state->source)) {
+        double val = state->source->next(state->source);
+        if (state->predicate(val)) {
+            state->cached_value = val;
+            state->has_cached = true;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void lazy_filter_cleanup(fp_lazy_seq_t* seq) {
+    if (seq && seq->state) {
+        fp_lazy_filter_state_t* state = (fp_lazy_filter_state_t*)seq->state;
+        if (state->source) {
+            fp_lazy_free_f64(state->source);
+        }
+        free(state);
+    }
 }
 
 fp_lazy_seq_t* fp_lazy_filter_f64(fp_lazy_seq_t* seq, bool (*pred)(double)) {
-    // TODO: Implement lazy filter transformation
-    return seq;  // Placeholder
+    if (!seq || !pred) return seq;
+
+    fp_lazy_seq_t* filtered = malloc(sizeof(fp_lazy_seq_t));
+    if (!filtered) return seq;
+
+    fp_lazy_filter_state_t* state = malloc(sizeof(fp_lazy_filter_state_t));
+    if (!state) {
+        free(filtered);
+        return seq;
+    }
+
+    state->source = seq;
+    state->predicate = pred;
+    state->cached_value = 0.0;
+    state->has_cached = false;
+
+    filtered->next = lazy_filter_next;
+    filtered->has_next = lazy_filter_has_next;
+    filtered->state = state;
+    filtered->cleanup = lazy_filter_cleanup;
+
+    return filtered;
+}
+
+// Lazy take state - limits number of elements from source
+typedef struct {
+    fp_lazy_seq_t* source;
+    size_t remaining;
+} fp_lazy_take_state_t;
+
+static double lazy_take_next(fp_lazy_seq_t* seq) {
+    fp_lazy_take_state_t* state = (fp_lazy_take_state_t*)seq->state;
+    if (state->remaining > 0) {
+        state->remaining--;
+        return state->source->next(state->source);
+    }
+    return 0.0;  // Should not reach here if has_next was checked
+}
+
+static bool lazy_take_has_next(fp_lazy_seq_t* seq) {
+    fp_lazy_take_state_t* state = (fp_lazy_take_state_t*)seq->state;
+    return state->remaining > 0 && state->source->has_next(state->source);
+}
+
+static void lazy_take_cleanup(fp_lazy_seq_t* seq) {
+    if (seq && seq->state) {
+        fp_lazy_take_state_t* state = (fp_lazy_take_state_t*)seq->state;
+        if (state->source) {
+            fp_lazy_free_f64(state->source);
+        }
+        free(state);
+    }
 }
 
 fp_lazy_seq_t* fp_lazy_take_f64(fp_lazy_seq_t* seq, size_t n) {
-    // TODO: Implement lazy take transformation
-    return seq;  // Placeholder
+    if (!seq || n == 0) return seq;
+
+    fp_lazy_seq_t* taken = malloc(sizeof(fp_lazy_seq_t));
+    if (!taken) return seq;
+
+    fp_lazy_take_state_t* state = malloc(sizeof(fp_lazy_take_state_t));
+    if (!state) {
+        free(taken);
+        return seq;
+    }
+
+    state->source = seq;
+    state->remaining = n;
+
+    taken->next = lazy_take_next;
+    taken->has_next = lazy_take_has_next;
+    taken->state = state;
+    taken->cleanup = lazy_take_cleanup;
+
+    return taken;
 }
 
 // Force evaluation

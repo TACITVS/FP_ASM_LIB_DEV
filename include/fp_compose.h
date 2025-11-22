@@ -47,11 +47,26 @@ fp_const_t fp_const_f64(double value);
 fp_const_t fp_const_i64(int64_t value);
 
 // Flip: flip f x y = f y x
+// Note: C lacks closures, so flip returns a struct with context
 typedef double (*fp_binary_f64_t)(double, double);
 typedef int64_t (*fp_binary_i64_t)(int64_t, int64_t);
 
-fp_binary_f64_t fp_flip_f64(fp_binary_f64_t fn);
-fp_binary_i64_t fp_flip_i64(fp_binary_i64_t fn);
+// Flipped function container (holds original function for context-based call)
+typedef struct {
+    fp_binary_f64_t original;
+} fp_flipped_f64_t;
+
+typedef struct {
+    fp_binary_i64_t original;
+} fp_flipped_i64_t;
+
+// Create flipped function wrapper
+fp_flipped_f64_t fp_flip_f64(fp_binary_f64_t fn);
+fp_flipped_i64_t fp_flip_i64(fp_binary_i64_t fn);
+
+// Apply flipped function: fp_apply_flip(flip(f), x, y) == f(y, x)
+double fp_apply_flip_f64(fp_flipped_f64_t flipped, double x, double y);
+int64_t fp_apply_flip_i64(fp_flipped_i64_t flipped, int64_t x, int64_t y);
 
 /* ============================================================================
  * FUNCTION COMPOSITION (f . g)
