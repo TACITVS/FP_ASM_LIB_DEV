@@ -28,6 +28,7 @@
 #include <math.h>
 #include "../include/fp_core.h"          // Assembly primitives
 #include "../include/fp_stats_v3_pure.h" // Pure FP statistics (uses assembly)
+#include "../include/fp_rng.h"           // Deterministic RNG
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -497,23 +498,26 @@ ForecastResult fp_forecast_seasonal_naive(
 // ============================================================================
 
 // Generate time series with trend
+// REFACTORED: Uses fp_rng for deterministic, reproducible data generation
 void fp_generate_trend_series(
     double* data,
     int n,
     double intercept,
     double slope,
     double noise_level,
-    unsigned int seed
+    uint64_t seed
 ) {
-    srand(seed);
+    fp_rng_t rng = fp_rng_create(seed);
     for (int t = 0; t < n; t++) {
         double trend = intercept + slope * t;
-        double noise = noise_level * (2.0 * (double)rand() / RAND_MAX - 1.0);
+        double noise;
+        rng = fp_rng_next_f64_range(rng, -noise_level, noise_level, &noise);
         data[t] = trend + noise;
     }
 }
 
 // Generate time series with seasonality
+// REFACTORED: Uses fp_rng for deterministic data generation
 void fp_generate_seasonal_series(
     double* data,
     int n,
@@ -521,17 +525,19 @@ void fp_generate_seasonal_series(
     double seasonal_amplitude,
     int period,
     double noise_level,
-    unsigned int seed
+    uint64_t seed
 ) {
-    srand(seed);
+    fp_rng_t rng = fp_rng_create(seed);
     for (int t = 0; t < n; t++) {
         double seasonal = seasonal_amplitude * sin(2.0 * M_PI * t / period);
-        double noise = noise_level * (2.0 * (double)rand() / RAND_MAX - 1.0);
+        double noise;
+        rng = fp_rng_next_f64_range(rng, -noise_level, noise_level, &noise);
         data[t] = mean + seasonal + noise;
     }
 }
 
 // Generate time series with trend + seasonality
+// REFACTORED: Uses fp_rng for deterministic data generation
 void fp_generate_trend_seasonal_series(
     double* data,
     int n,
@@ -540,29 +546,32 @@ void fp_generate_trend_seasonal_series(
     double seasonal_amplitude,
     int period,
     double noise_level,
-    unsigned int seed
+    uint64_t seed
 ) {
-    srand(seed);
+    fp_rng_t rng = fp_rng_create(seed);
     for (int t = 0; t < n; t++) {
         double trend = intercept + slope * t;
         double seasonal = seasonal_amplitude * sin(2.0 * M_PI * t / period);
-        double noise = noise_level * (2.0 * (double)rand() / RAND_MAX - 1.0);
+        double noise;
+        rng = fp_rng_next_f64_range(rng, -noise_level, noise_level, &noise);
         data[t] = trend + seasonal + noise;
     }
 }
 
 // Generate random walk
+// REFACTORED: Uses fp_rng for deterministic data generation
 void fp_generate_random_walk(
     double* data,
     int n,
     double start,
     double step_std,
-    unsigned int seed
+    uint64_t seed
 ) {
-    srand(seed);
+    fp_rng_t rng = fp_rng_create(seed);
     data[0] = start;
     for (int t = 1; t < n; t++) {
-        double step = step_std * (2.0 * (double)rand() / RAND_MAX - 1.0);
+        double step;
+        rng = fp_rng_next_f64_range(rng, -step_std, step_std, &step);
         data[t] = data[t - 1] + step;
     }
 }
