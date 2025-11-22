@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "fp_core.h"
+#include "fp_rng.h"
 
 // Result structure for radix sort
 typedef struct {
@@ -193,26 +194,28 @@ int is_sorted_u64(const uint64_t* arr, size_t n) {
 }
 
 // Generate random data for testing
-void generate_random_u8(uint8_t* arr, size_t n, unsigned int seed) {
-    srand(seed);
+// REFACTORED: Uses fp_rng for deterministic, reproducible data generation
+void generate_random_u8(uint8_t* arr, size_t n, uint64_t seed) {
+    fp_rng_t rng = fp_rng_create(seed);
     for (size_t i = 0; i < n; i++) {
-        arr[i] = rand() % 256;
+        int64_t val;
+        rng = fp_rng_next_i64_range(rng, 0, 255, &val);
+        arr[i] = (uint8_t)val;
     }
 }
 
-void generate_random_u32(uint32_t* arr, size_t n, unsigned int seed) {
-    srand(seed);
+void generate_random_u32(uint32_t* arr, size_t n, uint64_t seed) {
+    fp_rng_t rng = fp_rng_create(seed);
     for (size_t i = 0; i < n; i++) {
-        arr[i] = ((uint32_t)rand() << 16) | (uint32_t)rand();
+        uint64_t val;
+        rng = fp_rng_next_u64(rng, &val);
+        arr[i] = (uint32_t)val;
     }
 }
 
-void generate_random_u64(uint64_t* arr, size_t n, unsigned int seed) {
-    srand(seed);
+void generate_random_u64(uint64_t* arr, size_t n, uint64_t seed) {
+    fp_rng_t rng = fp_rng_create(seed);
     for (size_t i = 0; i < n; i++) {
-        arr[i] = ((uint64_t)rand() << 48) |
-                 ((uint64_t)rand() << 32) |
-                 ((uint64_t)rand() << 16) |
-                 (uint64_t)rand();
+        rng = fp_rng_next_u64(rng, &arr[i]);
     }
 }
