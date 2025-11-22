@@ -11,8 +11,8 @@ TESTS = tests
 BENCHMARKS = benchmarks
 
 # Compiler and assembler
-ASM = nasm
-CC = gcc
+ASM = C:/Users/baian/AppData/Local/bin/NASM/nasm.exe
+CC = C:/msys64/mingw64/bin/gcc.exe
 ASMFLAGS = -f win64 -I$(SRC_ASM)/
 CFLAGS = -I$(INCLUDE) -O3 -march=native
 LDFLAGS = -lOpenCL

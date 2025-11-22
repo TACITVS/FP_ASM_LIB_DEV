@@ -470,27 +470,7 @@ void fp_replicate_i64(int64_t* output, size_t n, int64_t value);
  * Includes high-performance sorting and set-theoretic operations.
  * ============================================================================ */
 
-/* ----------------------------------------------------------------------------
- * Sorting Operations
- * ---------------------------------------------------------------------------- */
 
-/**
- * DESIGN DECISION: This library does NOT provide in-place sorting functions.
- *
- * Rationale: FP-ASM is a functional programming library that guarantees input
- * immutability. In-place sorting violates this core principle by mutating
- * user data.
- *
- * Alternative: Functions that require sorted data (percentiles, quartiles, etc.)
- * perform internal sorting on a copy of the input, leaving the original data
- * untouched.
- *
- * For explicit sorting needs, use standard C qsort() or C++ std::sort().
- * Example:
- *   double* sorted = (double*)malloc(n * sizeof(double));
- *   memcpy(sorted, data, n * sizeof(double));
- *   qsort(sorted, n, sizeof(double), compare_double);
- */
 
 /* ----------------------------------------------------------------------------
  * Set Operations

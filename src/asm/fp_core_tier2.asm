@@ -1,8 +1,7 @@
 ; fp_core_tier2.asm
-; Module 9: TIER 2 Operations - Sorting and Set Operations
+; Module 9: TIER 2 Operations - Set Operations
 ;
 ; Implements:
-; - Sorting: quicksort with median-of-3 pivot + insertion sort for small arrays
 ; - Set operations: unique, union, intersect (using sort + linear scan)
 ;
 ; Brings library from 70% to ~85% FP completeness
