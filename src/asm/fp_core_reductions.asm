@@ -44,6 +44,28 @@ fp_reduce_add_i64:
     vpxor  ymm7, ymm7, ymm7
     vpxor  ymm8, ymm8, ymm8
     vpxor  ymm9, ymm9, ymm9
+.loop32:
+    cmp  r13, 32
+    jb   .loop16
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+    vmovdqu ymm10,[r12+128]
+    vmovdqu ymm11,[r12+160]
+    vmovdqu ymm12,[r12+192]
+    vmovdqu ymm13,[r12+224]
+    vpaddq  ymm6, ymm6, ymm0
+    vpaddq  ymm7, ymm7, ymm1
+    vpaddq  ymm8, ymm8, ymm2
+    vpaddq  ymm9, ymm9, ymm3
+    vpaddq  ymm6, ymm6, ymm10
+    vpaddq  ymm7, ymm7, ymm11
+    vpaddq  ymm8, ymm8, ymm12
+    vpaddq  ymm9, ymm9, ymm13
+    add  r12, 256
+    sub  r13, 32
+    jmp  .loop32
 .loop16:
     cmp  r13, 16
     jb   .tail
@@ -176,6 +198,9 @@ fp_reduce_max_i64:
     vmovdqa ymm7, ymm6
     vmovdqa ymm8, ymm6
     vmovdqa ymm9, ymm6
+
+    add  r12, 8       ; advance past first element (already in accumulators)
+    dec  r13          ; adjust remaining count
 
 .loop16:
     cmp  r13, 16
@@ -390,6 +415,9 @@ fp_reduce_min_i64:
     vmovdqa ymm7, ymm6
     vmovdqa ymm8, ymm6
     vmovdqa ymm9, ymm6
+
+    add  r12, 8       ; advance past first element (already in accumulators)
+    dec  r13          ; adjust remaining count
 
 .loop16:
     cmp  r13, 16

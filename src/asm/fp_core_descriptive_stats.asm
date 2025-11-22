@@ -166,7 +166,7 @@ global fp_descriptive_stats_f64
 fp_descriptive_stats_f64:
     push rbp
     mov rbp, rsp
-    sub rsp, 96                 ; Space for moments + local vars
+    sub rsp, 272                ; Space for callee-saved XMM + locals
     and rsp, 0xFFFFFFFFFFFFFFE0
 
     ; Save arguments
@@ -178,8 +178,20 @@ fp_descriptive_stats_f64:
     test rdx, rdx
     jz .empty_case
 
+    ; Save callee-saved XMM registers we will use (xmm6-xmm15)
+    vmovdqa [rsp],      xmm6
+    vmovdqa [rsp+16],   xmm7
+    vmovdqa [rsp+32],   xmm8
+    vmovdqa [rsp+48],   xmm9
+    vmovdqa [rsp+64],   xmm10
+    vmovdqa [rsp+80],   xmm11
+    vmovdqa [rsp+96],   xmm12
+    vmovdqa [rsp+112],  xmm13
+    vmovdqa [rsp+128],  xmm14
+    vmovdqa [rsp+144],  xmm15
+
     ; Calculate moments
-    lea r8, [rsp + 32]         ; moments output
+    lea r8, [rsp + 160]        ; moments output
     call fp_moments_f64
 
     ; Load n as double
@@ -187,10 +199,10 @@ fp_descriptive_stats_f64:
     vcvtsi2sd xmm15, xmm15, rax  ; xmm15 = n (as double)
 
     ; Load moments
-    vmovsd xmm0, [rsp + 32]    ; m1 = sum
-    vmovsd xmm1, [rsp + 40]    ; m2 = sum_sq
-    vmovsd xmm2, [rsp + 48]    ; m3 = sum_cube
-    vmovsd xmm3, [rsp + 56]    ; m4 = sum_quad
+    vmovsd xmm0, [rsp + 160]   ; m1 = sum
+    vmovsd xmm1, [rsp + 168]   ; m2 = sum_sq
+    vmovsd xmm2, [rsp + 176]   ; m3 = sum_cube
+    vmovsd xmm3, [rsp + 184]   ; m4 = sum_quad
 
     ; Calculate mean = m1 / n
     vdivsd xmm4, xmm0, xmm15   ; xmm4 = mean
@@ -269,6 +281,18 @@ fp_descriptive_stats_f64:
     vmovsd [r8 + 16], xmm6     ; std_dev
     vmovsd [r8 + 24], xmm7     ; skewness
     vmovsd [r8 + 32], xmm8     ; kurtosis
+
+    ; Restore callee-saved XMM registers
+    vmovdqa xmm6,  [rsp]
+    vmovdqa xmm7,  [rsp+16]
+    vmovdqa xmm8,  [rsp+32]
+    vmovdqa xmm9,  [rsp+48]
+    vmovdqa xmm10, [rsp+64]
+    vmovdqa xmm11, [rsp+80]
+    vmovdqa xmm12, [rsp+96]
+    vmovdqa xmm13, [rsp+112]
+    vmovdqa xmm14, [rsp+128]
+    vmovdqa xmm15, [rsp+144]
 
     vzeroupper
     mov rsp, rbp
