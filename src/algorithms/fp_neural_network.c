@@ -22,44 +22,35 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include "../include/fp_core.h"          // L0: Assembly primitives
+#include "../include/fp_stats_v3_pure.h" // L1: Pure FP statistics
 
 // ============================================================================
-// Pattern 1: Array Statistics (Inline Helpers)
+// Pattern 1: Array Statistics - USING L1 LIBRARY (NO IMPERATIVE LOOPS!)
 // ============================================================================
 
-// Mean: sum / n
-static inline double fp_mean_inline(const double* data, size_t n) {
-    if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
-    return sum / (double)n;
-}
-
-// Mean Squared Error: mean((predicted - target)²)
+// Mean Squared Error: Compose L1 primitives
 static inline double fp_mse_inline(const double* predicted, const double* target, size_t n) {
     if (!predicted || !target || n == 0) return 0.0;
-    double sum_sq_error = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double error = predicted[i] - target[i];
-        sum_sq_error += error * error;
-    }
-    return sum_sq_error / (double)n;
+
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // L1: errors = actual - predicted using SIMD map
+    fp_map_axpy_f64(predicted, target, errors, n, -1.0);
+
+    // L0: MSE = dotp(errors, errors) / n using assembly
+    double dotp = fp_fold_dotp_f64(errors, errors, n);
+    free(errors);
+
+    return dotp / (double)n;
 }
 
-// Dot product: sum(a[i] * b[i])
-static inline double fp_dot_product_inline(const double* a, const double* b, size_t n) {
-    if (!a || !b || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += a[i] * b[i];
-    }
-    return sum;
-}
-
+// ============================================================================
+// Pattern 4: Matrix Operations - COMPOSE L0 DOT PRODUCT
+// ============================================================================
 // Matrix-vector multiply: result = A * x + bias
-// A is m × n (row-major), x is n × 1, result is m × 1
+// Each row is a dot product with x, then add bias
 static inline void fp_matvec_add_bias_inline(
     const double* A,    // m × n matrix (row-major)
     const double* x,    // n × 1 vector
@@ -68,11 +59,10 @@ static inline void fp_matvec_add_bias_inline(
     size_t m,           // number of rows
     size_t n            // number of cols
 ) {
+    // Each output element is: dot(A[row], x) + bias[row]
     for (size_t i = 0; i < m; i++) {
-        result[i] = bias[i];
-        for (size_t j = 0; j < n; j++) {
-            result[i] += A[i * n + j] * x[j];
-        }
+        // L0: Use assembly-optimized dot product for each row
+        result[i] = fp_fold_dotp_f64(&A[i * n], x, n) + bias[i];
     }
 }
 

@@ -28,56 +28,18 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include "../include/fp_core.h"          // L0: Assembly primitives
+#include "../include/fp_stats_v3_pure.h" // L1: Pure FP statistics (assembly-backed)
 
 // ============================================================================
-// Pattern 1: Array Statistics (Inline Helpers)
+// Pattern 1: Array Statistics - USING L1 LIBRARY (fp_stats_v3_pure.h)
 // ============================================================================
-
-// Mean: sum / n
-static inline double fp_mean_inline(const double* data, size_t n) {
-    if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
-    return sum / (double)n;
-}
-
-// Variance: E[(X - mean)²]
-static inline double fp_variance_inline(const double* data, size_t n, double mean) {
-    if (!data || n == 0) return 0.0;
-    double sum_sq_diff = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq_diff += diff * diff;
-    }
-    return sum_sq_diff / (double)n;
-}
-
-// Mean and Variance in single pass (Welford's algorithm for numerical stability)
-typedef struct {
-    double mean;
-    double variance;
-} MeanVariance;
-
-static inline MeanVariance fp_mean_variance_inline(const double* data, size_t n) {
-    MeanVariance result = {0.0, 0.0};
-    if (!data || n == 0) return result;
-
-    double mean = 0.0;
-    double m2 = 0.0;
-
-    for (size_t i = 0; i < n; i++) {
-        double delta = data[i] - mean;
-        mean += delta / (double)(i + 1);
-        double delta2 = data[i] - mean;
-        m2 += delta * delta2;
-    }
-
-    result.mean = mean;
-    result.variance = (n > 0) ? (m2 / (double)n) : 0.0;
-    return result;
-}
+// All basic statistics now use assembly-optimized library functions:
+// - fp_mean_pure() uses fp_reduce_add_f64() (SIMD AVX2)
+// - fp_variance_pure() uses assembly-optimized folding
+// - fp_mean_variance_welford_pure() for numerically stable single-pass
+//
+// NO IMPERATIVE LOOPS AT L2+!
 
 // ============================================================================
 // Data Structures
@@ -191,11 +153,12 @@ static double gini_impurity(const int* y, int n, int n_classes) {
 }
 
 // Variance for regression
-// REFACTORED: Now uses Pattern 1 fp_mean_variance_inline() - single pass, numerically stable
+// REFACTORED: Uses L1 fp_mean_variance_pure() - Welford's algorithm (assembly-backed)
+// NO IMPERATIVE LOOPS - pure tail recursion optimized to loop by compiler
 static double variance(const double* y, int n) {
     if (n == 0) return 0.0;
 
-    MeanVariance result = fp_mean_variance_inline(y, n);
+    MeanVarianceResult result = fp_mean_variance_pure(y, n);
     return result.variance;
 }
 

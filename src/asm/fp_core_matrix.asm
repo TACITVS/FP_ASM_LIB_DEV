@@ -104,63 +104,63 @@ fp_mat4_mul:
 
     ; Process output column 0
     vbroadcastss xmm0, [r8]          ; b[0][0]
-    vmulps xmm12, xmm8, xmm0
+    vmulps xmm4, xmm8, xmm0
 
     vbroadcastss xmm1, [r8 + 4]      ; b[1][0]
-    vfmadd231ps xmm12, xmm9, xmm1
+    vfmadd231ps xmm4, xmm9, xmm1
 
     vbroadcastss xmm2, [r8 + 8]      ; b[2][0]
-    vfmadd231ps xmm12, xmm10, xmm2
+    vfmadd231ps xmm4, xmm10, xmm2
 
     vbroadcastss xmm3, [r8 + 12]     ; b[3][0]
-    vfmadd231ps xmm12, xmm11, xmm3
+    vfmadd231ps xmm4, xmm11, xmm3
 
-    vmovups [rcx], xmm12
+    vmovups [rcx], xmm4
 
     ; Process output column 1
     vbroadcastss xmm0, [r8 + 16]     ; b[0][1]
-    vmulps xmm13, xmm8, xmm0
+    vmulps xmm4, xmm8, xmm0
 
     vbroadcastss xmm1, [r8 + 20]     ; b[1][1]
-    vfmadd231ps xmm13, xmm9, xmm1
+    vfmadd231ps xmm4, xmm9, xmm1
 
     vbroadcastss xmm2, [r8 + 24]     ; b[2][1]
-    vfmadd231ps xmm13, xmm10, xmm2
+    vfmadd231ps xmm4, xmm10, xmm2
 
     vbroadcastss xmm3, [r8 + 28]     ; b[3][1]
-    vfmadd231ps xmm13, xmm11, xmm3
+    vfmadd231ps xmm4, xmm11, xmm3
 
-    vmovups [rcx + 16], xmm13
+    vmovups [rcx + 16], xmm4
 
     ; Process output column 2
     vbroadcastss xmm0, [r8 + 32]     ; b[0][2]
-    vmulps xmm14, xmm8, xmm0
+    vmulps xmm4, xmm8, xmm0
 
     vbroadcastss xmm1, [r8 + 36]     ; b[1][2]
-    vfmadd231ps xmm14, xmm9, xmm1
+    vfmadd231ps xmm4, xmm9, xmm1
 
     vbroadcastss xmm2, [r8 + 40]     ; b[2][2]
-    vfmadd231ps xmm14, xmm10, xmm2
+    vfmadd231ps xmm4, xmm10, xmm2
 
     vbroadcastss xmm3, [r8 + 44]     ; b[3][2]
-    vfmadd231ps xmm14, xmm11, xmm3
+    vfmadd231ps xmm4, xmm11, xmm3
 
-    vmovups [rcx + 32], xmm14
+    vmovups [rcx + 32], xmm4
 
     ; Process output column 3
     vbroadcastss xmm0, [r8 + 48]     ; b[0][3]
-    vmulps xmm15, xmm8, xmm0
+    vmulps xmm4, xmm8, xmm0
 
     vbroadcastss xmm1, [r8 + 52]     ; b[1][3]
-    vfmadd231ps xmm15, xmm9, xmm1
+    vfmadd231ps xmm4, xmm9, xmm1
 
     vbroadcastss xmm2, [r8 + 56]     ; b[2][3]
-    vfmadd231ps xmm15, xmm10, xmm2
+    vfmadd231ps xmm4, xmm10, xmm2
 
     vbroadcastss xmm3, [r8 + 60]     ; b[3][3]
-    vfmadd231ps xmm15, xmm11, xmm3
+    vfmadd231ps xmm4, xmm11, xmm3
 
-    vmovups [rcx + 48], xmm15
+    vmovups [rcx + 48], xmm4
 
     EPILOGUE
 
