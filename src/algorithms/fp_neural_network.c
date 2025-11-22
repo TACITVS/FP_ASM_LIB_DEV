@@ -21,9 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <time.h>
 #include "../include/fp_core.h"          // L0: Assembly primitives
 #include "../include/fp_stats_v3_pure.h" // L1: Pure FP statistics
+#include "../include/fp_rng.h"           // Deterministic RNG
 
 // ============================================================================
 // Pattern 1: Array Statistics - USING L1 LIBRARY (NO IMPERATIVE LOOPS!)
@@ -138,7 +138,8 @@ static void softmax(const double* input, double* output, int n) {
 // ============================================================================
 
 // Create neural network with Xavier initialization
-NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs) {
+// REFACTORED: Uses fp_rng for deterministic, reproducible weight initialization
+NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs, uint64_t seed) {
     NeuralNetwork net;
     net.n_inputs = n_inputs;
     net.n_hidden = n_hidden;
@@ -150,18 +151,15 @@ NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs
     net.W2 = (double*)malloc(n_outputs * n_hidden * sizeof(double));
     net.b2 = (double*)calloc(n_outputs, sizeof(double));
 
-    // Xavier initialization for W1
-    srand(42);
+    // DETERMINISTIC: Use fp_rng for Xavier initialization
+    fp_rng_t rng = fp_rng_create(seed);
     double std1 = sqrt(2.0 / (n_inputs + n_hidden));
-    for (int i = 0; i < n_hidden * n_inputs; i++) {
-        net.W1[i] = ((double)rand() / RAND_MAX - 0.5) * 2.0 * std1;
-    }
+    rng = fp_rng_fill_f64_range(rng, net.W1, (size_t)(n_hidden * n_inputs), -std1, std1);
 
     // Xavier initialization for W2
     double std2 = sqrt(2.0 / (n_hidden + n_outputs));
-    for (int i = 0; i < n_outputs * n_hidden; i++) {
-        net.W2[i] = ((double)rand() / RAND_MAX - 0.5) * 2.0 * std2;
-    }
+    rng = fp_rng_fill_f64_range(rng, net.W2, (size_t)(n_outputs * n_hidden), -std2, std2);
+    (void)rng;  // Suppress unused warning
 
     return net;
 }
