@@ -49,9 +49,11 @@ build/tmp/
 
 # Claude Code temporary files
 .claude/
-.github/
 benchmarks/logs/
 research_notes.md
+
+# Keep .github for workflows
+# !.github/
 
 # Windows specific
 Thumbs.db
