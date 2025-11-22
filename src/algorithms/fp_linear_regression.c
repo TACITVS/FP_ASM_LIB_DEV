@@ -25,35 +25,35 @@
 #include <string.h>
 #include <math.h>
 #include "fp_core.h"
+#include "fp_rng.h"
 
-// Pattern 1 helpers (lightweight inline versions to avoid dependency issues)
-// These follow the Pattern 1 style from fp_stats.h but are self-contained
+// Pattern 1 helpers - NOW USING ASM PRIMITIVES
+// Refactored to use fp_reduce_add_f64 instead of for loops
 
 static inline double fp_mean_inline(const double* data, size_t n) {
     if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) sum += data[i];
+    // L0 ASM: SIMD reduction
+    double sum = fp_reduce_add_f64(data, n);
     return sum / (double)n;
 }
 
 static inline double fp_variance_inline(const double* data, size_t n, double mean) {
     if (!data || n == 0) return 0.0;
-    double sum_sq = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq += diff * diff;
-    }
-    return sum_sq / (double)n;
+    // L0 ASM: Var(X) = E[X²] - E[X]²
+    // sum_sq = data · data (dot product with self)
+    double sum_sq = fp_fold_dotp_f64(data, data, n);
+    double mean_sq = sum_sq / (double)n;  // E[X²]
+    return mean_sq - mean * mean;         // E[X²] - E[X]²
 }
 
 static inline double fp_covariance_inline(const double* x, const double* y, size_t n,
                                           double mean_x, double mean_y) {
     if (!x || !y || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += (x[i] - mean_x) * (y[i] - mean_y);
-    }
-    return sum / (double)n;
+    // L0 ASM: Cov(X,Y) = E[XY] - E[X]E[Y]
+    // sum_xy = x · y (dot product)
+    double sum_xy = fp_fold_dotp_f64(x, y, n);
+    double mean_xy = sum_xy / (double)n;  // E[XY]
+    return mean_xy - mean_x * mean_y;     // E[XY] - E[X]E[Y]
 }
 
 // Linear regression model structure
@@ -84,15 +84,10 @@ static void predict(
     int n,                     // number of samples
     int d                      // number of features
 ) {
+    // L0 ASM: Use fp_fold_dotp_f64 for each row's dot product
     for (int i = 0; i < n; i++) {
-        // Start with bias term
-        y_pred[i] = weights[0];
-
-        // Add weighted sum of features using fp_fold_dotp_f64
-        // Could optimize this by using fp_fold_dotp_f64 directly
-        for (int j = 0; j < d; j++) {
-            y_pred[i] += weights[j + 1] * X[i * d + j];
-        }
+        // bias + (row_i · weights[1:d+1])
+        y_pred[i] = weights[0] + fp_fold_dotp_f64(&X[i * d], &weights[1], (size_t)d);
     }
 }
 
@@ -103,14 +98,14 @@ static double compute_mse(
     const double* y_true,
     int n
 ) {
-    double sum_squared_error = 0.0;
+    // L0 ASM: Compute errors using fp_map_axpy_f64: error = pred + (-1)*true
+    double* errors = (double*)malloc((size_t)n * sizeof(double));
+    fp_map_axpy_f64(y_true, y_pred, errors, (size_t)n, -1.0);  // errors = y_pred - y_true
 
-    // Could use fp_fold_sumsq_f64 here after computing differences
-    for (int i = 0; i < n; i++) {
-        double error = y_pred[i] - y_true[i];
-        sum_squared_error += error * error;
-    }
+    // L0 ASM: Sum of squared errors = errors · errors
+    double sum_squared_error = fp_fold_dotp_f64(errors, errors, (size_t)n);
 
+    free(errors);
     return sum_squared_error / n;
 }
 
@@ -215,6 +210,7 @@ static void compute_gradients(
 
 // Gradient Descent optimizer
 // Minimizes MSE loss using iterative updates: w = w - learning_rate * gradient
+// REFACTORED: Now takes seed for deterministic initialization (no rand())
 GradientDescentResult fp_linear_regression_gradient_descent(
     const double* X,              // n × d feature matrix
     const double* y,              // n-element target vector
@@ -222,7 +218,8 @@ GradientDescentResult fp_linear_regression_gradient_descent(
     int d,                        // number of features
     double learning_rate,         // step size (typically 0.001 - 0.1)
     int max_iterations,           // maximum iterations
-    double convergence_threshold  // stop if loss change < threshold
+    double convergence_threshold, // stop if loss change < threshold
+    uint64_t seed                 // RNG seed for deterministic initialization
 ) {
     GradientDescentResult result;
     result.model.n_features = d;
@@ -234,10 +231,9 @@ GradientDescentResult fp_linear_regression_gradient_descent(
     double* y_pred = (double*)malloc(n * sizeof(double));
     double* gradients = (double*)malloc((d + 1) * sizeof(double));
 
-    // Initialize weights to small random values
-    for (int i = 0; i <= d; i++) {
-        result.model.weights[i] = ((double)rand() / RAND_MAX) * 0.01;
-    }
+    // DETERMINISTIC: Initialize weights using fp_rng (no rand()!)
+    fp_rng_t rng = fp_rng_create(seed);
+    rng = fp_rng_fill_f64_range(rng, result.model.weights, (size_t)(d + 1), -0.01, 0.01);
 
     double prev_loss = INFINITY;
 
@@ -261,11 +257,10 @@ GradientDescentResult fp_linear_regression_gradient_descent(
         // 4. Compute gradients
         compute_gradients(X, y, y_pred, gradients, n, d);
 
-        // 5. Update weights: w = w - learning_rate * gradient
-        // This could use fp_map_axpy_f64 for SIMD acceleration
-        for (int i = 0; i <= d; i++) {
-            result.model.weights[i] -= learning_rate * gradients[i];
-        }
+        // 5. L0 ASM: Update weights using fp_map_axpy_f64
+        // w = w + (-learning_rate) * gradient
+        fp_map_axpy_f64(gradients, result.model.weights, result.model.weights,
+                        (size_t)(d + 1), -learning_rate);
     }
 
     // Compute final loss
