@@ -34,8 +34,8 @@ jobs:
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
-          # Using API key authentication - add ANTHROPIC_API_KEY to repo secrets
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Using OAuth token - run /install-github-app in Claude Code CLI to set up
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
