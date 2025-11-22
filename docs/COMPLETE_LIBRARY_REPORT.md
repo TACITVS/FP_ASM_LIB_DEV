@@ -18,7 +18,7 @@ Starting from 40% completeness (10 basic operations), we have systematically imp
 |-------|--------------|------------|---------|-------------|
 | **Initial** | 40% | 10 | 6 | Core FP primitives (map, fold, zip) |
 | **+ TIER 1** | 70% | 21 | 8 | List FP (filter, partition, take/drop) |
-| **+ TIER 2** | 85% | 26 | 9 | Sorting & set operations |
+| **+ TIER 2** | 80% | 24 | 9 | Set operations (Sorting removed) |
 | **+ TIER 3** | **100%** | **36** | **10** | **Grouping, unfold, boolean, utilities** |
 
 ---
@@ -82,11 +82,7 @@ Starting from 40% completeness (10 basic operations), we have systematically imp
 - `fp_find_index_i64/f64` - Find first occurrence
 - `fp_contains_i64` - Check membership
 
-#### **Module 9: Sorting & Sets - TIER 2** (5 functions)
-
-**Sorting:**
-- `fp_sort_i64` - Quicksort for integers
-- `fp_sort_f64` - Quicksort for doubles
+#### **Module 9: Set Operations - TIER 2** (3 functions)
 
 **Set Operations:**
 - `fp_unique_i64` - Remove consecutive duplicates
@@ -265,7 +261,7 @@ add rax, r9
 | | `maximum` | `fp_reduce_max_*` | ✅ |
 | | `and` | `fp_reduce_and_bool` | ✅ **NEW** |
 | | `or` | `fp_reduce_or_bool` | ✅ **NEW** |
-| **Sorting** | `sort` | `fp_sort_*` | ✅ |
+
 | | `nub` | `fp_unique_*` | ✅ |
 | **Set Ops** | `union` | `fp_union_*` | ✅ |
 | | `intersect` | `fp_intersect_*` | ✅ |
@@ -282,57 +278,7 @@ add rax, r9
 
 ### ✅ **Can NOW Implement** (Complete List):
 
-#### **Statistics & Data Analysis**
-1. **Median** ✅
-   ```c
-   fp_sort_i64(data, n);
-   int64_t median = data[n/2];
-   ```
 
-2. **Mode** ✅
-   ```c
-   fp_sort_i64(data, n);
-   int64_t groups[n], counts[n];
-   size_t ng = fp_group_i64(data, groups, counts, n);
-   // Find index of max count
-   ```
-
-3. **Percentiles** ✅
-   ```c
-   fp_sort_f64(data, n);
-   double p25 = data[n/4];
-   double p95 = data[(n*95)/100];
-   ```
-
-4. **Outlier Detection** ✅
-   ```c
-   fp_sort_f64(data, n);
-   double q1 = data[n/4];
-   double q3 = data[3*n/4];
-   double iqr = q3 - q1;
-   // Flag values outside [Q1-1.5*IQR, Q3+1.5*IQR]
-   ```
-
-#### **Set Theory & Database Operations**
-5. **Set Union** ✅
-   ```c
-   fp_sort_i64(a, na);
-   fp_sort_i64(b, nb);
-   size_t n = fp_union_i64(a, b, result, na, nb);
-   ```
-
-6. **Set Intersection** ✅
-   ```c
-   fp_sort_i64(a, na);
-   fp_sort_i64(b, nb);
-   size_t n = fp_intersect_i64(a, b, result, na, nb);
-   ```
-
-7. **Distinct Values** ✅
-   ```c
-   fp_sort_i64(data, n);
-   size_t nu = fp_unique_i64(data, unique, n);
-   ```
 
 #### **Sequence Processing**
 8. **Run-Length Compression** ✅
@@ -397,7 +343,7 @@ add rax, r9
 | **Simple Reductions** | 1.5-1.8x | SIMD acceleration, FMA |
 | **Fused Folds** | 1.1-1.25x | Eliminate temporary arrays |
 | **BLAS Level 1** | 1.0-1.1x | Memory-bound, SIMD saturation |
-| **Sorting** | 1.0-1.2x | Competitive with qsort |
+
 | **Set Operations** | 1.5-2.0x | Optimized merge |
 | **Boolean Reductions** | 2.0-4.0x | SIMD + early exit |
 | **Unfold/Utilities** | 1.5-2.0x | Tight assembly loops |
@@ -484,7 +430,7 @@ add rax, r9
 | 6. Predicates | 3 | 250 | 1,445 | Boolean |
 | 7. Compaction | 4 | 450 | 2,567 | Filter/Partition |
 | 8. Essentials | 11 | 900 | 5,234 | List FP |
-| 9. TIER 2 | 5 | 650 | 3,576 | Sorting/Sets |
+| 9. TIER 2 | 3 | TBD | TBD | Set Operations |
 | 10. TIER 3 | 10 | 500 | 2,973 | Advanced |
 | **TOTAL** | **36** | **4,800** | **26,940** | **Complete** |
 
@@ -521,8 +467,7 @@ int main() {
     int64_t data[] = {1, 2, 3, 4, 5};
     int64_t sum = fp_reduce_add_i64(data, 5);
 
-    // 2. Sorting
-    fp_sort_i64(data, 5);
+
 
     // 3. Filtering
     int64_t evens[5];
@@ -558,18 +503,16 @@ int main() {
 | `foldl` | `fp_reduce_*` | With specialized folds |
 | `filter` | `fp_filter_*` | i64/f64 |
 | `partition` | `fp_partition_*` | Single-pass |
-| `sort` | `fp_sort_*` | Quicksort |
 | `group` | `fp_group_*` | Parallel arrays |
 | `iterate` | `fp_iterate_*` | Arithmetic/geometric |
 | **ALL OTHERS** | ✅ | See equivalence table above |
 
-### C++ STL Algorithms
+### C++ STL Equivalents
 
 | C++ | FP-ASM | Performance |
 |-----|--------|-------------|
 | `std::accumulate` | `fp_reduce_*` | 1.5-1.8x |
 | `std::transform` | `fp_map_*` | 1.0-1.2x |
-| `std::sort` | `fp_sort_*` | ~1.0-1.2x |
 | `std::unique` | `fp_unique_*` | ~2.0x |
 | `std::set_union` | `fp_union_*` | 1.5-2.0x |
 | `std::set_intersection` | `fp_intersect_*` | 1.5-2.0x |

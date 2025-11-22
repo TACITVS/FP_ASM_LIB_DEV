@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Successfully implemented **5 critical operations** for sorting and set theory, completing the FP standard library to ~85% coverage. These operations enable:
+Successfully implemented **3 critical operations** for set theory, bringing the FP standard library closer to completion. These operations enable:
 - Median/mode calculation
 - Set-theoretic operations
 - Sorted array algorithms
@@ -22,8 +22,6 @@ Successfully implemented **5 critical operations** for sorting and set theory, c
 
 | Category | Function | Haskell | Lines | Description |
 |----------|----------|---------|-------|-------------|
-| **Sorting** | `fp_sort_i64` | `sort` | ~180 | Quicksort + insertion sort for small arrays |
-| | `fp_sort_f64` | `sort` | ~180 | Quicksort optimized for floating point |
 | **Set Ops** | `fp_unique_i64` | `nub` | ~45 | Remove consecutive duplicates |
 | | `fp_union_i64` | `union` | ~90 | Merge two sorted sets (with dedup) |
 | | `fp_intersect_i64` | `intersect` | ~65 | Common elements from two sorted sets |
@@ -32,42 +30,6 @@ Successfully implemented **5 critical operations** for sorting and set theory, c
 
 ---
 
-## Implementation Highlights
-
-### 1. **Sorting Algorithm** - Quicksort with Optimizations
-
-**Why Quicksort**:
-- O(n log n) average case
-- In-place (no extra memory)
-- Cache-friendly with optimizations
-- Better than O(n log n) guaranteed algorithms for real data
-
-**Optimizations**:
-```nasm
-; 1. Median-of-Three Pivot Selection
-; Reduces worst-case probability by choosing better pivots
-mov r13, low
-mov r14, high
-mov rbx, (low + high) / 2
-; Sort three values, use median as pivot
-
-; 2. Insertion Sort for Small Arrays (n < 16)
-; Faster than quicksort for small subarrays
-cmp array_size, 16
-jl use_insertion_sort
-
-; 3. Tail Recursion Optimization
-; Recurse on smaller partition, loop on larger
-; Reduces stack depth from O(n) to O(log n)
-```
-
-**Performance Characteristics**:
-- **Average case**: O(n log n) - ~1.0-1.2x vs C qsort
-- **Best case**: O(n log n) - slightly faster than qsort due to fewer function calls
-- **Worst case**: O(n²) - mitigated by median-of-3
-- **Space**: O(log n) stack due to tail recursion
-
----
 
 ### 2. **Set Operations** - Linear Merge Algorithms
 
@@ -118,7 +80,7 @@ mov [output], r9     ; Copy if unique
 | **Predicates** | all, any | 100% | ✅ |
 | **Search** | find_index, contains | 100% | ✅ |
 | **Manipulation** | reverse, concat, replicate | 100% | ✅ |
-| **Sorting** | sort | 100% | ✅ **NEW** |
+| **Sorting** | sort | 0% | ❌ (Removed) |
 | **Set Ops** | unique, union, intersect | 100% | ✅ **NEW** |
 
 ### ⚠️ **Remaining Gaps** (~15% - Advanced/Rare):
@@ -132,63 +94,11 @@ mov [output], r9     ; Copy if unique
 
 ---
 
-## Real-World Algorithm Capability
-
-### ✅ **Can NOW Implement**:
-
-1. **Median** ✅
-   ```c
-   fp_sort_i64(arr, n);
-   int64_t median = arr[n/2];
-   ```
-
-2. **Mode** ✅
-   ```c
-   fp_sort_i64(arr, n);
-   int64_t unique[n];
-   size_t nu = fp_unique_i64(arr, unique, n);
-   // Count consecutive runs in sorted array
-   ```
-
-3. **Set Union** ✅
-   ```c
-   fp_sort_i64(a, na);
-   fp_sort_i64(b, nb);
-   size_t n = fp_union_i64(a, b, result, na, nb);
-   ```
-
-4. **Set Intersection** ✅
-   ```c
-   fp_sort_i64(a, na);
-   fp_sort_i64(b, nb);
-   size_t n = fp_intersect_i64(a, b, result, na, nb);
-   ```
-
-5. **Sorted Binary Search** ✅ (via fp_find_index on sorted array)
-
-6. **Percentiles** ✅
-   ```c
-   fp_sort_i64(arr, n);
-   int64_t p50 = arr[n/2];
-   int64_t p95 = arr[(n*95)/100];
-   ```
-
-### ✅ **Complete FP Algorithms Now Possible**:
-
-- **Data analysis**: median, mode, percentiles, outlier detection
-- **Database operations**: JOIN (intersection), UNION, DISTINCT (unique)
-- **Statistics**: quartiles, IQR, sorted distributions
-- **Algorithms**: merge sort, k-th element, sorted search
-- **Set theory**: all basic set operations
-
----
 
 ## Performance Expectations
 
 | Operation | Expected vs C qsort | Why |
 |-----------|-------------------|-----|
-| `fp_sort_i64` | 1.0-1.2x | Fewer function call overhead, tail recursion |
-| `fp_sort_f64` | 1.0-1.2x | Same algorithm, SSE comparisons |
 | `fp_unique_i64` | 2.0-3.0x | Simple loop vs complex C++ std::unique |
 | `fp_union_i64` | 1.5-2.0x | Optimized merge vs std::set_union |
 | `fp_intersect_i64` | 1.5-2.0x | Optimized merge vs std::set_intersection |
@@ -197,65 +107,6 @@ mov [output], r9     ; Copy if unique
 
 ---
 
-## Usage Examples
-
-### Example 1: Find Median
-
-```c
-#include "fp_core.h"
-
-int64_t find_median(int64_t* data, size_t n) {
-    fp_sort_i64(data, n);  // Sort in-place
-    return data[n / 2];     // Middle element
-}
-```
-
-### Example 2: Remove Duplicates
-
-```c
-int64_t data[] = {5, 2, 8, 2, 1, 5, 9};
-fp_sort_i64(data, 7);  // Sort first
-
-int64_t unique[7];
-size_t count = fp_unique_i64(data, unique, 7);
-// unique = [1, 2, 5, 8, 9], count = 5
-```
-
-### Example 3: Database-style Operations
-
-```c
-// Given two sorted customer ID lists
-int64_t customers_a[1000];  // Sorted
-int64_t customers_b[1500];  // Sorted
-
-// Find common customers (INNER JOIN)
-int64_t common[1000];
-size_t n_common = fp_intersect_i64(customers_a, customers_b, common, 1000, 1500);
-
-// Find all customers (UNION / FULL OUTER JOIN)
-int64_t all[2500];
-size_t n_all = fp_union_i64(customers_a, customers_b, all, 1000, 1500);
-```
-
-### Example 4: Statistical Analysis
-
-```c
-double measurements[10000];
-// ... collect data ...
-
-// Sort for percentile analysis
-fp_sort_f64(measurements, 10000);
-
-// Calculate quartiles
-double q1 = measurements[2500];   // 25th percentile
-double median = measurements[5000]; // 50th percentile
-double q3 = measurements[7500];   // 75th percentile
-double iqr = q3 - q1;             // Interquartile range
-
-// Outlier detection: values outside [Q1 - 1.5*IQR, Q3 + 1.5*IQR]
-```
-
----
 
 ## Files Created
 
@@ -322,20 +173,18 @@ fp_intersect_i64(a, b, result, na, nb);
 
 | Haskell Function | FP-ASM | Status |
 |------------------|---------|--------|
-| `sort` | `fp_sort_i64/f64` | ✅ |
 | `nub` | `fp_unique_i64` | ✅ |
 | `union` | `fp_union_i64` | ✅ |
 | `intersect` | `fp_intersect_i64` | ✅ |
 | `group` | — | ❌ (TIER 3) |
 | `groupBy` | — | ❌ (TIER 3) |
 
-**Coverage**: ~92% of commonly-used Haskell list operations
+**Coverage**: TBD% of commonly-used Haskell list operations
 
 ### C++ STL Equivalents:
 
 | C++ Algorithm | FP-ASM | Performance |
 |---------------|---------|-------------|
-| `std::sort` | `fp_sort_*` | Competitive (~1.0-1.2x) |
 | `std::unique` | `fp_unique_i64` | Faster (~2.0x) |
 | `std::set_union` | `fp_union_i64` | Faster (~1.5-2.0x) |
 | `std::set_intersection` | `fp_intersect_i64` | Faster (~1.5-2.0x) |
@@ -372,7 +221,7 @@ fp_intersect_i64(a, b, result, na, nb);
 
 ### After (85%):
 - **Everything above PLUS:**
-- ✅ Complete sorting support
+
 - ✅ Set-theoretic operations
 - ✅ Statistical operations (via sort)
 - ✅ Database-style operations
