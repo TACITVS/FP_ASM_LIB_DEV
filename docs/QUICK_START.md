@@ -10,7 +10,7 @@
 2. [Your First Program](#your-first-program)
 3. [Basic Operations](#basic-operations)
 4. [List Operations](#list-operations)
-5. [Sorting & Sets](#sorting--sets)
+
 6. [Advanced Patterns](#advanced-patterns)
 7. [Real-World Applications](#real-world-applications)
 8. [Performance Tips](#performance-tips)
@@ -303,85 +303,6 @@ Slice [2..5): 30 40 50
 
 ---
 
-## Sorting & Sets
-
-### Lesson 7: Sorting and Statistics
-
-```c
-#include <stdio.h>
-#include <string.h>
-#include "fp_core.h"
-
-int main() {
-    double data[] = {25.5, 19.2, 31.8, 22.3, 28.7};
-    size_t n = 5;
-
-    // Make a copy (sorting is in-place)
-    double sorted[5];
-    memcpy(sorted, data, n * sizeof(double));
-
-    // Sort (1.0-1.2x faster than qsort)
-    fp_sort_f64(sorted, n);
-
-    printf("Original: ");
-    for (size_t i = 0; i < n; i++) printf("%.1f ", data[i]);
-
-    printf("\nSorted: ");
-    for (size_t i = 0; i < n; i++) printf("%.1f ", sorted[i]);
-
-    printf("\n\nStatistics:\n");
-    printf("Min: %.1f\n", sorted[0]);
-    printf("Q1:  %.1f\n", sorted[n/4]);
-    printf("Median: %.1f\n", sorted[n/2]);
-    printf("Q3:  %.1f\n", sorted[3*n/4]);
-    printf("Max: %.1f\n", sorted[n-1]);
-
-    return 0;
-}
-```
-
----
-
-### Lesson 8: Set Operations
-
-Work with sets using sorted arrays.
-
-```c
-#include <stdio.h>
-#include "fp_core.h"
-
-void print_set(const char* name, int64_t* arr, size_t n) {
-    printf("%s: {", name);
-    for (size_t i = 0; i < n; i++) {
-        printf("%lld", arr[i]);
-        if (i < n-1) printf(", ");
-    }
-    printf("}\n");
-}
-
-int main() {
-    int64_t a[] = {1, 3, 5, 7, 9};
-    int64_t b[] = {2, 3, 5, 8, 9};
-    size_t na = 5, nb = 5;
-
-    // Both arrays must be sorted!
-    fp_sort_i64(a, na);
-    fp_sort_i64(b, nb);
-
-    // Union (all unique elements)
-    int64_t union_result[10];
-    size_t n_union = fp_union_i64(a, b, union_result, na, nb);
-    print_set("A ∪ B", union_result, n_union);
-
-    // Intersection (common elements)
-    int64_t intersect_result[5];
-    size_t n_intersect = fp_intersect_i64(a, b, intersect_result, na, nb);
-    print_set("A ∩ B", intersect_result, n_intersect);
-
-    return 0;
-}
-```
-
 **Output**:
 ```
 A ∪ B: {1, 2, 3, 5, 7, 8, 9}
@@ -518,93 +439,7 @@ int main() {
 
 ## Real-World Applications
 
-### Application 1: Finding the Mode
 
-The most frequent value in a dataset.
-
-```c
-#include <stdio.h>
-#include "fp_core.h"
-
-int64_t find_mode(int64_t* data, size_t n) {
-    // Sort data first
-    fp_sort_i64(data, n);
-
-    // Group consecutive equal values
-    int64_t groups[n], counts[n];
-    size_t ng = fp_group_i64(data, groups, counts, n);
-
-    // Find maximum count
-    int64_t max_count = fp_reduce_max_i64(counts, ng);
-
-    // Find which group has that count
-    int64_t max_idx = fp_find_index_i64(counts, ng, max_count);
-
-    // Return the value (mode)
-    return groups[max_idx];
-}
-
-int main() {
-    int64_t votes[] = {1, 2, 1, 3, 1, 2, 1, 4};
-    size_t n = 8;
-
-    int64_t mode = find_mode(votes, n);
-
-    printf("Votes: ");
-    for (size_t i = 0; i < n; i++) printf("%lld ", votes[i]);
-    printf("\nMode (most common): %lld\n", mode);
-
-    return 0;
-}
-```
-
----
-
-### Application 2: Outlier Detection
-
-Remove values outside acceptable range.
-
-```c
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include "fp_core.h"
-
-void detect_outliers(double* data, size_t n) {
-    // Make a sorted copy
-    double sorted[n];
-    memcpy(sorted, data, n * sizeof(double));
-    fp_sort_f64(sorted, n);
-
-    // Calculate IQR (Interquartile Range)
-    double q1 = sorted[n/4];
-    double q3 = sorted[3*n/4];
-    double iqr = q3 - q1;
-
-    // Outlier boundaries: Q1 - 1.5×IQR, Q3 + 1.5×IQR
-    double lower = q1 - 1.5 * iqr;
-    double upper = q3 + 1.5 * iqr;
-
-    printf("Q1: %.2f, Q3: %.2f, IQR: %.2f\n", q1, q3, iqr);
-    printf("Outlier range: [%.2f, %.2f]\n\n", lower, upper);
-
-    printf("Value | Status\n");
-    printf("------+--------\n");
-    for (size_t i = 0; i < n; i++) {
-        if (data[i] < lower || data[i] > upper) {
-            printf("%5.1f | OUTLIER\n", data[i]);
-        } else {
-            printf("%5.1f | OK\n", data[i]);
-        }
-    }
-}
-
-int main() {
-    double data[] = {10.2, 11.5, 12.1, 11.8, 50.0, 12.3, 11.9};
-    detect_outliers(data, 7);
-    return 0;
-}
-```
 
 ---
 
@@ -628,25 +463,7 @@ int64_t sumsq = fp_fold_sumsq_i64(data, n);
 
 ---
 
-### Tip 2: Sort Once, Use Many Times
-
-```c
-// Sort once
-fp_sort_f64(data, n);
-
-// Now you can cheaply:
-double median = data[n/2];
-double min = data[0];
-double max = data[n-1];
-double q1 = data[n/4];
-double q3 = data[3*n/4];
-
-// And use set operations
-size_t unique_count = fp_unique_i64(data, unique, n);
-```
-
 ---
-
 ### Tip 3: Choose the Right Data Type
 
 - Use `int64_t` for exact calculations (counts, IDs, indices)
@@ -684,7 +501,7 @@ Always allocate enough space for worst case!
 | **Max** | `fp_reduce_max_*` | `max = fp_reduce_max_f64(arr, n)` |
 | **Dot product** | `fp_fold_dotp_*` | `dot = fp_fold_dotp_f64(a, b, n)` |
 | **Prefix sum** | `fp_scan_add_*` | `fp_scan_add_i64(in, out, n)` |
-| **Sort** | `fp_sort_*` | `fp_sort_f64(arr, n)` |
+
 | **Filter** | `fp_filter_*` | `n2 = fp_filter_i64(in, out, n, pred)` |
 | **Group** | `fp_group_*` | `ng = fp_group_i64(in, g, c, n)` |
 | **Range** | `fp_range_*` | `n = fp_range_i64(out, 0, 100)` |

@@ -388,27 +388,7 @@ fp_iterate_mul_i64(1, 2, powers_of_2, 10);
 // [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 ```
 
-### Mode Calculation (Statistics):
-```c
-// Find the most common value in dataset
-int64_t data[1000];
-fp_sort_i64(data, 1000);  // Sort first
 
-int64_t groups[1000], counts[1000];
-size_t n_groups = fp_group_i64(data, groups, counts, 1000);
-
-// Find group with maximum count
-size_t max_idx = 0;
-for (size_t i = 1; i < n_groups; i++) {
-    if (counts[i] > counts[max_idx]) {
-        max_idx = i;
-    }
-}
-
-int64_t mode = groups[max_idx];
-int64_t mode_count = counts[max_idx];
-printf("Mode: %lld (appears %lld times)\n", mode, mode_count);
-```
 
 ---
 
