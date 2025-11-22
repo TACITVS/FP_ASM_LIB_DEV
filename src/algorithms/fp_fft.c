@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "fp_rng.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -345,11 +346,15 @@ void fp_generate_square(double* signal, int n, double frequency, double amplitud
 }
 
 // Add Gaussian white noise
-void fp_add_noise(double* signal, int n, double noise_level) {
+// REFACTORED: Uses fp_rng for deterministic, reproducible noise
+void fp_add_noise(double* signal, int n, double noise_level, uint64_t seed) {
+    fp_rng_t rng = fp_rng_create(seed);
     for (int i = 0; i < n; i++) {
-        // Box-Muller transform for Gaussian noise
-        double u1 = (double)rand() / RAND_MAX;
-        double u2 = (double)rand() / RAND_MAX;
+        // Box-Muller transform for Gaussian noise (deterministic)
+        double u1, u2;
+        rng = fp_rng_next_f64(rng, &u1);
+        rng = fp_rng_next_f64(rng, &u2);
+        if (u1 < 1e-10) u1 = 1e-10;  // Avoid log(0)
         double noise = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
         signal[i] += noise_level * noise;
     }
