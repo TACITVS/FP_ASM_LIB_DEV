@@ -30,7 +30,7 @@ This PR contains comprehensive improvements to the x64 AVX2 assembly codebase ba
    - Solution: Changed 4th accumulator from r10 to rdx
 
 **Test Coverage:**
-- Created comprehensive test suite: `tests/test_reductions_critical.c` (358 lines)
+- Created comprehensive test suite: `tests/critical/test_reductions_critical.c` (358 lines)
 - All 7 data types tested and passing (u64, u32, i32, i16, u16, i8, u8)
 - Tests verify: bounds checking, null handling, ABI compliance, register preservation
 
@@ -60,8 +60,8 @@ This PR contains comprehensive improvements to the x64 AVX2 assembly codebase ba
 - `src/asm/macros/*.asm` (new macro library)
 
 **Test Files:**
-- `tests/test_reductions_critical.c` (NEW)
-- `build_test_critical.bat` (NEW)
+- `tests/critical/test_reductions_critical.c` (NEW)
+- `scripts/build/build_test_critical.bat` (NEW)
 
 **Documentation:**
 - `PR_SUMMARY.md` (detailed bug fix documentation)
