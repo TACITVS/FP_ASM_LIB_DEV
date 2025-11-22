@@ -1,19 +1,21 @@
 // fp_pca.c
 //
-// Principal Component Analysis (PCA)
+// Principal Component Analysis (PCA) - Refactored with L0 ASM Primitives
 // Demonstrates dimensionality reduction and eigenvalue decomposition
 //
-// This showcases:
-// - Covariance matrix computation
-// - Eigenvalue decomposition (power iteration + deflation)
-// - Dimensionality reduction
-// - Variance explanation analysis
-// - Data projection and reconstruction
+// REFACTORED: Now uses L0 ASM primitives for SIMD acceleration:
+//   - fp_reduce_add_f64() - Mean computation
+//   - fp_fold_dotp_f64() - Dot products, norms, matrix-vector multiply
+//   - fp_map_scale_f64() - Vector scaling
+//   - fp_map_axpy_f64() - Vector subtraction
+//   - fp_rng - Deterministic initialization (no rand()!)
 //
 // FP Primitives Used:
-// - Matrix operations (multiply, transpose)
-// - Statistical computations (mean, variance, covariance)
-// - Iterative algorithms (power method)
+//   - fp_reduce_add_f64: mean computation (sum / n)
+//   - fp_fold_dotp_f64: dot products, ||x||², matrix rows × vector
+//   - fp_map_scale_f64: y = α * x
+//   - fp_map_axpy_f64: z = x + α*y (used for subtraction with α=-1)
+//   - fp_rng_*: deterministic random initialization
 //
 // Applications:
 // - Feature extraction (compress 1000 features → 10)
@@ -26,6 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "fp_core.h"
+#include "fp_rng.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -36,32 +40,28 @@
 // ============================================================================
 
 // Mean: sum / n
+// REFACTORED: Uses L0 ASM fp_reduce_add_f64
 static inline double fp_mean_inline(const double* data, size_t n) {
     if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
+    // L0 ASM: SIMD reduction
+    double sum = fp_reduce_add_f64(data, n);
     return sum / (double)n;
 }
 
 // Dot product: sum(a[i] * b[i])
+// REFACTORED: Uses L0 ASM fp_fold_dotp_f64
 static inline double fp_dot_product_inline(const double* a, const double* b, size_t n) {
     if (!a || !b || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += a[i] * b[i];
-    }
-    return sum;
+    // L0 ASM: SIMD dot product
+    return fp_fold_dotp_f64(a, b, n);
 }
 
 // L2 norm: sqrt(sum(x[i]^2))
+// REFACTORED: Uses L0 ASM fp_fold_dotp_f64 (x·x = ||x||²)
 static inline double fp_l2_norm_inline(const double* x, size_t n) {
     if (!x || n == 0) return 0.0;
-    double sum_sq = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum_sq += x[i] * x[i];
-    }
+    // L0 ASM: ||x||² = x · x (dot product with self)
+    double sum_sq = fp_fold_dotp_f64(x, x, n);
     return sqrt(sum_sq);
 }
 
@@ -120,15 +120,14 @@ typedef struct {
 
 // Matrix-vector multiply: y = A * x
 // A: m × n (row-major), x: n × 1, y: m × 1
+// REFACTORED: Uses L0 ASM fp_fold_dotp_f64 for each row dot product
 static void matrix_vector_multiply(
     const double* A, const double* x, double* y,
     int m, int n
 ) {
     for (int i = 0; i < m; i++) {
-        y[i] = 0.0;
-        for (int j = 0; j < n; j++) {
-            y[i] += A[i * n + j] * x[j];
-        }
+        // L0 ASM: y[i] = row_i · x
+        y[i] = fp_fold_dotp_f64(&A[i * n], x, (size_t)n);
     }
 }
 
@@ -155,17 +154,17 @@ static void vector_normalize(double* x, int n) {
 }
 
 // Vector scale: y = alpha * x
+// REFACTORED: Uses L0 ASM fp_map_scale_f64
 static void vector_scale(const double* x, double alpha, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        y[i] = alpha * x[i];
-    }
+    // L0 ASM: SIMD scalar multiplication
+    fp_map_scale_f64(x, y, (size_t)n, alpha);
 }
 
 // Vector subtract: z = x - y
+// REFACTORED: Uses L0 ASM fp_map_axpy_f64 (z = x + (-1)*y)
 static void vector_subtract(const double* x, const double* y, double* z, int n) {
-    for (int i = 0; i < n; i++) {
-        z[i] = x[i] - y[i];
-    }
+    // L0 ASM: z = x + (-1)*y = x - y
+    fp_map_axpy_f64(y, x, z, (size_t)n, -1.0);
 }
 
 // ============================================================================
@@ -208,13 +207,15 @@ static void compute_covariance_matrix(
 // ============================================================================
 
 // Power iteration: find dominant eigenvector/eigenvalue of symmetric matrix A
+// REFACTORED: Uses fp_rng for deterministic initialization
 // Returns eigenvalue, stores eigenvector in v (must be pre-initialized)
 static double power_iteration(
     const double* A,        // d × d symmetric matrix
     double* v,              // d × 1 eigenvector (in/out)
     int d,                  // Dimension
     int max_iterations,     // Maximum iterations
-    double tolerance        // Convergence threshold
+    double tolerance,       // Convergence threshold
+    fp_rng_t* rng           // RNG state (in/out, deterministic)
 ) {
     double* Av = (double*)malloc(d * sizeof(double));
     double eigenvalue = 0.0;
@@ -223,9 +224,8 @@ static double power_iteration(
     // Initialize v to random unit vector if all zeros
     double v_norm = vector_norm(v, d);
     if (v_norm < 1e-10) {
-        for (int i = 0; i < d; i++) {
-            v[i] = (double)rand() / RAND_MAX;
-        }
+        // DETERMINISTIC: Use fp_rng instead of rand()
+        *rng = fp_rng_fill_f64(*rng, v, (size_t)d);
         vector_normalize(v, d);
     }
 
@@ -267,6 +267,7 @@ static void deflate_matrix(
 }
 
 // Extract top k eigenvectors/eigenvalues using power iteration + deflation
+// REFACTORED: Uses fp_rng for deterministic eigenvector initialization
 static int extract_eigenpairs(
     const double* C_original,   // d × d covariance matrix (input, not modified)
     double* eigenvectors,       // k × d output (row-major)
@@ -274,7 +275,8 @@ static int extract_eigenpairs(
     int d,                      // Dimension
     int k,                      // Number of components to extract
     int max_iterations,         // Max iterations per eigenpair
-    double tolerance            // Convergence threshold
+    double tolerance,           // Convergence threshold
+    fp_rng_t* rng               // RNG state (in/out, deterministic)
 ) {
     // Work on a copy of covariance matrix (will be modified by deflation)
     double* C = (double*)malloc(d * d * sizeof(double));
@@ -287,8 +289,8 @@ static int extract_eigenpairs(
         // Initialize eigenvector guess
         memset(v, 0, d * sizeof(double));
 
-        // Find dominant eigenpair of current matrix
-        eigenvalues[i] = power_iteration(C, v, d, max_iterations, tolerance);
+        // Find dominant eigenpair of current matrix (deterministic)
+        eigenvalues[i] = power_iteration(C, v, d, max_iterations, tolerance, rng);
 
         // Store eigenvector (as row in eigenvectors matrix)
         memcpy(&eigenvectors[i * d], v, d * sizeof(double));
@@ -309,13 +311,15 @@ static int extract_eigenpairs(
 // ============================================================================
 
 // Train PCA model
+// REFACTORED: Added seed parameter for deterministic, reproducible results
 PCAResult fp_pca_fit(
     const double* X,            // n × d data matrix (row-major)
     int n,                      // Number of samples
     int d,                      // Number of features
     int n_components,           // Number of principal components to keep
     int max_iterations,         // Max iterations for eigenvalue extraction
-    double tolerance            // Convergence threshold
+    double tolerance,           // Convergence threshold
+    uint64_t seed               // RNG seed for deterministic eigenvalue extraction
 ) {
     PCAResult result;
     result.converged = 1;
@@ -341,7 +345,8 @@ PCAResult fp_pca_fit(
     double* C = (double*)malloc(d * d * sizeof(double));
     compute_covariance_matrix(X_centered, n, d, C);
 
-    // Step 3: Extract top k eigenvectors/eigenvalues
+    // Step 3: Extract top k eigenvectors/eigenvalues (deterministic)
+    fp_rng_t rng = fp_rng_create(seed);
     result.iterations_used = extract_eigenpairs(
         C,
         result.model.components,
@@ -349,7 +354,8 @@ PCAResult fp_pca_fit(
         d,
         n_components,
         max_iterations,
-        tolerance
+        tolerance,
+        &rng
     );
 
     // Step 4: Compute variance ratios
@@ -465,6 +471,7 @@ double fp_pca_reconstruction_error(
 // ============================================================================
 
 // Generate correlated 2D data (ellipse)
+// REFACTORED: Uses fp_rng for deterministic, reproducible data generation
 void fp_pca_generate_ellipse_data(
     double* X,                  // n × 2 output
     int n,                      // Number of samples
@@ -472,9 +479,10 @@ void fp_pca_generate_ellipse_data(
     double minor_axis,          // Length of minor axis
     double angle,               // Rotation angle (radians)
     double noise_level,         // Gaussian noise
-    unsigned int seed
+    uint64_t seed               // RNG seed for deterministic generation
 ) {
-    srand(seed);
+    // DETERMINISTIC: Use fp_rng instead of srand()/rand()
+    fp_rng_t rng = fp_rng_create(seed);
 
     double cos_a = cos(angle);
     double sin_a = sin(angle);
@@ -485,9 +493,10 @@ void fp_pca_generate_ellipse_data(
         double x = major_axis * cos(t);
         double y = minor_axis * sin(t);
 
-        // Add noise
-        double noise_x = noise_level * (2.0 * (double)rand() / RAND_MAX - 1.0);
-        double noise_y = noise_level * (2.0 * (double)rand() / RAND_MAX - 1.0);
+        // Add noise (deterministic)
+        double noise_x, noise_y;
+        rng = fp_rng_next_f64_range(rng, -noise_level, noise_level, &noise_x);
+        rng = fp_rng_next_f64_range(rng, -noise_level, noise_level, &noise_y);
         x += noise_x;
         y += noise_y;
 
@@ -498,29 +507,27 @@ void fp_pca_generate_ellipse_data(
 }
 
 // Generate high-dimensional data with intrinsic low rank
+// REFACTORED: Uses fp_rng for deterministic, reproducible data generation
 void fp_pca_generate_low_rank_data(
     double* X,                  // n × d output
     int n,                      // Number of samples
     int d,                      // Number of features (high-dimensional)
     int intrinsic_dim,          // True dimensionality (< d)
     double noise_level,         // Noise to add
-    unsigned int seed
+    uint64_t seed               // RNG seed for deterministic generation
 ) {
-    srand(seed);
+    // DETERMINISTIC: Use fp_rng instead of srand()/rand()
+    fp_rng_t rng = fp_rng_create(seed);
 
-    // Generate random low-rank basis
+    // Generate random low-rank basis (deterministic)
     double* basis = (double*)malloc(intrinsic_dim * d * sizeof(double));
-    for (int i = 0; i < intrinsic_dim * d; i++) {
-        basis[i] = 2.0 * (double)rand() / RAND_MAX - 1.0;
-    }
+    rng = fp_rng_fill_f64_range(rng, basis, (size_t)(intrinsic_dim * d), -1.0, 1.0);
 
     // Generate samples in low-dimensional space
     for (int i = 0; i < n; i++) {
-        // Random coefficients
+        // Random coefficients (deterministic)
         double* coeffs = (double*)malloc(intrinsic_dim * sizeof(double));
-        for (int j = 0; j < intrinsic_dim; j++) {
-            coeffs[j] = 2.0 * (double)rand() / RAND_MAX - 1.0;
-        }
+        rng = fp_rng_fill_f64_range(rng, coeffs, (size_t)intrinsic_dim, -1.0, 1.0);
 
         // Project to high-dimensional space: X[i] = basis^T * coeffs
         for (int k = 0; k < d; k++) {
@@ -528,8 +535,10 @@ void fp_pca_generate_low_rank_data(
             for (int j = 0; j < intrinsic_dim; j++) {
                 X[i * d + k] += basis[j * d + k] * coeffs[j];
             }
-            // Add noise
-            X[i * d + k] += noise_level * (2.0 * (double)rand() / RAND_MAX - 1.0);
+            // Add noise (deterministic)
+            double noise_val;
+            rng = fp_rng_next_f64_range(rng, -noise_level, noise_level, &noise_val);
+            X[i * d + k] += noise_val;
         }
 
         free(coeffs);
