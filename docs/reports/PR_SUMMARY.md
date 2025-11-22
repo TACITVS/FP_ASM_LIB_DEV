@@ -1,3 +1,5 @@
+> **Reviewer's Note:** The descriptions of the commits and changes in this document were authored at the time of their creation. Subsequent analysis has indicated that the state of the codebase may not perfectly match all claims made here. Some features may be incomplete, and some paths may be outdated. Please use this document as a guide but verify against the current source code.
+
 # Pull Request: Critical Bug Fixes for Assembly Reduction Functions
 
 ## Summary
@@ -81,9 +83,8 @@ This caused pointer to be overwritten with data, then dereferenced → **SEGFAUL
 - Basic correctness smoke tests
 
 **Files:**
-- `tests/test_reductions_critical.c` (358 lines, 20+ test cases)
-- `build_test_critical.bat` (build script)
-
+    - `tests/critical/test_reductions_critical.c` (358 lines, 20+ test cases)
+    - `scripts/build/build_test_critical.bat` (build script)
 ---
 
 ## Files Modified
@@ -95,8 +96,8 @@ src/asm/fp_core_reductions_i16.asm  (68 additions, 32 deletions)
 src/asm/fp_core_reductions_u16.asm  (68 additions, 32 deletions)
 src/asm/fp_core_reductions_i8.asm   (64 additions, 28 deletions)
 src/asm/fp_core_reductions_u8.asm   (64 additions, 28 deletions)
-tests/test_reductions_critical.c     (358 additions) - NEW
-build_test_critical.bat              (57 additions) - NEW
+tests/critical/test_reductions_critical.c     (358 additions) - NEW
+scripts/build/build_test_critical.bat              (57 additions) - NEW
 ```
 
 **Total:** 8 files, ~772 lines changed, 6 commits
@@ -112,7 +113,7 @@ Test suite created with 20+ test cases covering:
 - ✅ Register preservation verification
 - ✅ Basic correctness for all data types
 
-**To run:** `build_test_critical.bat`
+**To run:** `scripts/build/build_test_critical.bat`
 
 ---
 
@@ -156,7 +157,7 @@ No migration needed - this is a pure bug fix PR. Code that was crashing will now
    - Verify proper error returns (identity values)
    - Check register usage compliance
    - Verify no performance regressions
-3. **Testing:** Run `build_test_critical.bat` to verify all fixes work correctly
+3. **Testing:** Run `scripts/build/build_test_critical.bat` to verify all fixes work correctly
 
 ---
 
