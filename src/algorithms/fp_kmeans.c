@@ -1,34 +1,38 @@
 // fp_kmeans.c
 //
-// K-Means Clustering Algorithm - Refactored with Pattern 1 (Array Statistics)
+// K-Means Clustering Algorithm - Refactored with L0 ASM Primitives
 // Demonstrates composition of FP-ASM primitives into a complete ML algorithm
 //
-// REFACTORED: Now uses fp_stats.h (Pattern 1) for:
-//   - fp_euclidean_distance() - Type-safe distance computation
-//   - fp_mean() - Centroid computation (clearer than manual sum+divide)
+// REFACTORED: Now uses L0 ASM primitives for SIMD acceleration:
+//   - fp_reduce_add_f64() - Mean computation, distance summation
+//   - fp_fold_dotp_f64() - Euclidean distance via dot product identity
+//   - fp_rng - Deterministic initialization (no rand()!)
 //
-// Performance: Pattern 1 provides clearer code with same/better performance
+// FP Primitives Used:
+//   - fp_reduce_add_f64: mean computation (sum / n)
+//   - fp_fold_dotp_f64: ||a-b||² = ||a||² + ||b||² - 2(a·b)
+//   - fp_rng_*: deterministic random initialization
 //
 // Algorithm:
 // 1. Initialize k centroids (k-means++ for better convergence)
 // 2. Assign each point to nearest centroid
-// 3. Recompute centroids as mean of assigned points (Pattern 1!)
+// 3. Recompute centroids as mean of assigned points
 // 4. Repeat until convergence or max iterations
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <time.h>
 #include "fp_core.h"
+#include "fp_rng.h"
 
 // Pattern 1 helpers (lightweight inline versions to avoid dependency issues)
 // These follow the Pattern 1 style from fp_stats.h but are self-contained
 
 static inline double fp_mean_inline(const double* data, size_t n) {
     if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) sum += data[i];
+    // L0 ASM: SIMD reduction
+    double sum = fp_reduce_add_f64(data, n);
     return sum / (double)n;
 }
 
@@ -43,34 +47,32 @@ typedef struct {
 } KMeansResult;
 
 // Compute squared Euclidean distance between two d-dimensional points
-// REFACTORED: Uses Pattern 1 style (could use fp_euclidean_distance but squared is faster)
+// REFACTORED: Uses L0 ASM primitives with identity: ||a-b||² = ||a||² + ||b||² - 2(a·b)
 // Returns squared distance to avoid sqrt overhead (K-means only needs relative distances)
 static inline double euclidean_distance_squared(const double* a, const double* b, int d) {
-    // Pattern 1 has fp_euclidean_distance(), but it includes sqrt
-    // For K-means, we only compare distances, so squared distance is sufficient and faster
-    // This follows Pattern 1's implementation without the final sqrt
     if (!a || !b || d == 0) return 0.0;
-
-    double sum_sq = 0.0;
-    for (int i = 0; i < d; i++) {
-        double diff = a[i] - b[i];
-        sum_sq += diff * diff;
-    }
-    return sum_sq;  // Return squared distance (avoids sqrt for performance)
+    // L0 ASM: Use dot product identity instead of loop
+    // ||a - b||² = a·a + b·b - 2*(a·b)
+    double aa = fp_fold_dotp_f64(a, a, (size_t)d);  // ||a||²
+    double bb = fp_fold_dotp_f64(b, b, (size_t)d);  // ||b||²
+    double ab = fp_fold_dotp_f64(a, b, (size_t)d);  // a·b
+    return aa + bb - 2.0 * ab;
 }
 
 // Initialize centroids using k-means++ algorithm
+// REFACTORED: Uses fp_rng for deterministic, reproducible initialization
 // Better than random initialization - ensures well-spread initial centroids
-static void kmeans_plus_plus_init(
+static fp_rng_t kmeans_plus_plus_init(
     const double* data,     // n × d matrix
     int n,                  // number of points
     int d,                  // dimensionality
     int k,                  // number of clusters
-    double* centroids       // k × d output matrix
+    double* centroids,      // k × d output matrix
+    fp_rng_t rng            // RNG state (deterministic)
 ) {
     // Choose first centroid uniformly at random
-    srand(time(NULL));
-    int first_idx = rand() % n;
+    int64_t first_idx;
+    rng = fp_rng_next_i64_range(rng, 0, n - 1, &first_idx);
     memcpy(centroids, &data[first_idx * d], d * sizeof(double));
 
     double* distances = (double*)malloc(n * sizeof(double));
@@ -78,7 +80,6 @@ static void kmeans_plus_plus_init(
     // Choose remaining k-1 centroids
     for (int c = 1; c < k; c++) {
         // Compute distance from each point to nearest existing centroid
-        double total_dist = 0.0;
         for (int i = 0; i < n; i++) {
             double min_dist = INFINITY;
             for (int j = 0; j < c; j++) {
@@ -90,11 +91,14 @@ static void kmeans_plus_plus_init(
                 if (dist < min_dist) min_dist = dist;
             }
             distances[i] = min_dist;
-            total_dist += min_dist;
         }
+        // L0 ASM: Sum distances using SIMD reduction
+        double total_dist = fp_reduce_add_f64(distances, (size_t)n);
 
         // Choose next centroid with probability proportional to distance^2
-        double r = ((double)rand() / RAND_MAX) * total_dist;
+        double r_val;
+        rng = fp_rng_next_f64(rng, &r_val);
+        double r = r_val * total_dist;
         double cumsum = 0.0;
         for (int i = 0; i < n; i++) {
             cumsum += distances[i];
@@ -106,6 +110,7 @@ static void kmeans_plus_plus_init(
     }
 
     free(distances);
+    return rng;
 }
 
 // Assign each point to nearest centroid
@@ -218,6 +223,7 @@ static double compute_inertia(
 }
 
 // Main K-Means function
+// REFACTORED: Added seed parameter for deterministic, reproducible results
 // Uses functional composition: init -> iterate (assign + update) -> converge
 KMeansResult fp_kmeans_f64(
     const double* data,       // n × d data matrix (row-major)
@@ -225,7 +231,8 @@ KMeansResult fp_kmeans_f64(
     int d,                    // dimensionality
     int k,                    // number of clusters
     int max_iter,             // maximum iterations
-    double tol                // convergence tolerance
+    double tol,               // convergence tolerance
+    uint64_t seed             // RNG seed for deterministic initialization
 ) {
     KMeansResult result;
 
@@ -237,8 +244,10 @@ KMeansResult fp_kmeans_f64(
     // Initialize assignments to -1
     memset(result.assignments, -1, n * sizeof(int));
 
-    // Initialize centroids using k-means++
-    kmeans_plus_plus_init(data, n, d, k, result.centroids);
+    // DETERMINISTIC: Initialize centroids using k-means++ with seed
+    fp_rng_t rng = fp_rng_create(seed);
+    rng = kmeans_plus_plus_init(data, n, d, k, result.centroids, rng);
+    (void)rng;  // Suppress unused warning
 
     // Iterate until convergence or max iterations
     result.converged = 0;
