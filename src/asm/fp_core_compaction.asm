@@ -80,6 +80,10 @@ fp_filter_gt_i64_simd:
     vmovq xmm0, r14
     vpbroadcastq ymm7, xmm0     ; ymm7 = [threshold, threshold, threshold, threshold]
 
+    ; Load base addresses of lookup tables using RIP-relative addressing
+    lea rdi, [rel popcount_lut]
+    lea rsi, [rel compaction_idx_lut]
+
 .loop4:
     cmp rcx, 4
     jb .tail
@@ -95,13 +99,13 @@ fp_filter_gt_i64_simd:
     and eax, 0x0F
 
     ; Lookup survivor count and permutation indices
-    movzx edx, byte [popcount_lut + rax]
+    movzx edx, byte [rdi + rax]
     test edx, edx
     jz .skip
 
     mov r11, rax
     shl r11, 5                  ; 32 bytes per entry
-    vmovdqa ymm2, [compaction_idx_lut + r11]
+    vmovdqa ymm2, [rsi + r11]
     vpermd ymm3, ymm2, ymm0     ; Rearrange qwords so survivors are packed
 
     ; Branch-free store: Always store 32 bytes, pointer advances by actual count
