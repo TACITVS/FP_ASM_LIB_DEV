@@ -35,19 +35,22 @@ jobs:
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Using API key authentication - add ANTHROPIC_API_KEY to repo secrets
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            This is an FP-FIRST library! Review this pull request focusing on:
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            1. **FP PURITY**: Algorithms MUST compose from L0/L1 primitives (fp_reduce_*, fp_fold_*, fp_map_*)
+            2. **NO IMPERATIVE LOOPS**: Flag any for/while loops in algorithm hot paths
+            3. **NO RAND()**: Flag any rand()/srand() usage - violates deterministic execution
+            4. **CONST CORRECTNESS**: All inputs must be const, no mutation
+            5. **ASM USAGE**: Check that assembly primitives are actually being called
+            6. **Windows x64 ABI**: Verify register preservation (RBX, RBP, R12-R15, XMM6-15)
+
+            Use docs/CLAUDE.md for architecture details. Be strict about FP principles!
 
             Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
 
