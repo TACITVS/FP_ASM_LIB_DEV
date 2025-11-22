@@ -64,10 +64,13 @@ static inline double fp_variance(const double* data, size_t n, double mean) {
 
     double add(double acc, double x) { return acc + x; }
 
-    MeanCtx ctx = {.mean = mean};
-    double sum_sq = fp_fused_map_reduce_f64_inline(data, n, squared_diff, 0.0, add);
+    double sum_sq_diff = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq_diff += diff * diff;
+    }
 
-    return sum_sq / (double)n;
+    return sum_sq_diff / (double)n;
 }
 
 /**

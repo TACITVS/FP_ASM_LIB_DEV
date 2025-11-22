@@ -17,7 +17,7 @@
 6. [Module 6: Predicates (Boolean Tests)](#module-6-predicates-boolean-tests)
 7. [Module 7: Compaction (Filter/Partition)](#module-7-compaction-filterpartition)
 8. [Module 8: Essentials (List Operations)](#module-8-essentials-list-operations)
-9. [Module 9: Sorting & Sets (TIER 2)](#module-9-sorting--sets-tier-2)
+
 10. [Module 10: Advanced Operations (TIER 3)](#module-10-advanced-operations-tier-3)
 
 ---
