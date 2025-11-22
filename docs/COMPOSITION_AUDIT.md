@@ -28,6 +28,8 @@ This audit examines all assembly modules in the FP-ASM library to identify viola
 
 ## 1. fp_core_moving_averages.asm
 
+> **Note:** This section refers to a non-existent assembly module (`fp_core_moving_averages.asm`). The analysis is therefore not applicable to the current codebase.
+
 **Status:** ❌ CRITICAL VIOLATION
 
 **Lines of Code:** 308 lines total
@@ -153,6 +155,8 @@ fp_descriptive_stats_f64:
 
 ## 3. fp_core_correlation.asm
 
+> **Note:** This section refers to a non-existent assembly module (`fp_core_correlation.asm`). The analysis is therefore not applicable to the current codebase.
+
 **Status:** ⚠️ MODERATE VIOLATION
 
 **Lines of Code:** 342 lines total
@@ -269,6 +273,8 @@ double fp_correlation_f64(const double* x, const double* y, size_t n) {
 ---
 
 ## 4. fp_core_linear_regression.asm
+
+> **Note:** This section refers to a non-existent assembly module (`fp_core_linear_regression.asm`). The analysis is therefore not applicable to the current codebase.
 
 **Status:** ❌ MAJOR VIOLATION
 
@@ -387,6 +393,8 @@ void fp_linear_regression_f64(const double* x, const double* y, size_t n,
 ---
 
 ## 5. fp_core_outliers.asm
+
+> **Note:** This section refers to a non-existent assembly module (`fp_core_outliers.asm`). The analysis is therefore not applicable to the current codebase.
 
 **Status:** ⚠️ MODERATE VIOLATION
 
