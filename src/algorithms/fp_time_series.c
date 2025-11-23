@@ -594,8 +594,8 @@ double fp_forecast_mape(const double* actual, const double* predicted, int n) {
 }
 
 // Mean Absolute Error - REFACTORED to use L0 SIMD primitives
-double fp_forecast_mae(const double* actual, const double* predicted, int n) {
-    if (n <= 0) return 0.0;
+double fp_forecast_mae(const double* actual, const double* predicted, size_t n) {
+    if (n == 0) return 0.0;
 
     // Allocate temp buffer for errors
     double* errors = (double*)malloc(n * sizeof(double));
@@ -611,12 +611,12 @@ double fp_forecast_mae(const double* actual, const double* predicted, int n) {
     double sum = fp_reduce_add_f64(errors, n);
 
     free(errors);
-    return sum / n;
+    return sum / (double)n;
 }
 
 // Root Mean Squared Error - REFACTORED to use L0 SIMD primitives
-double fp_forecast_rmse(const double* actual, const double* predicted, int n) {
-    if (n <= 0) return 0.0;
+double fp_forecast_rmse(const double* actual, const double* predicted, size_t n) {
+    if (n == 0) return 0.0;
 
     // Allocate temp buffer for errors
     double* errors = (double*)malloc(n * sizeof(double));
@@ -629,7 +629,7 @@ double fp_forecast_rmse(const double* actual, const double* predicted, int n) {
     double sum_sq = fp_fold_dotp_f64(errors, errors, n);
 
     free(errors);
-    return sqrt(sum_sq / n);
+    return sqrt(sum_sq / (double)n);
 }
 
 // ============================================================================
