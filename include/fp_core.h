@@ -119,6 +119,36 @@ int64_t fp_reduce_min_i64(const int64_t* in, size_t n);
 
 /* f64 reductions (4 elements per YMM register) */
 double  fp_reduce_add_f64(const double* in, size_t n);
+
+/**
+ * Conditional reduction: sum x[i] where mask[i] != 0
+ *
+ * Sums only the elements where the corresponding mask value is non-zero.
+ * Any non-zero mask value is treated as "true" (not just 1).
+ *
+ * Use cases:
+ *   - Subset statistics (e.g., summing values for a specific class in fp_naive_bayes)
+ *   - Masked operations in decision trees (fp_decision_tree)
+ *   - Selective aggregation with boolean conditions
+ *
+ * PURITY GUARANTEE: Adheres to library functional purity contract.
+ *   - Inputs (x, mask) are never modified
+ *   - No side effects or hidden state
+ *   - Deterministic output
+ *
+ * NULL POINTER HANDLING: Returns 0.0 if x or mask is NULL.
+ *
+ * @param x    Input array of doubles (const, never modified). Returns 0.0 if NULL.
+ * @param mask Array of 32-bit integers (0 = exclude, non-zero = include). Returns 0.0 if NULL.
+ * @param n    Number of elements in both arrays
+ * @return     Sum of x[i] where mask[i] != 0, or 0.0 if n=0, all mask values are 0,
+ *             or if x or mask is NULL.
+ *
+ * Performance: AVX2 optimized with 4-way unrolled loop using vblendvpd for branchless
+ *              masked accumulation. Processes 16 doubles per iteration in main loop.
+ */
+double  fp_reduce_add_f64_where(const double* x, const int* mask, size_t n);
+
 double  fp_reduce_max_f64(const double* in, size_t n);
 double  fp_reduce_min_f64(const double* in, size_t n);
 
