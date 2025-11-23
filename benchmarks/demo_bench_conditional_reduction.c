@@ -9,15 +9,22 @@
 //   4. Array size scaling: 1K to 10M elements
 //   5. Comparison with fp_reduce_add_f64 (overhead measurement)
 //
-// Model: claude-sonnet-4-5-20250929
-// Date: 2025-11-23
+// PLATFORM: Windows only (uses QueryPerformanceCounter for high-precision timing)
+// This benchmark requires Windows x64. It is not intended for cross-platform use.
+// The FP-ASM library currently targets Windows x64 with NASM and MinGW-w64 GCC.
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+
+#ifdef _WIN32
 #include <windows.h>
+#else
+#error "This benchmark requires Windows (uses QueryPerformanceCounter). The FP-ASM library is Windows-only."
+#endif
+
 #include <math.h>
 #include "../include/fp_core.h"
 

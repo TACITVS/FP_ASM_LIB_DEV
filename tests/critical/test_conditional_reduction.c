@@ -292,6 +292,135 @@ void test_register_preservation() {
 }
 
 // ============================================================================
+// Test 7: NaN Handling
+// ============================================================================
+
+void test_nan_handling() {
+    printf("\n=== Test 7: NaN Handling ===\n");
+
+    double nan_val = 0.0 / 0.0;  // Generate NaN
+
+    // Test: Single NaN in array, masked in
+    double data_with_nan[] = {1.0, nan_val, 3.0, 4.0};
+    int mask_include_nan[] = {1, 1, 1, 1};
+    double result_nan = fp_reduce_add_f64_where(data_with_nan, mask_include_nan, 4);
+    if (isnan(result_nan)) {
+        TEST_PASS("f64_where with NaN included returns NaN");
+    } else {
+        TEST_FAIL("f64_where NaN included", "Expected NaN, got %f", result_nan);
+    }
+
+    // Test: NaN in array but masked out
+    int mask_exclude_nan[] = {1, 0, 1, 1};  // Exclude index 1 (the NaN)
+    double result_no_nan = fp_reduce_add_f64_where(data_with_nan, mask_exclude_nan, 4);
+    // Expected: 1.0 + 3.0 + 4.0 = 8.0
+    if (fabs(result_no_nan - 8.0) < EPSILON) {
+        TEST_PASS("f64_where with NaN masked out = 8.0");
+    } else {
+        TEST_FAIL("f64_where NaN masked out", "Expected 8.0, got %f", result_no_nan);
+    }
+
+    // Test: Multiple NaNs, all masked out
+    double data_multi_nan[] = {nan_val, 2.0, nan_val, 4.0, nan_val};
+    int mask_only_valid[] = {0, 1, 0, 1, 0};  // Only include valid values
+    double result_multi = fp_reduce_add_f64_where(data_multi_nan, mask_only_valid, 5);
+    // Expected: 2.0 + 4.0 = 6.0
+    if (fabs(result_multi - 6.0) < EPSILON) {
+        TEST_PASS("f64_where multiple NaNs masked out = 6.0");
+    } else {
+        TEST_FAIL("f64_where multiple NaNs", "Expected 6.0, got %f", result_multi);
+    }
+
+    // Test: All NaN values, all masked in
+    double data_all_nan[] = {nan_val, nan_val, nan_val};
+    int mask_all[] = {1, 1, 1};
+    double result_all_nan = fp_reduce_add_f64_where(data_all_nan, mask_all, 3);
+    if (isnan(result_all_nan)) {
+        TEST_PASS("f64_where all NaN returns NaN");
+    } else {
+        TEST_FAIL("f64_where all NaN", "Expected NaN, got %f", result_all_nan);
+    }
+
+    // Test: All NaN values, all masked out (should return 0.0)
+    int mask_none[] = {0, 0, 0};
+    double result_nan_masked_out = fp_reduce_add_f64_where(data_all_nan, mask_none, 3);
+    if (fabs(result_nan_masked_out - 0.0) < EPSILON) {
+        TEST_PASS("f64_where all NaN masked out = 0.0");
+    } else {
+        TEST_FAIL("f64_where all NaN masked out", "Expected 0.0, got %f", result_nan_masked_out);
+    }
+}
+
+// ============================================================================
+// Test 8: Infinity Handling
+// ============================================================================
+
+void test_infinity_handling() {
+    printf("\n=== Test 8: Infinity Handling ===\n");
+
+    double pos_inf = 1.0 / 0.0;   // +Infinity
+    double neg_inf = -1.0 / 0.0;  // -Infinity
+
+    // Test: Positive infinity included
+    double data_pos_inf[] = {1.0, pos_inf, 3.0, 4.0};
+    int mask_all[] = {1, 1, 1, 1};
+    double result_pos = fp_reduce_add_f64_where(data_pos_inf, mask_all, 4);
+    if (isinf(result_pos) && result_pos > 0) {
+        TEST_PASS("f64_where with +Inf returns +Inf");
+    } else {
+        TEST_FAIL("f64_where +Inf", "Expected +Inf, got %f", result_pos);
+    }
+
+    // Test: Negative infinity included
+    double data_neg_inf[] = {1.0, neg_inf, 3.0, 4.0};
+    double result_neg = fp_reduce_add_f64_where(data_neg_inf, mask_all, 4);
+    if (isinf(result_neg) && result_neg < 0) {
+        TEST_PASS("f64_where with -Inf returns -Inf");
+    } else {
+        TEST_FAIL("f64_where -Inf", "Expected -Inf, got %f", result_neg);
+    }
+
+    // Test: Infinity masked out
+    int mask_exclude_inf[] = {1, 0, 1, 1};  // Exclude index 1 (the Inf)
+    double result_no_inf = fp_reduce_add_f64_where(data_pos_inf, mask_exclude_inf, 4);
+    // Expected: 1.0 + 3.0 + 4.0 = 8.0
+    if (fabs(result_no_inf - 8.0) < EPSILON) {
+        TEST_PASS("f64_where with Inf masked out = 8.0");
+    } else {
+        TEST_FAIL("f64_where Inf masked out", "Expected 8.0, got %f", result_no_inf);
+    }
+
+    // Test: +Inf and -Inf both included (should produce NaN)
+    double data_both_inf[] = {pos_inf, neg_inf, 1.0, 2.0};
+    double result_both = fp_reduce_add_f64_where(data_both_inf, mask_all, 4);
+    // +Inf + -Inf = NaN
+    if (isnan(result_both)) {
+        TEST_PASS("f64_where +Inf + -Inf returns NaN");
+    } else {
+        TEST_FAIL("f64_where +Inf + -Inf", "Expected NaN, got %f", result_both);
+    }
+
+    // Test: Multiple +Inf values (should still be +Inf)
+    double data_multi_inf[] = {pos_inf, 1.0, pos_inf, 2.0};
+    double result_multi = fp_reduce_add_f64_where(data_multi_inf, mask_all, 4);
+    if (isinf(result_multi) && result_multi > 0) {
+        TEST_PASS("f64_where multiple +Inf returns +Inf");
+    } else {
+        TEST_FAIL("f64_where multiple +Inf", "Expected +Inf, got %f", result_multi);
+    }
+
+    // Test: Only Inf values, masked out (should return 0.0)
+    double data_only_inf[] = {pos_inf, neg_inf, pos_inf};
+    int mask_none[] = {0, 0, 0};
+    double result_inf_masked = fp_reduce_add_f64_where(data_only_inf, mask_none, 3);
+    if (fabs(result_inf_masked - 0.0) < EPSILON) {
+        TEST_PASS("f64_where Inf values masked out = 0.0");
+    } else {
+        TEST_FAIL("f64_where Inf masked out", "Expected 0.0, got %f", result_inf_masked);
+    }
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -309,6 +438,8 @@ int main() {
     test_larger_arrays();
     test_nonboolean_masks();
     test_register_preservation();
+    test_nan_handling();
+    test_infinity_handling();
 
     printf("\n=======================================================\n");
     if (failures == 0) {
