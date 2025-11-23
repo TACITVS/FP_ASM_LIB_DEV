@@ -308,11 +308,12 @@ TrainingResult fp_neural_network_train(
     int n_samples,
     int n_epochs,
     double learning_rate,
-    int verbose                // Print progress every N epochs (0 = no output)
+    int verbose,               // Print progress every N epochs (0 = no output)
+    uint64_t seed              // RNG seed for reproducible weight initialization
 ) {
     TrainingResult result;
-    // Use deterministic seed for reproducibility (FP purity)
-    result.network = fp_neural_network_create(n_inputs, n_hidden, n_outputs, 42);
+    // Use user-provided seed for reproducibility (FP purity)
+    result.network = fp_neural_network_create(n_inputs, n_hidden, n_outputs, seed);
     result.loss_history = (double*)malloc(n_epochs * sizeof(double));
     result.n_epochs = n_epochs;
 
