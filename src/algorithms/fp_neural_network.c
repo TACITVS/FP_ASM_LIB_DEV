@@ -266,20 +266,24 @@ static void backpropagate_single(
     // Update weights and biases - Output layer
     // W2 -= learning_rate * output_grad * hidden^T
     // b2 -= learning_rate * output_grad
+    // REFACTORED: Use L0 fp_map_axpy_f64 for each row (SIMD AVX2)
     for (int i = 0; i < net->n_outputs; i++) {
-        for (int j = 0; j < net->n_hidden; j++) {
-            net->W2[i * net->n_hidden + j] -= learning_rate * output_grad[i] * hidden[j];
-        }
+        // W2[i,:] -= (learning_rate * output_grad[i]) * hidden[:]
+        double scale = -learning_rate * output_grad[i];
+        fp_map_axpy_f64(hidden, &net->W2[i * net->n_hidden], &net->W2[i * net->n_hidden],
+                        net->n_hidden, scale);
         net->b2[i] -= learning_rate * output_grad[i];
     }
 
     // Update weights and biases - Hidden layer
     // W1 -= learning_rate * hidden_grad * input^T
     // b1 -= learning_rate * hidden_grad
+    // REFACTORED: Use L0 fp_map_axpy_f64 for each row (SIMD AVX2)
     for (int i = 0; i < net->n_hidden; i++) {
-        for (int j = 0; j < net->n_inputs; j++) {
-            net->W1[i * net->n_inputs + j] -= learning_rate * hidden_grad[i] * input[j];
-        }
+        // W1[i,:] -= (learning_rate * hidden_grad[i]) * input[:]
+        double scale = -learning_rate * hidden_grad[i];
+        fp_map_axpy_f64(input, &net->W1[i * net->n_inputs], &net->W1[i * net->n_inputs],
+                        net->n_inputs, scale);
         net->b1[i] -= learning_rate * hidden_grad[i];
     }
 
@@ -307,7 +311,8 @@ TrainingResult fp_neural_network_train(
     int verbose                // Print progress every N epochs (0 = no output)
 ) {
     TrainingResult result;
-    result.network = fp_neural_network_create(n_inputs, n_hidden, n_outputs);
+    // Use deterministic seed for reproducibility (FP purity)
+    result.network = fp_neural_network_create(n_inputs, n_hidden, n_outputs, 42);
     result.loss_history = (double*)malloc(n_epochs * sizeof(double));
     result.n_epochs = n_epochs;
 
