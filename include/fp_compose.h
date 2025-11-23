@@ -181,25 +181,40 @@ void fp_pipeline_free_i64(fp_pipeline_i64_t* pipeline);
 
 /* ============================================================================
  * TRANSDUCERS (Single-pass composition)
+ * Clojure-style transducers for composable, single-pass transformations
  * ============================================================================ */
 
+// Transducer type enum (internal)
+typedef enum {
+    FP_TRANS_MAPPING,
+    FP_TRANS_FILTERING,
+    FP_TRANS_TAKING,
+    FP_TRANS_COMPOSED
+} fp_transducer_type_t;
+
 // Transducer: composable transformations without intermediate arrays
-typedef struct {
-    void* state;
-    void (*step)(void* state, const void* elem);
-    void* (*complete)(void* state);
-} fp_transducer_t;
+typedef struct fp_transducer fp_transducer_t;
+struct fp_transducer {
+    fp_transducer_type_t type;
+    void* state;                    // Function pointer or state data
+    size_t limit;                   // For taking: max elements
+    fp_transducer_t* children;      // For composed: array of child transducers
+    size_t n_children;              // For composed: number of children
+};
 
 // Create transducers
 fp_transducer_t fp_mapping_f64(double (*fn)(double));
 fp_transducer_t fp_filtering_f64(bool (*pred)(double));
 fp_transducer_t fp_taking_f64(size_t n);
 
-// Compose transducers
+// Compose transducers (left-to-right application order)
 fp_transducer_t fp_compose_transducers(fp_transducer_t* transducers, size_t count);
 
-// Apply transducer
-void fp_transduce_f64(
+// Free composed transducer (only needed for composed transducers)
+void fp_transducer_free(fp_transducer_t* trans);
+
+// Apply transducer: returns final accumulated value
+double fp_transduce_f64(
     const double* input,
     size_t n,
     fp_transducer_t transducer,

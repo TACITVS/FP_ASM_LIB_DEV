@@ -1147,54 +1147,150 @@ void fp_lazy_free_f64(fp_lazy_seq_t* seq) {
 
 /* ============================================================================
  * TRANSDUCERS (Single-pass composition)
- * Note: Full transducer implementation is complex - providing simplified version
+ * Clojure-style transducers: composable, single-pass transformations
+ *
+ * A transducer transforms a reducing function into another reducing function.
+ * - mapping(f): wraps reducer to apply f to each element before reducing
+ * - filtering(pred): wraps reducer to skip elements that fail predicate
+ * - taking(n): wraps reducer to stop after n elements
+ *
+ * Composition is left-to-right: compose(map, filter) means map first, then filter
  * ============================================================================ */
 
 fp_transducer_t fp_mapping_f64(double (*fn)(double)) {
     fp_transducer_t trans = {
+        .type = FP_TRANS_MAPPING,
         .state = (void*)fn,
-        .step = NULL,
-        .complete = NULL
+        .limit = 0,
+        .children = NULL,
+        .n_children = 0
     };
     return trans;
 }
 
 fp_transducer_t fp_filtering_f64(bool (*pred)(double)) {
     fp_transducer_t trans = {
+        .type = FP_TRANS_FILTERING,
         .state = (void*)pred,
-        .step = NULL,
-        .complete = NULL
+        .limit = 0,
+        .children = NULL,
+        .n_children = 0
     };
     return trans;
 }
 
 fp_transducer_t fp_taking_f64(size_t n) {
     fp_transducer_t trans = {
-        .state = (void*)(uintptr_t)n,
-        .step = NULL,
-        .complete = NULL
+        .type = FP_TRANS_TAKING,
+        .state = NULL,
+        .limit = n,
+        .children = NULL,
+        .n_children = 0
     };
     return trans;
 }
 
 fp_transducer_t fp_compose_transducers(fp_transducer_t* transducers, size_t count) {
-    // Simplified - full implementation would chain transducers
+    // Deep copy the transducers array for safe storage
+    fp_transducer_t* children = (fp_transducer_t*)malloc(count * sizeof(fp_transducer_t));
+    if (children) {
+        memcpy(children, transducers, count * sizeof(fp_transducer_t));
+    }
+
     fp_transducer_t composed = {
-        .state = transducers,
-        .step = NULL,
-        .complete = NULL
+        .type = FP_TRANS_COMPOSED,
+        .state = NULL,
+        .limit = 0,
+        .children = children,
+        .n_children = count
     };
     return composed;
 }
 
-void fp_transduce_f64(const double* input, size_t n, fp_transducer_t transducer,
-                      double init, double (*reducer)(double acc, double x)) {
-    // Simplified transducer application
-    // Full implementation would properly chain transformations
-    if (!input || !reducer) return;
+void fp_transducer_free(fp_transducer_t* trans) {
+    if (trans && trans->type == FP_TRANS_COMPOSED && trans->children) {
+        free(trans->children);
+        trans->children = NULL;
+        trans->n_children = 0;
+    }
+}
+
+// Internal: Apply a single transducer step, returns (should_reduce, transformed_value)
+// Returns false if element should be skipped (filtering) or limit reached (taking)
+typedef struct {
+    bool should_reduce;
+    double value;
+} fp_trans_result_t;
+
+static fp_trans_result_t fp_apply_transducer_step(
+    fp_transducer_t* trans,
+    double x,
+    size_t* count  // For taking: current count (in/out)
+) {
+    fp_trans_result_t result = { .should_reduce = true, .value = x };
+
+    switch (trans->type) {
+        case FP_TRANS_MAPPING: {
+            double (*fn)(double) = (double (*)(double))trans->state;
+            if (fn) {
+                result.value = fn(x);
+            }
+            break;
+        }
+        case FP_TRANS_FILTERING: {
+            bool (*pred)(double) = (bool (*)(double))trans->state;
+            if (pred && !pred(x)) {
+                result.should_reduce = false;
+            }
+            break;
+        }
+        case FP_TRANS_TAKING: {
+            if (*count >= trans->limit) {
+                result.should_reduce = false;
+            }
+            break;
+        }
+        case FP_TRANS_COMPOSED: {
+            // Apply children left-to-right
+            for (size_t i = 0; i < trans->n_children && result.should_reduce; i++) {
+                result = fp_apply_transducer_step(&trans->children[i], result.value, count);
+            }
+            break;
+        }
+    }
+
+    return result;
+}
+
+double fp_transduce_f64(const double* input, size_t n, fp_transducer_t transducer,
+                        double init, double (*reducer)(double acc, double x)) {
+    if (!input || !reducer) return init;
 
     double acc = init;
+    size_t count = 0;  // For taking transducer
+
     for (size_t i = 0; i < n; i++) {
-        acc = reducer(acc, input[i]);
+        fp_trans_result_t result = fp_apply_transducer_step(&transducer, input[i], &count);
+
+        if (result.should_reduce) {
+            acc = reducer(acc, result.value);
+            count++;
+
+            // Early exit for taking transducer
+            if (transducer.type == FP_TRANS_TAKING && count >= transducer.limit) {
+                break;
+            }
+            // Early exit for composed transducer containing taking
+            if (transducer.type == FP_TRANS_COMPOSED) {
+                for (size_t j = 0; j < transducer.n_children; j++) {
+                    if (transducer.children[j].type == FP_TRANS_TAKING &&
+                        count >= transducer.children[j].limit) {
+                        return acc;  // Early exit
+                    }
+                }
+            }
+        }
     }
+
+    return acc;
 }

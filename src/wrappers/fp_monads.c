@@ -128,21 +128,49 @@ Maybe fp_bind_maybe_i64(Maybe m, Maybe (*fn)(int64_t)) {
 
 /* ============================================================================
  * MAYBE MONAD - Applicative (ap)
+ *
+ * ap :: Maybe (a -> b) -> Maybe a -> Maybe b
+ *
+ * Applies a function wrapped in Maybe to a value wrapped in Maybe.
+ * The function pointer is stored in mfn.value_ptr.
+ * Usage:
+ *   Maybe mfn = fp_just_ptr((void*)double_it);  // Wrap function
+ *   Maybe mx = fp_just_f64(21.0);               // Wrap value
+ *   Maybe result = fp_ap_maybe_f64(mfn, mx);    // Apply: Just(42.0)
  * ============================================================================ */
 
 Maybe fp_ap_maybe_f64(Maybe mfn, Maybe mx) {
     if (mfn.tag == FP_NOTHING || mx.tag == FP_NOTHING) {
         return fp_nothing();
     }
-    // Note: This is simplified - full implementation would store function pointer
-    return mx;
+
+    // Extract function pointer from mfn.value_ptr
+    // Expected signature: double (*)(double)
+    double (*fn)(double) = (double (*)(double))mfn.value_ptr;
+    if (!fn) {
+        return fp_nothing();
+    }
+
+    // Apply function to value
+    double result = fn(mx.value_f64);
+    return fp_just_f64(result);
 }
 
 Maybe fp_ap_maybe_i64(Maybe mfn, Maybe mx) {
     if (mfn.tag == FP_NOTHING || mx.tag == FP_NOTHING) {
         return fp_nothing();
     }
-    return mx;
+
+    // Extract function pointer from mfn.value_ptr
+    // Expected signature: int64_t (*)(int64_t)
+    int64_t (*fn)(int64_t) = (int64_t (*)(int64_t))mfn.value_ptr;
+    if (!fn) {
+        return fp_nothing();
+    }
+
+    // Apply function to value
+    int64_t result = fn(mx.value_i64);
+    return fp_just_i64(result);
 }
 
 /* ============================================================================
