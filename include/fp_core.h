@@ -175,6 +175,11 @@ int8_t fp_reduce_max_i8(const int8_t* in, size_t n);
  * FP: out = zipWith (+) (map (*c) x) y  (Classic AXPY)
  * C:  for(i) { out[i] = c * x[i] + y[i]; }
  * Win: SIMD (FMA) for f64, Scalar unroll for i64, vpmulld+vpaddd for i32
+ *
+ * ALIASING SAFETY:
+ *   - y == out is SAFE (in-place update): y is loaded before out is written
+ *   - x == out is SAFE: x is loaded before out is written
+ *   - Useful for: W[i,:] -= lr * grad * vec[:] as fp_map_axpy_f64(vec, W_row, W_row, n, -lr*grad)
  */
 void fp_map_axpy_f64(const double* x, const double* y, double* out, size_t n, double c);
 void fp_map_axpy_i64(const int64_t* x, const int64_t* y, int64_t* out, size_t n, int64_t c);
