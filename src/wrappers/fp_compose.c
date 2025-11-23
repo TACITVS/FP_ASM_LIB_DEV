@@ -83,17 +83,6 @@ typedef struct {
     int64_t (*g)(int64_t);
 } fp_compose_ctx_i64_t;
 
-// Composed function wrappers
-static double fp_composed_f64(double x, void* ctx) {
-    fp_compose_ctx_f64_t* comp = (fp_compose_ctx_f64_t*)ctx;
-    return comp->f(comp->g(x));
-}
-
-static int64_t fp_composed_i64(int64_t x, void* ctx) {
-    fp_compose_ctx_i64_t* comp = (fp_compose_ctx_i64_t*)ctx;
-    return comp->f(comp->g(x));
-}
-
 fp_composed_unary_t fp_compose_f64(double (*f)(double), double (*g)(double)) {
     fp_compose_ctx_f64_t* ctx = malloc(sizeof(fp_compose_ctx_f64_t));
     if (!ctx) {
