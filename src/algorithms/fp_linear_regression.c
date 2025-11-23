@@ -26,6 +26,7 @@
 #include <math.h>
 #include "fp_core.h"
 #include "fp_rng.h"
+#include "fp_monads.h"  // TIER 4: Either monad for error handling
 
 // Pattern 1 helpers - NOW USING ASM PRIMITIVES
 // Refactored to use fp_reduce_add_f64 instead of for loops
@@ -337,6 +338,55 @@ void fp_linear_regression_free(LinearRegressionModel* model) {
 void fp_gradient_descent_free(GradientDescentResult* result) {
     free(result->model.weights);
     free(result->loss_history);
+}
+
+// ============================================================================
+// TIER 4: Either Monad Wrapper for Safe Linear Regression
+// ============================================================================
+// Returns Left(error_msg, code) for errors, Right(result_ptr) on success
+// Error codes: 1=NULL data, 2=invalid params, 3=allocation failed, 4=no convergence
+
+Either fp_linear_regression_gradient_descent_safe(
+    const double* X,
+    const double* y,
+    int n,
+    int d,
+    double learning_rate,
+    int max_iterations,
+    double convergence_threshold,
+    uint64_t seed
+) {
+    // Validate inputs
+    if (!X) return fp_left("NULL feature matrix X", 1);
+    if (!y) return fp_left("NULL target vector y", 1);
+    if (n <= 0) return fp_left("Invalid sample count n <= 0", 2);
+    if (d <= 0) return fp_left("Invalid feature count d <= 0", 2);
+    if (learning_rate <= 0.0) return fp_left("Invalid learning rate <= 0", 2);
+    if (max_iterations <= 0) return fp_left("Invalid max_iterations <= 0", 2);
+    if (convergence_threshold < 0.0) return fp_left("Invalid convergence threshold < 0", 2);
+
+    // Allocate result on heap
+    GradientDescentResult* result = (GradientDescentResult*)malloc(sizeof(GradientDescentResult));
+    if (!result) return fp_left("Failed to allocate result", 3);
+
+    // Run gradient descent
+    *result = fp_linear_regression_gradient_descent(X, y, n, d, learning_rate,
+                                                     max_iterations, convergence_threshold, seed);
+
+    // Check internal allocation
+    if (!result->model.weights || !result->loss_history) {
+        fp_gradient_descent_free(result);
+        free(result);
+        return fp_left("Failed to allocate model weights or history", 3);
+    }
+
+    // Check convergence (warning, not error)
+    if (!result->model.converged) {
+        // Still return Right but caller can check converged flag
+        // This is informational, not a hard error
+    }
+
+    return fp_right_ptr(result);
 }
 
 // ============================================================================
