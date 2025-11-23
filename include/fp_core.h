@@ -119,6 +119,7 @@ int64_t fp_reduce_min_i64(const int64_t* in, size_t n);
 
 /* f64 reductions (4 elements per YMM register) */
 double  fp_reduce_add_f64(const double* in, size_t n);
+double  fp_reduce_add_f64_where(const double* x, const int* mask, size_t n);  /* Conditional sum */
 double  fp_reduce_max_f64(const double* in, size_t n);
 double  fp_reduce_min_f64(const double* in, size_t n);
 
