@@ -26,6 +26,7 @@
 #include "fp_core.h"
 #include "fp_rng.h"
 #include "fp_monads.h"  // TIER 4: Maybe monad for safe error handling
+#include "fp_kmeans.h"  // Public API declarations
 
 // Pattern 1 helpers (lightweight inline versions to avoid dependency issues)
 // These follow the Pattern 1 style from fp_stats.h but are self-contained
@@ -37,15 +38,7 @@ static inline double fp_mean_inline(const double* data, size_t n) {
     return sum / (double)n;
 }
 
-// K-Means result structure
-typedef struct {
-    double* centroids;        // k × d matrix (row-major)
-    int* assignments;         // n-element array (cluster ID per point)
-    int* cluster_sizes;       // k-element array (points per cluster)
-    int iterations;           // Number of iterations to convergence
-    double inertia;           // Sum of squared distances to centroids
-    int converged;            // 1 if converged, 0 if max_iter reached
-} KMeansResult;
+// KMeansResult is defined in fp_kmeans.h
 
 // Compute squared Euclidean distance between two d-dimensional points
 // REFACTORED: Uses L0 ASM primitives with identity: ||a-b||² = ||a||² + ||b||² - 2(a·b)
@@ -283,7 +276,10 @@ void fp_kmeans_free(KMeansResult* result) {
 // TIER 4: Maybe Monad Wrapper for Safe K-Means
 // ============================================================================
 // Returns Nothing for invalid inputs, Just(result_ptr) on success
-// Caller must fp_kmeans_free() the result if fp_is_just()
+//
+// MEMORY MANAGEMENT: If fp_is_just(result), caller must perform TWO cleanup steps:
+//   1. fp_kmeans_free(result_ptr)  - Free internal arrays (centroids, assignments, cluster_sizes)
+//   2. free(result_ptr)            - Free the heap-allocated KMeansResult struct itself
 
 Maybe fp_kmeans_f64_safe(
     const double* data,
