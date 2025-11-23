@@ -292,6 +292,49 @@ void test_register_preservation() {
 }
 
 // ============================================================================
+// Test 6b: Null Pointer Handling
+// ============================================================================
+
+void test_null_pointer_handling() {
+    printf("\n=== Test 6b: Null Pointer Handling ===\n");
+
+    double data[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    int mask[] = {1, 1, 1, 1, 1};
+
+    // Test: NULL x pointer should return 0.0
+    double result_null_x = fp_reduce_add_f64_where(NULL, mask, 5);
+    if (fabs(result_null_x - 0.0) < EPSILON) {
+        TEST_PASS("f64_where NULL x returns 0.0");
+    } else {
+        TEST_FAIL("f64_where NULL x", "Expected 0.0, got %f", result_null_x);
+    }
+
+    // Test: NULL mask pointer should return 0.0
+    double result_null_mask = fp_reduce_add_f64_where(data, NULL, 5);
+    if (fabs(result_null_mask - 0.0) < EPSILON) {
+        TEST_PASS("f64_where NULL mask returns 0.0");
+    } else {
+        TEST_FAIL("f64_where NULL mask", "Expected 0.0, got %f", result_null_mask);
+    }
+
+    // Test: Both NULL should return 0.0
+    double result_both_null = fp_reduce_add_f64_where(NULL, NULL, 5);
+    if (fabs(result_both_null - 0.0) < EPSILON) {
+        TEST_PASS("f64_where both NULL returns 0.0");
+    } else {
+        TEST_FAIL("f64_where both NULL", "Expected 0.0, got %f", result_both_null);
+    }
+
+    // Test: NULL with n=0 should still return 0.0 (no crash)
+    double result_null_empty = fp_reduce_add_f64_where(NULL, NULL, 0);
+    if (fabs(result_null_empty - 0.0) < EPSILON) {
+        TEST_PASS("f64_where NULL with n=0 returns 0.0");
+    } else {
+        TEST_FAIL("f64_where NULL n=0", "Expected 0.0, got %f", result_null_empty);
+    }
+}
+
+// ============================================================================
 // Test 7: NaN Handling
 // ============================================================================
 
@@ -438,6 +481,7 @@ int main() {
     test_larger_arrays();
     test_nonboolean_masks();
     test_register_preservation();
+    test_null_pointer_handling();
     test_nan_handling();
     test_infinity_handling();
 
