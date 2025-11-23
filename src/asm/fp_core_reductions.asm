@@ -21,6 +21,7 @@ section .rdata
 section .text
     global fp_reduce_add_i64
     global fp_reduce_add_f64
+    global fp_reduce_add_f64_where
     global fp_reduce_max_i64
     global fp_reduce_max_f64
     global fp_reduce_min_i64
@@ -507,4 +508,47 @@ fp_reduce_min_i64:
 .done_zero:
     xor rax, rax
     jmp .done
+
+; =============================================================================
+; double fp_reduce_add_f64_where(const double* x, const int* mask, size_t n)
+;
+; Conditional reduction: sum x[i] where mask[i] != 0
+; Used for masked statistics (e.g., summing subset of data)
+;
+; Arguments (Windows x64 ABI):
+;   RCX = x (const double*)
+;   RDX = mask (const int*)  - 32-bit integers
+;   R8  = n (size_t)
+;
+; Returns:
+;   XMM0 = sum of x[i] where mask[i] != 0
+; =============================================================================
+fp_reduce_add_f64_where:
+    PROLOGUE
+    mov  r12, rcx           ; r12 = x
+    mov  r14, rdx           ; r14 = mask
+    mov  r13, r8            ; r13 = n
+
+    vxorpd xmm0, xmm0, xmm0 ; sum = 0.0
+
+    test r13, r13
+    jz   .done_where
+
+.loop_where:
+    ; Load mask[i] (32-bit int)
+    mov  eax, [r14]
+    test eax, eax
+    jz   .skip_where        ; Skip if mask[i] == 0
+
+    ; Add x[i] to sum
+    vaddsd xmm0, xmm0, [r12]
+
+.skip_where:
+    add  r12, 8             ; x++
+    add  r14, 4             ; mask++ (32-bit ints)
+    dec  r13
+    jnz  .loop_where
+
+.done_where:
+    EPILOGUE
 
