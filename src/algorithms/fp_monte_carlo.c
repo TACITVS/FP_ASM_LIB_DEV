@@ -21,6 +21,8 @@
 #include <math.h>
 #include <time.h>
 
+#include "fp_rng.h"  // Pure, deterministic RNG (replaces global state)
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -66,55 +68,10 @@ static inline double fp_std_error_inline(double variance, size_t n) {
 }
 
 // ============================================================================
-// Random Number Generation
+// Random Number Generation - Now uses fp_rng.h (pure, no global state)
 // ============================================================================
-
-// Simple LCG (Linear Congruential Generator)
-// Fast, deterministic, sufficient for Monte Carlo
-static unsigned long long rng_state = 12345;
-
-void fp_monte_carlo_seed(unsigned long long seed) {
-    rng_state = seed;
-}
-
-// Generate uniform random double in [0, 1)
-static inline double rand_uniform() {
-    rng_state = rng_state * 6364136223846793005ULL + 1442695040888963407ULL;
-    return (rng_state >> 11) * 0x1.0p-53;  // 53 bits of precision
-}
-
-// Generate uniform random double in [a, b)
-static inline double rand_uniform_range(double a, double b) {
-    return a + (b - a) * rand_uniform();
-}
-
-// Box-Muller transform: generate standard normal N(0,1)
-static double rand_normal() {
-    static int has_spare = 0;
-    static double spare;
-
-    if (has_spare) {
-        has_spare = 0;
-        return spare;
-    }
-
-    double u, v, s;
-    do {
-        u = rand_uniform() * 2.0 - 1.0;
-        v = rand_uniform() * 2.0 - 1.0;
-        s = u * u + v * v;
-    } while (s >= 1.0 || s == 0.0);
-
-    s = sqrt(-2.0 * log(s) / s);
-    spare = v * s;
-    has_spare = 1;
-    return u * s;
-}
-
-// Generate normal N(mu, sigma^2)
-static inline double rand_normal_dist(double mu, double sigma) {
-    return mu + sigma * rand_normal();
-}
+// All functions now take fp_rng_t and return updated state via result structs.
+// This ensures deterministic, reproducible results with any seed.
 
 // ============================================================================
 // 1. π Estimation (Circle in Square)
@@ -130,14 +87,17 @@ typedef struct {
     int inside_count;
     int total_samples;
     double confidence_95;      // 95% confidence interval (±)
+    fp_rng_t rng;              // Updated RNG state (for chaining)
 } PiEstimationResult;
 
-PiEstimationResult fp_monte_carlo_estimate_pi(int n_samples) {
+PiEstimationResult fp_monte_carlo_estimate_pi(int n_samples, uint64_t seed) {
+    fp_rng_t rng = fp_rng_create(seed);
     int inside = 0;
 
     for (int i = 0; i < n_samples; i++) {
-        double x = rand_uniform();
-        double y = rand_uniform();
+        double x, y;
+        rng = fp_rng_next_f64(rng, &x);
+        rng = fp_rng_next_f64(rng, &y);
         if (x * x + y * y <= 1.0) {
             inside++;
         }
@@ -157,14 +117,16 @@ PiEstimationResult fp_monte_carlo_estimate_pi(int n_samples) {
     result.inside_count = inside;
     result.total_samples = n_samples;
     result.confidence_95 = confidence_95;
+    result.rng = rng;
 
     return result;
 }
 
 // Show convergence: estimate π with increasing sample sizes
-void fp_monte_carlo_pi_convergence(int* sample_sizes, int n_sizes, PiEstimationResult* results) {
+// Each run uses a different seed derived from base_seed + index
+void fp_monte_carlo_pi_convergence(int* sample_sizes, int n_sizes, PiEstimationResult* results, uint64_t base_seed) {
     for (int i = 0; i < n_sizes; i++) {
-        results[i] = fp_monte_carlo_estimate_pi(sample_sizes[i]);
+        results[i] = fp_monte_carlo_estimate_pi(sample_sizes[i], base_seed + (uint64_t)i);
     }
 }
 
@@ -183,22 +145,26 @@ typedef struct {
     double std_error;          // Standard error of estimate
     double confidence_95;      // 95% confidence interval (±)
     int n_samples;
+    fp_rng_t rng;              // Updated RNG state (for chaining)
 } IntegrationResult;
 
-// REFACTORED: Now uses Pattern 1 helpers
+// REFACTORED: Now uses fp_rng.h (pure, deterministic)
 IntegrationResult fp_monte_carlo_integrate(
     MonteCarloFunction f,
     double a,
     double b,
     int n_samples,
-    double true_value  // Pass 0 if unknown
+    double true_value,  // Pass 0 if unknown
+    uint64_t seed
 ) {
+    fp_rng_t rng = fp_rng_create(seed);
     double sum = 0.0;
     double sum_sq = 0.0;
 
     // Sample random points and evaluate function
     for (int i = 0; i < n_samples; i++) {
-        double x = rand_uniform_range(a, b);
+        double x;
+        rng = fp_rng_next_f64_range(rng, a, b, &x);
         double fx = f(x);
         sum += fx;
         sum_sq += fx * fx;
@@ -217,6 +183,7 @@ IntegrationResult fp_monte_carlo_integrate(
     result.std_error = (b - a) * std_error;
     result.confidence_95 = 1.96 * result.std_error;
     result.n_samples = n_samples;
+    result.rng = rng;
 
     return result;
 }
@@ -241,17 +208,20 @@ typedef struct {
     double r;                  // Risk-free rate
     double sigma;              // Volatility
     double T;                  // Time to maturity
+    fp_rng_t rng;              // Updated RNG state (for chaining)
 } OptionPricingResult;
 
-// REFACTORED: Now uses Pattern 1 helpers
+// REFACTORED: Now uses fp_rng.h (pure, deterministic)
 OptionPricingResult fp_monte_carlo_option_price(
     double S0,      // Initial stock price
     double K,       // Strike price
     double r,       // Risk-free interest rate (annual)
     double sigma,   // Volatility (annual)
     double T,       // Time to maturity (years)
-    int n_sims      // Number of simulations
+    int n_sims,     // Number of simulations
+    uint64_t seed
 ) {
+    fp_rng_t rng = fp_rng_create(seed);
     double sum_payoff = 0.0;
     double sum_payoff_sq = 0.0;
 
@@ -259,16 +229,24 @@ OptionPricingResult fp_monte_carlo_option_price(
     double diffusion = sigma * sqrt(T);
     double discount = exp(-r * T);
 
-    // Simulate stock price paths
-    for (int i = 0; i < n_sims; i++) {
-        double Z = rand_normal();
-        double ST = S0 * exp(drift + diffusion * Z);
+    // Pre-allocate array for normal samples (Box-Muller generates pairs)
+    // We'll generate samples in batches for efficiency
+    double* normals = (double*)malloc((size_t)n_sims * sizeof(double));
+    if (normals) {
+        rng = fp_rng_fill_normal_f64(rng, normals, (size_t)n_sims, 0.0, 1.0);
 
-        // European call payoff: max(ST - K, 0)
-        double payoff = (ST > K) ? (ST - K) : 0.0;
+        // Simulate stock price paths
+        for (int i = 0; i < n_sims; i++) {
+            double Z = normals[i];
+            double ST = S0 * exp(drift + diffusion * Z);
 
-        sum_payoff += payoff;
-        sum_payoff_sq += payoff * payoff;
+            // European call payoff: max(ST - K, 0)
+            double payoff = (ST > K) ? (ST - K) : 0.0;
+
+            sum_payoff += payoff;
+            sum_payoff_sq += payoff * payoff;
+        }
+        free(normals);
     }
 
     double mean_payoff = sum_payoff / n_sims;
@@ -285,6 +263,7 @@ OptionPricingResult fp_monte_carlo_option_price(
     result.r = r;
     result.sigma = sigma;
     result.T = T;
+    result.rng = rng;
 
     return result;
 }
@@ -314,21 +293,24 @@ double fp_monte_carlo_black_scholes_exact(double S0, double K, double r, double 
 typedef struct {
     double final_x;            // Final x position
     double final_y;            // Final y position
-    double distance_from_origin; // √(x² + y²)
+    double distance_from_origin; // sqrt(x^2 + y^2)
     double max_distance;       // Maximum distance reached
     double mean_distance;      // Average distance over all steps
     int n_steps;
+    fp_rng_t rng;              // Updated RNG state (for chaining)
 } RandomWalkResult;
 
-RandomWalkResult fp_monte_carlo_random_walk_2d(int n_steps, double step_size) {
+RandomWalkResult fp_monte_carlo_random_walk_2d(int n_steps, double step_size, fp_rng_t rng) {
     double x = 0.0;
     double y = 0.0;
     double sum_distance = 0.0;
     double max_dist = 0.0;
 
     for (int i = 0; i < n_steps; i++) {
-        // Random direction [0, 2π)
-        double theta = rand_uniform() * 2.0 * M_PI;
+        // Random direction [0, 2*pi)
+        double theta;
+        rng = fp_rng_next_f64(rng, &theta);
+        theta *= 2.0 * M_PI;
         x += step_size * cos(theta);
         y += step_size * sin(theta);
 
@@ -344,6 +326,7 @@ RandomWalkResult fp_monte_carlo_random_walk_2d(int n_steps, double step_size) {
     result.max_distance = max_dist;
     result.mean_distance = sum_distance / n_steps;
     result.n_steps = n_steps;
+    result.rng = rng;
 
     return result;
 }
@@ -356,21 +339,25 @@ typedef struct {
     double mean_max_distance;
     int n_walks;
     int n_steps_per_walk;
+    fp_rng_t rng;              // Updated RNG state (for chaining)
 } RandomWalkEnsemble;
 
-// REFACTORED: Now uses Pattern 1 helpers
+// REFACTORED: Now uses fp_rng.h (pure, deterministic)
 RandomWalkEnsemble fp_monte_carlo_random_walk_ensemble(
     int n_walks,
     int n_steps_per_walk,
-    double step_size
+    double step_size,
+    uint64_t seed
 ) {
+    fp_rng_t rng = fp_rng_create(seed);
     double sum_final_dist = 0.0;
     double sum_final_dist_sq = 0.0;
     double max_final_dist = 0.0;
     double sum_max_dist = 0.0;
 
     for (int i = 0; i < n_walks; i++) {
-        RandomWalkResult walk = fp_monte_carlo_random_walk_2d(n_steps_per_walk, step_size);
+        RandomWalkResult walk = fp_monte_carlo_random_walk_2d(n_steps_per_walk, step_size, rng);
+        rng = walk.rng;  // Chain the RNG state
 
         sum_final_dist += walk.distance_from_origin;
         sum_final_dist_sq += walk.distance_from_origin * walk.distance_from_origin;
@@ -391,6 +378,7 @@ RandomWalkEnsemble fp_monte_carlo_random_walk_ensemble(
     result.mean_max_distance = sum_max_dist / n_walks;
     result.n_walks = n_walks;
     result.n_steps_per_walk = n_steps_per_walk;
+    result.rng = rng;
 
     return result;
 }
