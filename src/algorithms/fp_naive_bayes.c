@@ -45,15 +45,19 @@ static inline double fp_mean_inline(const double* data, size_t n) {
     return sum / (double)n;
 }
 
-// Variance: E[(X - mean)²] = E[X²] - E[X]²
-// REFACTORED to use L0 primitive for sum of squares
+// Variance: Var(X) = Σ(x - mean)² / n
+// Uses numerically stable two-pass algorithm to avoid catastrophic cancellation
+// that can occur with the E[X²] - E[X]² formula when variance is small relative to mean
 static inline double fp_variance_inline(const double* data, size_t n, double mean) {
     if (!data || n == 0) return 0.0;
-    // Use SIMD-optimized: sumsq(x) = dotp(x, x)
-    double sum_sq = fp_fold_dotp_f64(data, data, n);
-    double mean_sq = sum_sq / (double)n;
-    // Var(X) = E[X²] - E[X]²
-    return mean_sq - mean * mean;
+    // Two-pass algorithm: sum of squared differences from mean
+    // More numerically stable than E[X²] - E[X]² formula
+    double sum_sq_diff = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double diff = data[i] - mean;
+        sum_sq_diff += diff * diff;
+    }
+    return sum_sq_diff / (double)n;
 }
 
 // Conditional mean: Mean of feature values where class == target_class
