@@ -46,17 +46,24 @@ static inline double fp_mean_inline(const double* data, size_t n) {
 }
 
 // Variance: Var(X) = Σ(x - mean)² / n
-// Uses numerically stable two-pass algorithm to avoid catastrophic cancellation
-// that can occur with the E[X²] - E[X]² formula when variance is small relative to mean
+// Uses numerically stable two-pass algorithm with full SIMD optimization:
+// Pass 1: Compute mean (already done before calling this function)
+// Pass 2: Center data with fp_map_offset_f64, then compute sum of squares with fp_fold_dotp_f64
+// This avoids catastrophic cancellation while maintaining full SIMD performance
 static inline double fp_variance_inline(const double* data, size_t n, double mean) {
     if (!data || n == 0) return 0.0;
-    // Two-pass algorithm: sum of squared differences from mean
-    // More numerically stable than E[X²] - E[X]² formula
-    double sum_sq_diff = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq_diff += diff * diff;
-    }
+
+    // Allocate temporary array for centered values
+    double* centered = (double*)malloc(n * sizeof(double));
+    if (!centered) return 0.0;
+
+    // SIMD Pass: Compute centered[i] = data[i] - mean using L0 primitive
+    fp_map_offset_f64(data, centered, n, -mean);
+
+    // SIMD Pass: Compute Σ(centered[i]²) using L0 fused fold (dot product with itself)
+    double sum_sq_diff = fp_fold_dotp_f64(centered, centered, n);
+
+    free(centered);
     return sum_sq_diff / (double)n;
 }
 
