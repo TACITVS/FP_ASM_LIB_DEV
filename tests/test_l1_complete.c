@@ -26,7 +26,7 @@
 
 static double square(double x) { return x * x; }
 static double double_it(double x) { return x * 2.0; }
-static bool is_even_int(double x) { return ((int)x % 2) == 0; }
+static bool is_even_int(double x) { return ((int64_t)x % 2) == 0; }
 static double add_reducer(double acc, double x) { return acc + x; }
 
 static int64_t triple_i64(int64_t x) { return x * 3; }
@@ -45,8 +45,8 @@ static int test_transducers(void) {
     int passed = 0, failed = 0;
 
     // Test data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    double data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    size_t n = 10;
+    static const double data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    const size_t n = 10;
 
     // Test 1: Mapping transducer (square all values)
     // Expected: 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100 = 385
@@ -199,8 +199,12 @@ static void benchmark_transducers(void) {
     printf("\n=== TRANSDUCER BENCHMARK ===\n");
 
     // Create large test data
-    size_t n = 1000000;
+    const size_t n = 1000000;
     double* data = (double*)malloc(n * sizeof(double));
+    if (!data) {
+        printf("  [ERROR] Failed to allocate memory for benchmark\n");
+        return;
+    }
     for (size_t i = 0; i < n; i++) {
         data[i] = (double)(i + 1);
     }
@@ -211,7 +215,7 @@ static void benchmark_transducers(void) {
     size_t count = 0;
     for (size_t i = 0; i < n && count < 1000; i++) {
         double sq = data[i] * data[i];
-        if ((int)sq % 2 == 0) {
+        if ((int64_t)sq % 2 == 0) {
             imperative_result += sq;
             count++;
         }
@@ -261,8 +265,8 @@ static void demo_use_cases(void) {
     printf("\n  1. Data Pipeline (ETL-style):\n");
     printf("     Raw sensor readings -> normalize -> filter outliers -> aggregate\n");
     {
-        double readings[] = {98.6, 99.1, 102.3, 98.9, 150.0, 99.2, 98.8, -10.0, 99.0, 98.7};
-        size_t n = 10;
+        static const double readings[] = {98.6, 99.1, 102.3, 98.9, 150.0, 99.2, 98.8, -10.0, 99.0, 98.7};
+        const size_t n = 10;
 
         // Filter valid range (90-110) and compute average
         // Valid: 98.6, 99.1, 102.3, 98.9, 99.2, 98.8, 99.0, 98.7 (8 values)
@@ -324,6 +328,87 @@ static void demo_use_cases(void) {
 }
 
 // ============================================================================
+// Test: Edge Cases
+// ============================================================================
+
+static int test_edge_cases(void) {
+    printf("\n=== EDGE CASE TESTS ===\n");
+    int passed = 0, failed = 0;
+
+    // Test 1: Empty array
+    {
+        static const double empty[] = {0};  // Placeholder, we'll use n=0
+        fp_transducer_t map_trans = fp_mapping_f64(square);
+        double result = fp_transduce_f64(empty, 0, map_trans, 0.0, add_reducer);
+        if (fabs(result - 0.0) < 0.001) {
+            printf("  [PASS] Empty array: result = %.0f\n", result);
+            passed++;
+        } else {
+            printf("  [FAIL] Empty array: expected 0, got %.2f\n", result);
+            failed++;
+        }
+    }
+
+    // Test 2: Single element
+    {
+        static const double single[] = {5.0};
+        fp_transducer_t map_trans = fp_mapping_f64(square);
+        double result = fp_transduce_f64(single, 1, map_trans, 0.0, add_reducer);
+        if (fabs(result - 25.0) < 0.001) {
+            printf("  [PASS] Single element: square(5) = %.0f\n", result);
+            passed++;
+        } else {
+            printf("  [FAIL] Single element: expected 25, got %.2f\n", result);
+            failed++;
+        }
+    }
+
+    // Test 3: Take more than available
+    {
+        static const double small[] = {1.0, 2.0, 3.0};
+        fp_transducer_t take_trans = fp_taking_f64(10);  // Take 10, but only 3 exist
+        double result = fp_transduce_f64(small, 3, take_trans, 0.0, add_reducer);
+        if (fabs(result - 6.0) < 0.001) {
+            printf("  [PASS] Take(10) from 3 elements: sum = %.0f\n", result);
+            passed++;
+        } else {
+            printf("  [FAIL] Take(10) from 3: expected 6, got %.2f\n", result);
+            failed++;
+        }
+    }
+
+    // Test 4: Filter matches nothing
+    {
+        static const double odds[] = {1.0, 3.0, 5.0, 7.0, 9.0};
+        fp_transducer_t filter_trans = fp_filtering_f64(is_even_int);
+        double result = fp_transduce_f64(odds, 5, filter_trans, 0.0, add_reducer);
+        if (fabs(result - 0.0) < 0.001) {
+            printf("  [PASS] Filter evens from all odds: sum = %.0f\n", result);
+            passed++;
+        } else {
+            printf("  [FAIL] Filter evens from odds: expected 0, got %.2f\n", result);
+            failed++;
+        }
+    }
+
+    // Test 5: Maybe with edge values
+    {
+        Maybe m_zero = fp_just_f64(0.0);
+        Maybe m_result = fp_fmap_maybe_f64(m_zero, double_it);
+        if (fp_is_just(m_result) && fabs(fp_from_just_f64(m_result) - 0.0) < 0.001) {
+            printf("  [PASS] Maybe fmap with zero: double(0) = 0\n");
+            passed++;
+        } else {
+            printf("  [FAIL] Maybe fmap with zero failed\n");
+            failed++;
+        }
+    }
+
+    printf("  Edge Cases: %d passed, %d failed\n", passed, failed);
+    return failed;
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -337,6 +422,7 @@ int main(void) {
     // Run tests
     total_failures += test_transducers();
     total_failures += test_applicative_maybe();
+    total_failures += test_edge_cases();
 
     // Run benchmarks
     benchmark_transducers();

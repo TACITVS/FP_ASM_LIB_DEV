@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
-cd /d C:\Users\baian\C_CODE\fp_asm_lib_dev_working_copy
+
+REM Use script directory as project root (portable)
+cd /d "%~dp0"
 
 echo ============================================================
 echo   FP-ASM L1 Complete Test - Build and Run
@@ -37,8 +39,15 @@ if %ERRORLEVEL% NEQ 0 (
 echo [2/2] Running tests...
 echo.
 build\bin\test_l1_complete.exe
+set TEST_RESULT=%ERRORLEVEL%
 
 echo.
 echo ============================================================
-echo   Done
+if "!TEST_RESULT!"=="0" (
+    echo   SUCCESS: All tests passed
+) else (
+    echo   FAILED: !TEST_RESULT! test^(s^) failed
+)
 echo ============================================================
+
+exit /b !TEST_RESULT!
