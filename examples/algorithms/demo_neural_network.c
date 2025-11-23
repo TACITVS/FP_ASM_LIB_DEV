@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 
 // Forward declarations
@@ -19,7 +20,7 @@ typedef struct {
 } TrainingResult;
 
 TrainingResult fp_neural_network_train(int n_inputs, int n_hidden, int n_outputs,
-    const double* X, const double* y, int n_samples, int n_epochs, double lr, int verbose);
+    const double* X, const double* y, int n_samples, int n_epochs, double lr, int verbose, uint64_t seed);
 int fp_neural_network_predict_class(const NeuralNetwork* net, const double* input);
 void fp_neural_network_print_summary(const NeuralNetwork* net);
 void fp_training_result_print(const TrainingResult* result);
@@ -58,7 +59,8 @@ void test_xor() {
         X, y, 4,       // Data
         1000,          // epochs
         0.5,           // learning rate
-        100            // print every 100 epochs
+        100,           // print every 100 epochs
+        42             // seed for reproducibility
     );
 
     printf("\n");
@@ -126,7 +128,8 @@ void test_binary_classification() {
         X, y, n_samples,
         500,             // epochs
         0.1,             // learning rate
-        50               // print every 50 epochs
+        50,              // print every 50 epochs
+        42               // seed for reproducibility
     );
 
     printf("\n");
