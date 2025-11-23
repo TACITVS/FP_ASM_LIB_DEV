@@ -27,33 +27,43 @@
 #include <string.h>
 #include <math.h>
 #include "fp_rng.h"
+#include "fp_core.h"  // L0 ASM primitives
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 // ============================================================================
-// Pattern 1: Array Statistics (Inline Helpers)
+// Pattern 1: Array Statistics (Using L0 ASM Primitives)
 // ============================================================================
 
-// Mean: sum / n
+// Mean: sum / n - REFACTORED to use L0 primitive
 static inline double fp_mean_inline(const double* data, size_t n) {
     if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
+    // Use SIMD-optimized assembly reduction
+    double sum = fp_reduce_add_f64(data, n);
     return sum / (double)n;
 }
 
-// Variance: E[(X - mean)²]
+// Variance: Var(X) = Σ(x - mean)² / n
+// Uses numerically stable two-pass algorithm with full SIMD optimization:
+// Pass 1: Compute mean (already done before calling this function)
+// Pass 2: Center data with fp_map_offset_f64, then compute sum of squares with fp_fold_dotp_f64
+// This avoids catastrophic cancellation while maintaining full SIMD performance
 static inline double fp_variance_inline(const double* data, size_t n, double mean) {
     if (!data || n == 0) return 0.0;
-    double sum_sq_diff = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq_diff += diff * diff;
-    }
+
+    // Allocate temporary array for centered values
+    double* centered = (double*)malloc(n * sizeof(double));
+    if (!centered) return 0.0;
+
+    // SIMD Pass: Compute centered[i] = data[i] - mean using L0 primitive
+    fp_map_offset_f64(data, centered, n, -mean);
+
+    // SIMD Pass: Compute Σ(centered[i]²) using L0 fused fold (dot product with itself)
+    double sum_sq_diff = fp_fold_dotp_f64(centered, centered, n);
+
+    free(centered);
     return sum_sq_diff / (double)n;
 }
 
