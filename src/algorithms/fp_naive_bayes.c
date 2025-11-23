@@ -27,34 +27,33 @@
 #include <string.h>
 #include <math.h>
 #include "fp_rng.h"
+#include "fp_core.h"  // L0 ASM primitives
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 // ============================================================================
-// Pattern 1: Array Statistics (Inline Helpers)
+// Pattern 1: Array Statistics (Using L0 ASM Primitives)
 // ============================================================================
 
-// Mean: sum / n
+// Mean: sum / n - REFACTORED to use L0 primitive
 static inline double fp_mean_inline(const double* data, size_t n) {
     if (!data || n == 0) return 0.0;
-    double sum = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum += data[i];
-    }
+    // Use SIMD-optimized assembly reduction
+    double sum = fp_reduce_add_f64(data, n);
     return sum / (double)n;
 }
 
-// Variance: E[(X - mean)²]
+// Variance: E[(X - mean)²] = E[X²] - E[X]²
+// REFACTORED to use L0 primitive for sum of squares
 static inline double fp_variance_inline(const double* data, size_t n, double mean) {
     if (!data || n == 0) return 0.0;
-    double sum_sq_diff = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        double diff = data[i] - mean;
-        sum_sq_diff += diff * diff;
-    }
-    return sum_sq_diff / (double)n;
+    // Use SIMD-optimized: sumsq(x) = dotp(x, x)
+    double sum_sq = fp_fold_dotp_f64(data, data, n);
+    double mean_sq = sum_sq / (double)n;
+    // Var(X) = E[X²] - E[X]²
+    return mean_sq - mean * mean;
 }
 
 // Conditional mean: Mean of feature values where class == target_class
