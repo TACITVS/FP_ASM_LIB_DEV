@@ -62,7 +62,8 @@ static inline double fp_mse_inline(const double* actual, const double* predicted
     return dotp / (double)n;
 }
 
-// Mean Absolute Error: Compose L1 primitives (no fp_fold_sad_f64 for doubles)
+// Mean Absolute Error: Pure FP composition of L0 primitives (SIMD AVX2)
+// MAE = mean(|actual - predicted|) = reduce_add(map_abs(errors)) / n
 static inline double fp_mae_inline(const double* actual, const double* predicted, size_t n) {
     if (!actual || !predicted || n == 0) return 0.0;
 
@@ -70,15 +71,14 @@ static inline double fp_mae_inline(const double* actual, const double* predicted
     double* errors = (double*)malloc(n * sizeof(double));
     if (!errors) return 0.0;
 
-    // L1: errors = actual - predicted using SIMD map
+    // L0: errors = actual - predicted using SIMD map
     fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
 
-    // Compute absolute values and sum manually
-    // TODO: Add fp_map_abs_f64 to library for this pattern!
-    double sum_abs = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        sum_abs += fabs(errors[i]);
-    }
+    // L0: Compute absolute values in-place using SIMD (AVX2)
+    fp_map_abs_f64(errors, errors, n);
+
+    // L0: Sum absolute values using SIMD reduction
+    double sum_abs = fp_reduce_add_f64(errors, n);
 
     free(errors);
     return sum_abs / (double)n;
@@ -593,23 +593,43 @@ double fp_forecast_mape(const double* actual, const double* predicted, int n) {
     return (count > 0) ? (100.0 * sum_ape / count) : 0.0;
 }
 
-// Mean Absolute Error
+// Mean Absolute Error - REFACTORED to use L0 SIMD primitives
 double fp_forecast_mae(const double* actual, const double* predicted, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        sum += fabs(actual[i] - predicted[i]);
-    }
+    if (n <= 0) return 0.0;
+
+    // Allocate temp buffer for errors
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // L0: errors = actual - predicted
+    fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
+
+    // L0: Compute absolute values in-place (AVX2)
+    fp_map_abs_f64(errors, errors, n);
+
+    // L0: Sum absolute values
+    double sum = fp_reduce_add_f64(errors, n);
+
+    free(errors);
     return sum / n;
 }
 
-// Root Mean Squared Error
+// Root Mean Squared Error - REFACTORED to use L0 SIMD primitives
 double fp_forecast_rmse(const double* actual, const double* predicted, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        double error = actual[i] - predicted[i];
-        sum += error * error;
-    }
-    return sqrt(sum / n);
+    if (n <= 0) return 0.0;
+
+    // Allocate temp buffer for errors
+    double* errors = (double*)malloc(n * sizeof(double));
+    if (!errors) return 0.0;
+
+    // L0: errors = actual - predicted
+    fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
+
+    // L0: Sum of squared errors using dot product (AVX2)
+    double sum_sq = fp_fold_dotp_f64(errors, errors, n);
+
+    free(errors);
+    return sqrt(sum_sq / n);
 }
 
 // ============================================================================
