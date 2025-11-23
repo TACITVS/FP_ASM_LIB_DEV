@@ -515,6 +515,16 @@ fp_reduce_min_i64:
 ; Conditional reduction: sum x[i] where mask[i] != 0
 ; Used for masked statistics (e.g., summing subset of data)
 ;
+; AVX2 optimized implementation using masked blend operations.
+; Processes 4 doubles per iteration with branchless SIMD masking.
+;
+; Strategy:
+;   - Load 4 x 32-bit masks, sign-extend to 64-bit for vblendvpd
+;   - Load 4 x f64 values
+;   - Blend: keep value where mask != 0, zero otherwise
+;   - Accumulate into SIMD accumulators
+;   - Horizontal reduction at end
+;
 ; Arguments (Windows x64 ABI):
 ;   RCX = x (const double*)
 ;   RDX = mask (const int*)  - 32-bit integers
@@ -522,32 +532,123 @@ fp_reduce_min_i64:
 ;
 ; Returns:
 ;   XMM0 = sum of x[i] where mask[i] != 0
+;   Returns 0.0 if x is NULL, mask is NULL, or n is 0
 ; =============================================================================
 fp_reduce_add_f64_where:
     PROLOGUE
+
+    ; Initialize sum to 0.0 (return value for NULL/empty cases)
+    vxorpd xmm0, xmm0, xmm0
+
+    ; Null pointer checks
+    test rcx, rcx           ; Check x != NULL
+    jz   .done_where
+    test rdx, rdx           ; Check mask != NULL
+    jz   .done_where
+
     mov  r12, rcx           ; r12 = x
     mov  r14, rdx           ; r14 = mask
     mov  r13, r8            ; r13 = n
 
-    vxorpd xmm0, xmm0, xmm0 ; sum = 0.0
-
     test r13, r13
     jz   .done_where
 
-.loop_where:
-    ; Load mask[i] (32-bit int)
+    ; Initialize 4 accumulators for better pipelining
+    vxorpd ymm6, ymm6, ymm6 ; acc0
+    vxorpd ymm7, ymm7, ymm7 ; acc1
+    vxorpd ymm8, ymm8, ymm8 ; acc2
+    vxorpd ymm9, ymm9, ymm9 ; acc3
+
+; -----------------------------------------------------------------------------
+; Main loop: Process 16 doubles per iteration (4 x 4-wide)
+; -----------------------------------------------------------------------------
+.loop16_where:
+    cmp  r13, 16
+    jb   .loop4_where
+
+    ; --- Block 0: 4 doubles ---
+    vmovdqu xmm1, [r14]           ; Load 4 x 32-bit masks
+    vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit (for vblendvpd)
+    vmovupd ymm2, [r12]           ; Load 4 x f64 values
+    vxorpd ymm3, ymm3, ymm3       ; Zero vector
+    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Select: val where mask<0 (MSB set), 0 otherwise
+    vaddpd ymm6, ymm6, ymm2       ; Accumulate
+
+    ; --- Block 1: Next 4 doubles ---
+    vmovdqu xmm1, [r14+16]
+    vpmovsxdq ymm1, xmm1
+    vmovupd ymm2, [r12+32]
+    vblendvpd ymm2, ymm3, ymm2, ymm1
+    vaddpd ymm7, ymm7, ymm2
+
+    ; --- Block 2: Next 4 doubles ---
+    vmovdqu xmm1, [r14+32]
+    vpmovsxdq ymm1, xmm1
+    vmovupd ymm2, [r12+64]
+    vblendvpd ymm2, ymm3, ymm2, ymm1
+    vaddpd ymm8, ymm8, ymm2
+
+    ; --- Block 3: Next 4 doubles ---
+    vmovdqu xmm1, [r14+48]
+    vpmovsxdq ymm1, xmm1
+    vmovupd ymm2, [r12+96]
+    vblendvpd ymm2, ymm3, ymm2, ymm1
+    vaddpd ymm9, ymm9, ymm2
+
+    add  r12, 128           ; x += 16 doubles (128 bytes)
+    add  r14, 64            ; mask += 16 ints (64 bytes)
+    sub  r13, 16
+    jmp  .loop16_where
+
+; -----------------------------------------------------------------------------
+; Process 4 doubles per iteration
+; -----------------------------------------------------------------------------
+.loop4_where:
+    cmp  r13, 4
+    jb   .tail_where
+
+    vmovdqu xmm1, [r14]           ; Load 4 x 32-bit masks
+    vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit
+    vmovupd ymm2, [r12]           ; Load 4 x f64 values
+    vxorpd ymm3, ymm3, ymm3       ; Zero vector
+    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Conditional select
+    vaddpd ymm6, ymm6, ymm2       ; Accumulate
+
+    add  r12, 32            ; x += 4 doubles
+    add  r14, 16            ; mask += 4 ints
+    sub  r13, 4
+    jmp  .loop4_where
+
+; -----------------------------------------------------------------------------
+; Scalar tail: Process remaining 1-3 elements
+; -----------------------------------------------------------------------------
+.tail_where:
+    ; Horizontal reduction of SIMD accumulators
+    vaddpd ymm6, ymm6, ymm7
+    vaddpd ymm8, ymm8, ymm9
+    vaddpd ymm6, ymm6, ymm8
+
+    ; Reduce ymm6 to scalar
+    vextractf128 xmm1, ymm6, 1
+    vaddpd xmm2, xmm6, xmm1       ; xmm2 = [a+c, b+d]
+    vhaddpd xmm0, xmm2, xmm2      ; xmm0 = [a+b+c+d, a+b+c+d]
+
+    ; Process remaining elements (0-3)
+    test r13, r13
+    jz   .done_where
+
+.scalar_loop_where:
     mov  eax, [r14]
     test eax, eax
-    jz   .skip_where        ; Skip if mask[i] == 0
+    jz   .skip_scalar_where
 
-    ; Add x[i] to sum
     vaddsd xmm0, xmm0, [r12]
 
-.skip_where:
+.skip_scalar_where:
     add  r12, 8             ; x++
-    add  r14, 4             ; mask++ (32-bit ints)
+    add  r14, 4             ; mask++
     dec  r13
-    jnz  .loop_where
+    jnz  .scalar_loop_where
 
 .done_where:
     EPILOGUE
