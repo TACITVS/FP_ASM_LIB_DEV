@@ -134,7 +134,7 @@ static void free_node(DecisionNode* node) {
 
 // Gini impurity for classification: 1 - Σ p_i²
 // REFACTORED: Uses L0 fp_fold_dotp_f64() for sum of squared probabilities
-static double gini_impurity(const int* y, int n, int n_classes) {
+// Uses L0 fp_fold_dotp_f64() for sum of squared probabilities
     int* counts = (int*)calloc(n_classes, sizeof(int));
 
     // Count samples per class (inherently sequential - discrete counting)
