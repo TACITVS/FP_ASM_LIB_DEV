@@ -25,6 +25,7 @@
 #include <math.h>
 #include "fp_core.h"
 #include "fp_rng.h"
+#include "fp_monads.h"  // TIER 4: Maybe monad for safe error handling
 
 // Pattern 1 helpers (lightweight inline versions to avoid dependency issues)
 // These follow the Pattern 1 style from fp_stats.h but are self-contained
@@ -276,6 +277,47 @@ void fp_kmeans_free(KMeansResult* result) {
     free(result->centroids);
     free(result->assignments);
     free(result->cluster_sizes);
+}
+
+// ============================================================================
+// TIER 4: Maybe Monad Wrapper for Safe K-Means
+// ============================================================================
+// Returns Nothing for invalid inputs, Just(result_ptr) on success
+// Caller must fp_kmeans_free() the result if fp_is_just()
+
+Maybe fp_kmeans_f64_safe(
+    const double* data,
+    int n,
+    int d,
+    int k,
+    int max_iter,
+    double tol,
+    uint64_t seed
+) {
+    // Validate inputs - return Nothing for edge cases
+    if (!data) return fp_nothing();           // NULL data
+    if (n <= 0) return fp_nothing();          // No data points
+    if (d <= 0) return fp_nothing();          // Invalid dimensionality
+    if (k <= 0) return fp_nothing();          // No clusters
+    if (k > n) return fp_nothing();           // More clusters than points
+    if (max_iter <= 0) return fp_nothing();   // Invalid max iterations
+    if (tol < 0.0) return fp_nothing();       // Negative tolerance
+
+    // Allocate result on heap (caller must free)
+    KMeansResult* result = (KMeansResult*)malloc(sizeof(KMeansResult));
+    if (!result) return fp_nothing();         // Allocation failed
+
+    // Run K-Means
+    *result = fp_kmeans_f64(data, n, d, k, max_iter, tol, seed);
+
+    // Check allocation success inside result
+    if (!result->centroids || !result->assignments || !result->cluster_sizes) {
+        fp_kmeans_free(result);
+        free(result);
+        return fp_nothing();
+    }
+
+    return fp_just_ptr(result);
 }
 
 // Print K-Means result
