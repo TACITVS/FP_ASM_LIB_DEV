@@ -228,7 +228,8 @@ KMeansResult fp_kmeans_f64(
     double tol,               // convergence tolerance
     uint64_t seed             // RNG seed for deterministic initialization
 ) {
-    KMeansResult result;
+    // Zero-initialize to ensure NULL pointers if malloc fails partway through
+    KMeansResult result = {0};
 
     // Allocate memory
     result.centroids = (double*)malloc(k * d * sizeof(double));
