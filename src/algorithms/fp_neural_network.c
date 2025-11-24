@@ -21,9 +21,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "../include/fp_core.h"          // L0: Assembly primitives
 #include "../include/fp_stats_v3_pure.h" // L1: Pure FP statistics
 #include "../include/fp_rng.h"           // Deterministic RNG
+#include "../include/fp_monads.h"        // Either monad for safe wrappers
 
 // ============================================================================
 // Pattern 1: Array Statistics - USING L1 LIBRARY (NO IMPERATIVE LOOPS!)
@@ -112,27 +114,6 @@ static inline double relu_derivative(double x) {
     return x > 0.0 ? 1.0 : 0.0;
 }
 
-// Softmax: exp(x_i) / sum(exp(x_j))
-static void softmax(const double* input, double* output, int n) {
-    // Find max for numerical stability
-    double max_val = input[0];
-    for (int i = 1; i < n; i++) {
-        if (input[i] > max_val) max_val = input[i];
-    }
-
-    // Compute exp(x - max) and sum
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        output[i] = exp(input[i] - max_val);
-        sum += output[i];
-    }
-
-    // Normalize
-    for (int i = 0; i < n; i++) {
-        output[i] /= sum;
-    }
-}
-
 // ============================================================================
 // Network Initialization
 // ============================================================================
@@ -162,6 +143,41 @@ NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs
     (void)rng;  // Suppress unused warning
 
     return net;
+}
+
+// Safe wrapper for fp_neural_network_create with Either monad overflow protection
+// Returns Either monad: Left(error_msg, error_code) or Right(NeuralNetwork*)
+Either fp_neural_network_create_safe(int n_inputs, int n_hidden, int n_outputs, uint64_t seed) {
+    // Validate parameters
+    if (n_inputs <= 0) return fp_left("Invalid n_inputs <= 0", 2);
+    if (n_hidden <= 0) return fp_left("Invalid n_hidden <= 0", 2);
+    if (n_outputs <= 0) return fp_left("Invalid n_outputs <= 0", 2);
+
+    // Critical overflow checks
+    // Check 1: n_hidden * n_inputs (W1 weight matrix)
+    if (n_inputs > 0 && n_hidden > INT_MAX / n_inputs) {
+        return fp_left("W1 matrix dimensions (n_hidden*n_inputs) would overflow INT_MAX", 2);
+    }
+
+    // Check 2: n_outputs * n_hidden (W2 weight matrix)
+    if (n_hidden > 0 && n_outputs > INT_MAX / n_hidden) {
+        return fp_left("W2 matrix dimensions (n_outputs*n_hidden) would overflow INT_MAX", 2);
+    }
+
+    // All validations passed - call unsafe function
+    NeuralNetwork* net = (NeuralNetwork*)malloc(sizeof(NeuralNetwork));
+    if (!net) return fp_left("Failed to allocate NeuralNetwork", 3);
+
+    *net = fp_neural_network_create(n_inputs, n_hidden, n_outputs, seed);
+
+    // Check if allocation in create succeeded (W1 and W2 should be non-NULL)
+    if (!net->W1 || !net->W2) {
+        free(net);
+        return fp_left("Failed to allocate network weights", 3);
+    }
+
+    // Wrap result in Either Right
+    return fp_right_ptr(net);
 }
 
 // ============================================================================
@@ -213,19 +229,6 @@ double* fp_neural_network_forward(
 // REFACTORED: Now uses Pattern 1 fp_mse_inline()
 static double mse_loss(const double* predicted, const double* target, int n) {
     return fp_mse_inline(predicted, target, n);
-}
-
-// Cross-entropy loss (for classification)
-static double cross_entropy_loss(const double* predicted, const double* target, int n) {
-    double sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        // Avoid log(0)
-        double p = predicted[i];
-        if (p < 1e-15) p = 1e-15;
-        if (p > 1.0 - 1e-15) p = 1.0 - 1e-15;
-        sum -= target[i] * log(p);
-    }
-    return sum;
 }
 
 // ============================================================================
