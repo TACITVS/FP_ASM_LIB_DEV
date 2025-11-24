@@ -160,10 +160,12 @@ void test_invalid_threshold(void) {
 }
 
 void test_overflow_dimensions(void) {
-    // Test with dimensions that would overflow when multiplied
-    // Use INT_MAX-like values that would overflow n*d
+    // Test with dimensions that would overflow INT_MAX when multiplied
+    // INT_MAX = 2,147,483,647, sqrt(INT_MAX) ≈ 46,340
+    // Use n=50000, d=50000: 50000 * 50000 = 2,500,000,000 > INT_MAX
+    // INT_MAX / 50000 = 42,949, so 50000 > 42949 triggers overflow check
     Either result = fp_linear_regression_gradient_descent_safe(
-        test_X, test_y, 2000000000, 2000000000, 0.01, 100, 1e-6, 42);
+        test_X, test_y, 50000, 50000, 0.01, 100, 1e-6, 42);
 
     if (fp_is_left(result) && fp_from_left_code(result) == 2) {
         TEST_PASS("Overflow dimensions returns Left with code 2");
