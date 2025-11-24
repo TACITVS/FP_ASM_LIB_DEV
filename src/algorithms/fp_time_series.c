@@ -29,6 +29,7 @@
 #include "../include/fp_core.h"          // Assembly primitives
 #include "../include/fp_stats_v3_pure.h" // Pure FP statistics (uses assembly)
 #include "../include/fp_rng.h"           // Deterministic RNG
+#include "../include/fp_time_series.h"   // Public API declarations
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -158,36 +159,10 @@ static inline double fp_sliding_window_mse_inline(const double* data, size_t n, 
 }
 
 // ============================================================================
-// Data Structures
+// Data Structures - defined in fp_time_series.h
 // ============================================================================
-
-// Forecast result with confidence intervals
-typedef struct {
-    double* forecast;           // Predicted values
-    double* lower_bound;        // Lower confidence bound (95%)
-    double* upper_bound;        // Upper confidence bound (95%)
-    int horizon;                // Number of steps forecasted
-    double mse;                 // Mean squared error on training data
-    double mae;                 // Mean absolute error on training data
-} ForecastResult;
-
-// Time series decomposition
-typedef struct {
-    double* trend;              // Trend component
-    double* seasonal;           // Seasonal component
-    double* residual;           // Residual (noise) component
-    int n;                      // Length of time series
-} TimeSeriesDecomposition;
-
-// ARIMA model parameters
-typedef struct {
-    int p;                      // AR order (autoregressive)
-    int d;                      // I order (integrated/differencing)
-    int q;                      // MA order (moving average)
-    double* ar_coeffs;          // AR coefficients (p)
-    double* ma_coeffs;          // MA coefficients (q)
-    double intercept;           // Constant term
-} ARIMAModel;
+// ForecastResult, TimeSeriesDecomposition, and ARIMAModel are now defined
+// in the public header to ensure declaration/definition consistency.
 
 // ============================================================================
 // Basic Statistics (Using fp_stats_v3_pure.h - Assembly Optimized)
