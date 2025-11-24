@@ -26,8 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "fp_rng.h"
 #include "fp_core.h"  // L0 ASM primitives
+#include "fp_monads.h" // Either monad for safe wrappers
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -207,6 +209,43 @@ GaussianNBModel fp_gaussian_nb_train(
     return model;
 }
 
+// Safe wrapper for fp_gaussian_nb_train with Either monad overflow protection
+// Returns Either monad: Left(error_msg, error_code) or Right(GaussianNBModel*)
+Either fp_gaussian_nb_train_safe(
+    const double* X,
+    const int* y,
+    int n,
+    int d,
+    int n_classes
+) {
+    // Validate parameters
+    if (!X) return fp_left("NULL input data X", 1);
+    if (!y) return fp_left("NULL labels y", 1);
+    if (n <= 0) return fp_left("Invalid n <= 0", 2);
+    if (d <= 0) return fp_left("Invalid d <= 0", 2);
+    if (n_classes <= 0) return fp_left("Invalid n_classes <= 0", 2);
+
+    // Critical overflow check: n_classes * d (means and variances matrices)
+    if (d > 0 && n_classes > INT_MAX / d) {
+        return fp_left("Model dimensions (n_classes*d) would overflow INT_MAX", 2);
+    }
+
+    // All validations passed - call unsafe function
+    GaussianNBModel* model = (GaussianNBModel*)malloc(sizeof(GaussianNBModel));
+    if (!model) return fp_left("Failed to allocate GaussianNBModel", 3);
+
+    *model = fp_gaussian_nb_train(X, y, n, d, n_classes);
+
+    // Check if allocation in train succeeded
+    if (!model->means || !model->variances) {
+        free(model);
+        return fp_left("Failed to allocate model parameters", 3);
+    }
+
+    // Wrap result in Either Right
+    return fp_right_ptr(model);
+}
+
 // Gaussian probability density function
 static double gaussian_pdf(double x, double mean, double variance) {
     double exponent = -0.5 * ((x - mean) * (x - mean)) / variance;
@@ -322,6 +361,45 @@ MultinomialNBModel fp_multinomial_nb_train(
     }
 
     return model;
+}
+
+// Safe wrapper for fp_multinomial_nb_train with Either monad overflow protection
+// Returns Either monad: Left(error_msg, error_code) or Right(MultinomialNBModel*)
+Either fp_multinomial_nb_train_safe(
+    const double* X,
+    const int* y,
+    int n,
+    int d,
+    int n_classes,
+    double alpha
+) {
+    // Validate parameters
+    if (!X) return fp_left("NULL input data X", 1);
+    if (!y) return fp_left("NULL labels y", 1);
+    if (n <= 0) return fp_left("Invalid n <= 0", 2);
+    if (d <= 0) return fp_left("Invalid d <= 0", 2);
+    if (n_classes <= 0) return fp_left("Invalid n_classes <= 0", 2);
+    if (alpha < 0.0) return fp_left("Invalid alpha < 0", 2);
+
+    // Critical overflow check: n_classes * d (feature matrices)
+    if (d > 0 && n_classes > INT_MAX / d) {
+        return fp_left("Model dimensions (n_classes*d) would overflow INT_MAX", 2);
+    }
+
+    // All validations passed - call unsafe function
+    MultinomialNBModel* model = (MultinomialNBModel*)malloc(sizeof(MultinomialNBModel));
+    if (!model) return fp_left("Failed to allocate MultinomialNBModel", 3);
+
+    *model = fp_multinomial_nb_train(X, y, n, d, n_classes, alpha);
+
+    // Check if allocation in train succeeded
+    if (!model->feature_log_probs || !model->feature_counts) {
+        free(model);
+        return fp_left("Failed to allocate model parameters", 3);
+    }
+
+    // Wrap result in Either Right
+    return fp_right_ptr(model);
 }
 
 // Predict using Multinomial Naive Bayes
