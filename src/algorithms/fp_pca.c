@@ -28,8 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "fp_core.h"
 #include "fp_rng.h"
+#include "fp_monads.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -376,6 +378,52 @@ PCAResult fp_pca_fit(
     free(C);
 
     return result;
+}
+
+// Safe wrapper for fp_pca_fit with Either monad for overflow protection
+// Returns Either monad: Left(error_msg, error_code) or Right(PCAResult*)
+Either fp_pca_fit_safe(
+    const double* X,
+    int n,
+    int d,
+    int n_components,
+    int max_iterations,
+    double tolerance,
+    uint64_t seed
+) {
+    // Validate parameters
+    if (!X) return fp_left("NULL input data X", 1);
+    if (n <= 0) return fp_left("Invalid n <= 0", 2);
+    if (d <= 0) return fp_left("Invalid d <= 0", 2);
+    if (n_components <= 0) return fp_left("Invalid n_components <= 0", 2);
+    if (n_components > d) return fp_left("n_components > d (cannot extract more components than features)", 2);
+    if (max_iterations <= 0) return fp_left("Invalid max_iterations <= 0", 2);
+    if (tolerance < 0.0) return fp_left("Invalid tolerance < 0", 2);
+
+    // Critical overflow checks
+    // Check 1: d * d (covariance matrix) - MOST CRITICAL
+    if (d > 0 && d > INT_MAX / d) {
+        return fp_left("Covariance matrix dimensions (d*d) would overflow INT_MAX", 2);
+    }
+
+    // Check 2: n * d (data matrix)
+    if (d > 0 && n > INT_MAX / d) {
+        return fp_left("Data matrix dimensions (n*d) would overflow INT_MAX", 2);
+    }
+
+    // Check 3: n_components * d (components matrix)
+    if (d > 0 && n_components > INT_MAX / d) {
+        return fp_left("Components matrix dimensions (n_components*d) would overflow INT_MAX", 2);
+    }
+
+    // All validations passed - call unsafe function
+    PCAResult* result = (PCAResult*)malloc(sizeof(PCAResult));
+    if (!result) return fp_left("Failed to allocate PCAResult", 3);
+
+    *result = fp_pca_fit(X, n, d, n_components, max_iterations, tolerance, seed);
+
+    // Wrap result in Either Right
+    return fp_right_ptr(result);
 }
 
 // Transform data to PCA space: X_transformed = (X - mean) * components^T
