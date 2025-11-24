@@ -70,6 +70,11 @@ static fp_rng_t kmeans_plus_plus_init(
     memcpy(centroids, &data[first_idx * d], d * sizeof(double));
 
     double* distances = (double*)malloc(n * sizeof(double));
+    if (!distances) {
+        // Allocation failed - return current rng state; centroids array will be incomplete
+        // Caller should check via the safe wrapper which validates the result
+        return rng;
+    }
 
     // Choose remaining k-1 centroids
     for (int c = 1; c < k; c++) {
@@ -162,6 +167,11 @@ static void update_centroids(
 
     // Allocate temporary storage for cluster points (one dimension at a time)
     double* cluster_points = (double*)malloc(n * sizeof(double));
+    if (!cluster_points) {
+        // Allocation failed - cluster_sizes are zeroed, centroids remain zeroed
+        // Algorithm will produce degenerate result but won't crash
+        return;
+    }
 
     // Compute centroid for each cluster, dimension by dimension
     for (int c = 0; c < k; c++) {
@@ -228,12 +238,20 @@ KMeansResult fp_kmeans_f64(
     double tol,               // convergence tolerance
     uint64_t seed             // RNG seed for deterministic initialization
 ) {
-    KMeansResult result;
+    // Zero-initialize to ensure NULL pointers if malloc fails partway through
+    KMeansResult result = {0};
 
     // Allocate memory
     result.centroids = (double*)malloc(k * d * sizeof(double));
     result.assignments = (int*)malloc(n * sizeof(int));
     result.cluster_sizes = (int*)malloc(k * sizeof(int));
+
+    // Early-return on allocation failure - since result is zero-initialized,
+    // fp_kmeans_free() is safe to call and will only free successfully allocated memory
+    if (!result.centroids || !result.assignments || !result.cluster_sizes) {
+        fp_kmeans_free(&result);
+        return result;  // Return with NULL centroids to indicate failure
+    }
 
     // Initialize assignments to -1
     memset(result.assignments, -1, n * sizeof(int));
