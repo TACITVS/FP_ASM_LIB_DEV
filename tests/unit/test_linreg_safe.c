@@ -159,6 +159,21 @@ void test_invalid_threshold(void) {
     }
 }
 
+void test_overflow_dimensions(void) {
+    // Test with dimensions that would overflow when multiplied
+    // Use INT_MAX-like values that would overflow n*d
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, 2000000000, 2000000000, 0.01, 100, 1e-6, 42);
+
+    if (fp_is_left(result) && fp_from_left_code(result) == 2) {
+        TEST_PASS("Overflow dimensions returns Left with code 2");
+        tests_passed++;
+    } else {
+        TEST_FAIL("Overflow dimensions", "Expected Left with code 2");
+        tests_failed++;
+    }
+}
+
 /* ============================================================================
  * Success Case Tests
  * ============================================================================ */
@@ -286,6 +301,7 @@ int main(void) {
     test_negative_learning_rate();
     test_invalid_max_iterations();
     test_invalid_threshold();
+    test_overflow_dimensions();
 
     printf("\n--- Success Case Tests ---\n");
     test_valid_input();
