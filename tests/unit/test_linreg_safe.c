@@ -120,6 +120,19 @@ void test_invalid_learning_rate(void) {
     }
 }
 
+void test_negative_learning_rate(void) {
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, test_n, test_d, -0.5, 100, 1e-6, 42);
+
+    if (fp_is_left(result) && fp_from_left_code(result) == 2) {
+        TEST_PASS("learning_rate=-0.5 returns Left with code 2");
+        tests_passed++;
+    } else {
+        TEST_FAIL("learning_rate=-0.5", "Expected Left with code 2");
+        tests_failed++;
+    }
+}
+
 void test_invalid_max_iterations(void) {
     Either result = fp_linear_regression_gradient_descent_safe(
         test_X, test_y, test_n, test_d, 0.01, 0, 1e-6, 42);
@@ -220,6 +233,17 @@ void test_determinism(void) {
         fp_gradient_descent_free(res2);
         free(res2);
     } else {
+        // Clean up any successful allocation before failing
+        if (fp_is_right(r1)) {
+            GradientDescentResult* res1 = (GradientDescentResult*)fp_from_right_ptr(r1);
+            fp_gradient_descent_free(res1);
+            free(res1);
+        }
+        if (fp_is_right(r2)) {
+            GradientDescentResult* res2 = (GradientDescentResult*)fp_from_right_ptr(r2);
+            fp_gradient_descent_free(res2);
+            free(res2);
+        }
         TEST_FAIL("Determinism", "One or both calls returned Left");
         tests_failed++;
     }
@@ -259,6 +283,7 @@ int main(void) {
     test_invalid_d();
     test_negative_d();
     test_invalid_learning_rate();
+    test_negative_learning_rate();
     test_invalid_max_iterations();
     test_invalid_threshold();
 
