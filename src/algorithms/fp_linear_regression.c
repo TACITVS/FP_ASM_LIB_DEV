@@ -75,7 +75,8 @@ static void predict(
     // L0 ASM: Use fp_fold_dotp_f64 for each row's dot product
     for (int i = 0; i < n; i++) {
         // bias + (row_i · weights[1:d+1])
-        y_pred[i] = weights[0] + fp_fold_dotp_f64(&X[i * d], &weights[1], (size_t)d);
+        const size_t row_offset = (size_t)i * (size_t)d;
+        y_pred[i] = weights[0] + fp_fold_dotp_f64(&X[row_offset], &weights[1], (size_t)d);
     }
 }
 
@@ -88,6 +89,9 @@ static double compute_mse(
 ) {
     // L0 ASM: Compute errors using fp_map_axpy_f64: error = pred + (-1)*true
     double* errors = (double*)malloc((size_t)n * sizeof(double));
+    if (!errors) {
+        return INFINITY;  // Signal allocation failure to caller
+    }
     fp_map_axpy_f64(y_true, y_pred, errors, (size_t)n, -1.0);  // errors = y_pred - y_true
 
     // L0 ASM: Sum of squared errors = errors · errors
@@ -111,7 +115,7 @@ LinearRegressionModel fp_linear_regression_closed_form(
 ) {
     LinearRegressionModel model;
     model.n_features = d;
-    model.weights = (double*)calloc(d + 1, sizeof(double));
+    model.weights = (double*)calloc((size_t)(d + 1), sizeof(double));
     model.converged = 1;  // Closed-form always "converges"
 
     // For simple linear regression (d=1), use closed-form formulas
@@ -145,7 +149,11 @@ LinearRegressionModel fp_linear_regression_closed_form(
     }
 
     // Compute final loss
-    double* y_pred = (double*)malloc(n * sizeof(double));
+    double* y_pred = (double*)malloc((size_t)n * sizeof(double));
+    if (!y_pred) {
+        model.final_loss = INFINITY;
+        return model;
+    }
     predict(X, model.weights, y_pred, n, d);
     model.final_loss = compute_mse(y_pred, y, n);
     free(y_pred);
@@ -170,10 +178,13 @@ static void compute_gradients(
     int d                     // number of features
 ) {
     // Initialize gradients to zero
-    memset(gradients, 0, (d + 1) * sizeof(double));
+    memset(gradients, 0, (size_t)(d + 1) * sizeof(double));
 
     // Compute errors (y_pred - y_true)
-    double* errors = (double*)malloc(n * sizeof(double));
+    double* errors = (double*)malloc((size_t)n * sizeof(double));
+    if (!errors) {
+        return;  // Leave gradients as zeroed if allocation fails
+    }
     for (int i = 0; i < n; i++) {
         errors[i] = y_pred[i] - y_true[i];
     }
@@ -184,9 +195,14 @@ static void compute_gradients(
     // Compute feature gradients (gradient[1..d])
     // gradient[j] = mean((y_pred - y_true) * x[j])
     for (int j = 0; j < d; j++) {
-        double* weighted_errors = (double*)malloc(n * sizeof(double));
+        double* weighted_errors = (double*)malloc((size_t)n * sizeof(double));
+        if (!weighted_errors) {
+            gradients[j + 1] = 0.0;
+            continue;
+        }
         for (int i = 0; i < n; i++) {
-            weighted_errors[i] = errors[i] * X[i * d + j];
+            const size_t idx = (size_t)i * (size_t)d + (size_t)j;
+            weighted_errors[i] = errors[i] * X[idx];
         }
         // Pattern 1: Each gradient is mean of weighted errors
         gradients[j + 1] = fp_mean_inline(weighted_errors, n);
@@ -211,13 +227,28 @@ GradientDescentResult fp_linear_regression_gradient_descent(
 ) {
     GradientDescentResult result;
     result.model.n_features = d;
+    result.model.weights = NULL;
+    result.loss_history = NULL;
+    result.model.final_loss = 0.0;
+    result.model.converged = 0;
+    result.n_iterations = 0;
+
     result.model.weights = (double*)calloc((size_t)(d + 1), sizeof(double));
     result.loss_history = (double*)malloc((size_t)max_iterations * sizeof(double));
-    result.model.converged = 0;
 
     // Allocate working memory
     double* y_pred = (double*)malloc((size_t)n * sizeof(double));
     double* gradients = (double*)malloc((size_t)(d + 1) * sizeof(double));
+
+    if (!result.model.weights || !result.loss_history || !y_pred || !gradients) {
+        free(result.model.weights);
+        free(result.loss_history);
+        free(y_pred);
+        free(gradients);
+        result.model.weights = NULL;
+        result.loss_history = NULL;
+        return result;
+    }
 
     // DETERMINISTIC: Initialize weights using fp_rng (no rand()!)
     fp_rng_t rng = fp_rng_create(seed);
@@ -232,6 +263,15 @@ GradientDescentResult fp_linear_regression_gradient_descent(
 
         // 2. Compute loss
         double loss = compute_mse(y_pred, y, n);
+        if (!isfinite(loss)) {
+            free(y_pred);
+            free(gradients);
+            free(result.model.weights);
+            free(result.loss_history);
+            result.model.weights = NULL;
+            result.loss_history = NULL;
+            return result;
+        }
         result.loss_history[result.n_iterations] = loss;
 
         // 3. Check convergence
@@ -254,6 +294,15 @@ GradientDescentResult fp_linear_regression_gradient_descent(
     // Compute final loss
     predict(X, result.model.weights, y_pred, n, d);
     result.model.final_loss = compute_mse(y_pred, y, n);
+    if (!isfinite(result.model.final_loss)) {
+        free(y_pred);
+        free(gradients);
+        free(result.model.weights);
+        free(result.loss_history);
+        result.model.weights = NULL;
+        result.loss_history = NULL;
+        return result;
+    }
 
     // Cleanup
     free(y_pred);
@@ -299,7 +348,10 @@ double fp_linear_regression_r2_score(
     }
 
     // Compute residuals
-    double* residuals = (double*)malloc(n * sizeof(double));
+    double* residuals = (double*)malloc((size_t)n * sizeof(double));
+    if (!residuals) {
+        return 0.0;
+    }
     for (int i = 0; i < n; i++) {
         residuals[i] = y_true[i] - y_pred[i];
     }
