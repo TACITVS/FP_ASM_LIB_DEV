@@ -200,19 +200,18 @@ void test_overflow_single_dimension_safe(void) {
     Either result = fp_linear_regression_gradient_descent_safe(
         test_X, test_y, test_n, test_d, 0.1, 1000, 1e-6, 42);
 
-    // This should succeed since dimensions are valid and match our test data
-    if (fp_is_left(result)) {
-        int code = fp_from_left_code(result);
-        if (code != 2) {
-            TEST_PASS("Safe dimensions (5×1) do not trigger overflow error");
-            tests_passed++;
-        } else {
-            TEST_FAIL("Single dimension safe", "Got overflow error (code 2), but 5*1 is well below INT_MAX");
-            tests_failed++;
-        }
-    } else {
+    // This should succeed because the dimensions are valid and match the test data
+    if (fp_is_right(result)) {
         TEST_PASS("Safe dimensions (5×1) do not trigger overflow error");
         tests_passed++;
+        GradientDescentResult* r = (GradientDescentResult*)fp_from_right_ptr(result);
+        fp_gradient_descent_free(r);
+        free(r);
+    } else {
+        int code = fp_from_left_code(result);
+        TEST_FAIL("Single dimension safe", "Expected Right, got Left with code %d: %s",
+                  code, fp_from_left_msg(result));
+        tests_failed++;
     }
 }
 
