@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <stdint.h>
+
+// Deterministic seed for reproducible demo runs
+#define DEMO_SEED 42ULL
 
 // Forward declarations from fp_linear_regression.c
 typedef struct {
@@ -33,7 +37,8 @@ LinearRegressionModel fp_linear_regression_closed_form(
 
 GradientDescentResult fp_linear_regression_gradient_descent(
     const double* X, const double* y, int n, int d,
-    double learning_rate, int max_iterations, double convergence_threshold);
+    double learning_rate, int max_iterations, double convergence_threshold,
+    uint64_t seed);
 
 void fp_linear_regression_predict(
     const LinearRegressionModel* model,
@@ -148,7 +153,8 @@ void test_simple_linear_regression() {
         X, y, n, 1,
         0.01,    // learning rate
         1000,    // max iterations
-        1e-6     // convergence threshold
+        1e-6,    // convergence threshold
+        DEMO_SEED // RNG seed for deterministic initialization
     );
     end = clock();
     double time_gd = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
@@ -219,7 +225,8 @@ void test_multiple_regression() {
         X, y, n, d,
         0.001,   // learning rate (smaller for multiple features)
         5000,    // max iterations
-        1e-6     // convergence threshold
+        1e-6,    // convergence threshold
+        DEMO_SEED // RNG seed for deterministic initialization
     );
     clock_t end = clock();
     double time_gd = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
@@ -284,7 +291,8 @@ void test_learning_rate_comparison() {
             X, y, n, 1,
             learning_rates[i],
             1000,
-            1e-6
+            1e-6,
+            DEMO_SEED
         );
         clock_t end = clock();
         double runtime = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
@@ -343,7 +351,8 @@ void test_large_scale() {
         X, y, n, d,
         0.0001,  // Small learning rate for stability with many features
         10000,   // More iterations
-        1e-7     // Tighter convergence
+        1e-7,    // Tighter convergence
+        DEMO_SEED // RNG seed for deterministic initialization
     );
     clock_t end = clock();
     double runtime = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
