@@ -211,13 +211,13 @@ GradientDescentResult fp_linear_regression_gradient_descent(
 ) {
     GradientDescentResult result;
     result.model.n_features = d;
-    result.model.weights = (double*)calloc(d + 1, sizeof(double));
-    result.loss_history = (double*)malloc(max_iterations * sizeof(double));
+    result.model.weights = (double*)calloc((size_t)(d + 1), sizeof(double));
+    result.loss_history = (double*)malloc((size_t)max_iterations * sizeof(double));
     result.model.converged = 0;
 
     // Allocate working memory
-    double* y_pred = (double*)malloc(n * sizeof(double));
-    double* gradients = (double*)malloc((d + 1) * sizeof(double));
+    double* y_pred = (double*)malloc((size_t)n * sizeof(double));
+    double* gradients = (double*)malloc((size_t)(d + 1) * sizeof(double));
 
     // DETERMINISTIC: Initialize weights using fp_rng (no rand()!)
     fp_rng_t rng = fp_rng_create(seed);
@@ -331,7 +331,8 @@ void fp_gradient_descent_free(GradientDescentResult* result) {
 // TIER 4: Either Monad Wrapper for Safe Linear Regression
 // ============================================================================
 // Returns Left(error_msg, code) for errors, Right(result_ptr) on success
-// Error codes: 1=NULL data, 2=invalid params, 3=allocation failed, 4=no convergence
+// Error codes: 1=NULL data, 2=invalid params, 3=allocation failed
+// Note: Non-convergence is NOT an error - caller can check result->model.converged
 
 Either fp_linear_regression_gradient_descent_safe(
     const double* X,
