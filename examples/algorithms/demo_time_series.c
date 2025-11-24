@@ -5,38 +5,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include "../../include/fp_time_series.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-// Forward declarations
-typedef struct {
-    double* forecast;
-    double* lower_bound;
-    double* upper_bound;
-    int horizon;
-    double mse;
-    double mae;
-} ForecastResult;
-
-ForecastResult fp_forecast_sma(const double* data, int n, int window, int horizon);
-ForecastResult fp_forecast_exponential_smoothing(const double* data, int n, double alpha, int horizon);
-ForecastResult fp_forecast_double_exponential_smoothing(const double* data, int n, double alpha, double beta, int horizon);
-ForecastResult fp_forecast_linear_trend(const double* data, int n, int horizon);
-ForecastResult fp_forecast_seasonal_naive(const double* data, int n, int period, int horizon);
-
-void fp_generate_trend_series(double* data, int n, double intercept, double slope, double noise, unsigned int seed);
-void fp_generate_seasonal_series(double* data, int n, double mean, double amplitude, int period, double noise, unsigned int seed);
-void fp_generate_trend_seasonal_series(double* data, int n, double intercept, double slope, double amplitude, int period, double noise, unsigned int seed);
-void fp_generate_random_walk(double* data, int n, double start, double step_std, unsigned int seed);
-
-double fp_forecast_mape(const double* actual, const double* predicted, size_t n);
-double fp_forecast_mae(const double* actual, const double* predicted, size_t n);
-double fp_forecast_rmse(const double* actual, const double* predicted, size_t n);
-
-void fp_forecast_print_result(const ForecastResult* result);
-void fp_forecast_free_result(ForecastResult* result);
 
 // ============================================================================
 // TEST 1: Linear Trend Forecasting
