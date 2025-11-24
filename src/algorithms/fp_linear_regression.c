@@ -25,6 +25,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
+#include <limits.h>
 #include "fp_core.h"
 #include "fp_rng.h"
 #include "fp_linear_regression.h"  // API header with struct definitions
@@ -407,8 +408,9 @@ Either fp_linear_regression_gradient_descent_safe(
     if (convergence_threshold < 0.0) return fp_left("Invalid convergence threshold < 0", 2);
 
     // Check for integer overflow in matrix dimensions
-    // SIZE_MAX / d gives max safe n before n*d overflows
-    if ((size_t)n > SIZE_MAX / (size_t)d) {
+    // With int parameters, check if n*d would overflow INT_MAX
+    // This protects against allocations like malloc((n*d) * sizeof(...))
+    if (d > 0 && n > INT_MAX / d) {
         return fp_left("Matrix dimensions would overflow", 2);
     }
 
