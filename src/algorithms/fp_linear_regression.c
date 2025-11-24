@@ -26,7 +26,7 @@
 #include <math.h>
 #include "fp_core.h"
 #include "fp_rng.h"
-#include "fp_monads.h"  // TIER 4: Either monad for error handling
+#include "fp_linear_regression.h"  // API header with struct definitions
 
 // Pattern 1 helpers - NOW USING ASM PRIMITIVES
 // Refactored to use fp_reduce_add_f64 instead of for loops
@@ -57,20 +57,7 @@ static inline double fp_covariance_inline(const double* x, const double* y, size
     return mean_xy - mean_x * mean_y;     // E[XY] - E[X]E[Y]
 }
 
-// Linear regression model structure
-typedef struct {
-    double* weights;      // Model weights (d+1 dimensional, includes bias)
-    int n_features;       // Number of features (not including bias)
-    double final_loss;    // Final MSE loss
-    int converged;        // 1 if converged, 0 if max_iter reached
-} LinearRegressionModel;
-
-// Gradient descent result (includes training history)
-typedef struct {
-    LinearRegressionModel model;
-    double* loss_history;  // Loss at each iteration
-    int n_iterations;      // Number of iterations performed
-} GradientDescentResult;
+// NOTE: LinearRegressionModel and GradientDescentResult are defined in fp_linear_regression.h
 
 // ============================================================================
 // Helper Functions
@@ -380,12 +367,7 @@ Either fp_linear_regression_gradient_descent_safe(
         return fp_left("Failed to allocate model weights or history", 3);
     }
 
-    // Check convergence (warning, not error)
-    if (!result->model.converged) {
-        // Still return Right but caller can check converged flag
-        // This is informational, not a hard error
-    }
-
+    // NOTE: Non-convergence is not an error - caller can check result->model.converged
     return fp_right_ptr(result);
 }
 
