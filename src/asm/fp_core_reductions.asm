@@ -568,15 +568,23 @@ fp_reduce_add_f64_where:
 
     ; --- Block 0: 4 doubles ---
     vmovdqu xmm1, [r14]           ; Load 4 x 32-bit masks
-    vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit (for vblendvpd)
+    vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit
+    vxorpd  ymm4, ymm4, ymm4      ; zero vector for compare
+    vpcmpeqq ymm4, ymm1, ymm4     ; zero_mask = (mask == 0)
+    vpcmpeqq ymm5, ymm5, ymm5     ; all ones
+    vpxor   ymm1, ymm4, ymm5      ; mask_nz = ~zero_mask (any non-zero -> all ones)
     vmovupd ymm2, [r12]           ; Load 4 x f64 values
-    vxorpd ymm3, ymm3, ymm3       ; Zero vector
-    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Select: val where mask<0 (MSB set), 0 otherwise
+    vxorpd  ymm3, ymm3, ymm3      ; Zero vector
+    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Select: val where mask != 0, 0 otherwise
     vaddpd ymm6, ymm6, ymm2       ; Accumulate
 
     ; --- Block 1: Next 4 doubles ---
     vmovdqu xmm1, [r14+16]
     vpmovsxdq ymm1, xmm1
+    vxorpd  ymm4, ymm4, ymm4
+    vpcmpeqq ymm4, ymm1, ymm4
+    vpcmpeqq ymm5, ymm5, ymm5
+    vpxor   ymm1, ymm4, ymm5
     vmovupd ymm2, [r12+32]
     vblendvpd ymm2, ymm3, ymm2, ymm1
     vaddpd ymm7, ymm7, ymm2
@@ -584,6 +592,10 @@ fp_reduce_add_f64_where:
     ; --- Block 2: Next 4 doubles ---
     vmovdqu xmm1, [r14+32]
     vpmovsxdq ymm1, xmm1
+    vxorpd  ymm4, ymm4, ymm4
+    vpcmpeqq ymm4, ymm1, ymm4
+    vpcmpeqq ymm5, ymm5, ymm5
+    vpxor   ymm1, ymm4, ymm5
     vmovupd ymm2, [r12+64]
     vblendvpd ymm2, ymm3, ymm2, ymm1
     vaddpd ymm8, ymm8, ymm2
@@ -591,6 +603,10 @@ fp_reduce_add_f64_where:
     ; --- Block 3: Next 4 doubles ---
     vmovdqu xmm1, [r14+48]
     vpmovsxdq ymm1, xmm1
+    vxorpd  ymm4, ymm4, ymm4
+    vpcmpeqq ymm4, ymm1, ymm4
+    vpcmpeqq ymm5, ymm5, ymm5
+    vpxor   ymm1, ymm4, ymm5
     vmovupd ymm2, [r12+96]
     vblendvpd ymm2, ymm3, ymm2, ymm1
     vaddpd ymm9, ymm9, ymm2
@@ -609,9 +625,13 @@ fp_reduce_add_f64_where:
 
     vmovdqu xmm1, [r14]           ; Load 4 x 32-bit masks
     vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit
+    vxorpd  ymm4, ymm4, ymm4      ; zero vector for compare
+    vpcmpeqq ymm4, ymm1, ymm4     ; zero_mask = (mask == 0)
+    vpcmpeqq ymm5, ymm5, ymm5     ; all ones
+    vpxor   ymm1, ymm4, ymm5      ; mask_nz = ~zero_mask
     vmovupd ymm2, [r12]           ; Load 4 x f64 values
-    vxorpd ymm3, ymm3, ymm3       ; Zero vector
-    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Conditional select
+    vxorpd  ymm3, ymm3, ymm3      ; Zero vector
+    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Conditional select where mask != 0
     vaddpd ymm6, ymm6, ymm2       ; Accumulate
 
     add  r12, 32            ; x += 4 doubles
