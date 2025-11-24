@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
 #include "fp_linear_regression.h"
 
 #define EPSILON 1e-6
@@ -176,6 +177,61 @@ void test_overflow_dimensions(void) {
     }
 }
 
+void test_overflow_exact_boundary(void) {
+    // Test at a clear overflow boundary
+    // Use n=100000, d=100000: 100000 * 100000 = 10,000,000,000 >> INT_MAX
+    // INT_MAX / 100000 = 21,474, so 100000 > 21474 clearly triggers overflow
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, 100000, 100000, 0.01, 100, 1e-6, 42);
+
+    if (fp_is_left(result) && fp_from_left_code(result) == 2) {
+        TEST_PASS("Large dimension overflow (100000×100000) returns Left");
+        tests_passed++;
+    } else {
+        TEST_FAIL("Exact boundary overflow", "Expected Left with code 2");
+        tests_failed++;
+    }
+}
+
+void test_overflow_single_dimension_safe(void) {
+    // Test dimensions that are safe (no overflow) and match our test data
+    // Use n=5, d=1 (matches test_X size): 5 * 1 = 5 << INT_MAX
+    // This verifies the overflow check doesn't false-positive on safe values
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, test_n, test_d, 0.1, 1000, 1e-6, 42);
+
+    // This should succeed since dimensions are valid and match our test data
+    if (fp_is_left(result)) {
+        int code = fp_from_left_code(result);
+        if (code != 2) {
+            TEST_PASS("Safe dimensions (5×1) do not trigger overflow error");
+            tests_passed++;
+        } else {
+            TEST_FAIL("Single dimension safe", "Got overflow error (code 2), but 5*1 is well below INT_MAX");
+            tests_failed++;
+        }
+    } else {
+        TEST_PASS("Safe dimensions (5×1) do not trigger overflow error");
+        tests_passed++;
+    }
+}
+
+void test_overflow_double_dimension_unsafe(void) {
+    // Test dimensions that clearly overflow
+    // Use n=75000, d=75000: 75000 * 75000 = 5,625,000,000 >> INT_MAX
+    // INT_MAX / 75000 = 28,632, so 75000 > 28632 triggers overflow check
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, 75000, 75000, 0.01, 100, 1e-6, 42);
+
+    if (fp_is_left(result) && fp_from_left_code(result) == 2) {
+        TEST_PASS("Unsafe dimensions (75000×75000) trigger overflow error");
+        tests_passed++;
+    } else {
+        TEST_FAIL("Double dimension unsafe", "Expected overflow error (code 2)");
+        tests_failed++;
+    }
+}
+
 /* ============================================================================
  * Success Case Tests
  * ============================================================================ */
@@ -304,6 +360,11 @@ int main(void) {
     test_invalid_max_iterations();
     test_invalid_threshold();
     test_overflow_dimensions();
+
+    printf("\n--- Boundary Condition Tests ---\n");
+    test_overflow_exact_boundary();
+    test_overflow_single_dimension_safe();
+    test_overflow_double_dimension_unsafe();
 
     printf("\n--- Success Case Tests ---\n");
     test_valid_input();
