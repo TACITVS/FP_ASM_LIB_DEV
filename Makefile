@@ -1,5 +1,6 @@
 # FP-ASM Library - Master Makefile
 # Professional build system for the reorganized project
+# Supports both Windows and Linux for testing
 
 # Directories
 SRC_ASM = src/asm
@@ -10,12 +11,29 @@ BUILD_BIN = build/bin
 TESTS = tests
 BENCHMARKS = benchmarks
 
-# Compiler and assembler
-ASM = C:/Users/baian/AppData/Local/bin/NASM/nasm.exe
-CC = C:/msys64/mingw64/bin/gcc.exe
-ASMFLAGS = -f win64 -I$(SRC_ASM)/
-CFLAGS = -I$(INCLUDE) -O3 -march=native
-LDFLAGS = -lOpenCL
+# Platform detection and compiler/assembler configuration
+# Windows-only library but supports Linux for CI testing
+ifeq ($(OS),Windows_NT)
+    # Windows configuration (primary target)
+    ASM = C:/Users/baian/AppData/Local/bin/NASM/nasm.exe
+    CC = C:/msys64/mingw64/bin/gcc.exe
+    ASMFLAGS = -f win64 -I$(SRC_ASM)/
+    CFLAGS = -I$(INCLUDE) -O3 -march=native
+    LDFLAGS = -lOpenCL
+    RM = del /F
+    RMDIR = rmdir /S /Q
+    EXE_EXT = .exe
+else
+    # Linux configuration (for CI testing only)
+    ASM = nasm
+    CC = gcc
+    ASMFLAGS = -f elf64 -I$(SRC_ASM)/
+    CFLAGS = -I$(INCLUDE) -O3 -march=native -fPIC
+    LDFLAGS = -lm
+    RM = rm -f
+    RMDIR = rm -rf
+    EXE_EXT =
+endif
 
 # Assembly source files
 ASM_SOURCES = $(wildcard $(SRC_ASM)/*.asm)
@@ -96,15 +114,25 @@ $(BUILD_BIN)/demo_%.exe: $(BENCHMARKS)/demo_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
+ifeq ($(OS),Windows_NT)
 	-del /F $(BUILD_OBJ)\*.o 2>NUL
 	-del /F $(BUILD_BIN)\*.exe 2>NUL
+else
+	-$(RM) $(BUILD_OBJ)/*.o
+	-$(RM) $(BUILD_BIN)/*
+endif
 
 # Clean everything including directories
 .PHONY: distclean
 distclean: clean
 	@echo "Removing build directories..."
+ifeq ($(OS),Windows_NT)
 	-rmdir /S /Q $(BUILD_OBJ) 2>NUL
 	-rmdir /S /Q $(BUILD_BIN) 2>NUL
+else
+	-$(RMDIR) $(BUILD_OBJ)
+	-$(RMDIR) $(BUILD_BIN)
+endif
 
 # Recreate build directories
 .PHONY: dirs
