@@ -265,11 +265,20 @@ KMeansResult fp_kmeans_f64(
     return result;
 }
 
-// Free K-Means result
+// Free K-Means result (internal arrays only)
 void fp_kmeans_free(KMeansResult* result) {
     free(result->centroids);
     free(result->assignments);
     free(result->cluster_sizes);
+}
+
+// Convenience function for freeing heap-allocated KMeansResult (from fp_kmeans_f64_safe)
+// Combines both cleanup steps: internal arrays + struct itself
+void fp_kmeans_free_safe(KMeansResult* result) {
+    if (result) {
+        fp_kmeans_free(result);
+        free(result);
+    }
 }
 
 // ============================================================================

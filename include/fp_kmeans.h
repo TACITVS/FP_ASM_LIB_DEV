@@ -79,9 +79,30 @@ KMeansResult fp_kmeans_f64(
  *
  * NOTE: This frees result->centroids, result->assignments, result->cluster_sizes.
  *       If the KMeansResult was heap-allocated (e.g., from fp_kmeans_f64_safe),
- *       you must also call free(result) separately.
+ *       you must also call free(result) separately, or use fp_kmeans_free_safe().
  */
 void fp_kmeans_free(KMeansResult* result);
+
+/**
+ * fp_kmeans_free_safe - Convenience function for freeing heap-allocated KMeansResult
+ *
+ * @param result    Pointer to heap-allocated KMeansResult (from fp_kmeans_f64_safe)
+ *
+ * This function combines both cleanup steps required for results from fp_kmeans_f64_safe:
+ *   1. Frees internal arrays (centroids, assignments, cluster_sizes)
+ *   2. Frees the KMeansResult struct itself
+ *
+ * Safe to call with NULL (no-op).
+ *
+ * Example:
+ *   Maybe result = fp_kmeans_f64_safe(data, n, d, k, 100, 1e-4, 42);
+ *   if (fp_is_just(result)) {
+ *       KMeansResult* r = (KMeansResult*)fp_from_just_ptr(result);
+ *       // Use result...
+ *       fp_kmeans_free_safe(r);  // Single call for complete cleanup
+ *   }
+ */
+void fp_kmeans_free_safe(KMeansResult* result);
 
 /**
  * fp_kmeans_print - Print K-Means result summary
