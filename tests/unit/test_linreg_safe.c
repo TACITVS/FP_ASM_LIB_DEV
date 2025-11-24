@@ -68,6 +68,19 @@ void test_invalid_n(void) {
     }
 }
 
+void test_negative_n(void) {
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, -1, test_d, 0.01, 100, 1e-6, 42);
+
+    if (fp_is_left(result) && fp_from_left_code(result) == 2) {
+        TEST_PASS("n=-1 returns Left with code 2");
+        tests_passed++;
+    } else {
+        TEST_FAIL("n=-1", "Expected Left with code 2");
+        tests_failed++;
+    }
+}
+
 void test_invalid_d(void) {
     Either result = fp_linear_regression_gradient_descent_safe(
         test_X, test_y, test_n, 0, 0.01, 100, 1e-6, 42);
@@ -77,6 +90,19 @@ void test_invalid_d(void) {
         tests_passed++;
     } else {
         TEST_FAIL("d=0", "Expected Left with code 2");
+        tests_failed++;
+    }
+}
+
+void test_negative_d(void) {
+    Either result = fp_linear_regression_gradient_descent_safe(
+        test_X, test_y, test_n, -1, 0.01, 100, 1e-6, 42);
+
+    if (fp_is_left(result) && fp_from_left_code(result) == 2) {
+        TEST_PASS("d=-1 returns Left with code 2");
+        tests_passed++;
+    } else {
+        TEST_FAIL("d=-1", "Expected Left with code 2");
         tests_failed++;
     }
 }
@@ -229,7 +255,9 @@ int main(void) {
     test_null_X();
     test_null_y();
     test_invalid_n();
+    test_negative_n();
     test_invalid_d();
+    test_negative_d();
     test_invalid_learning_rate();
     test_invalid_max_iterations();
     test_invalid_threshold();
