@@ -32,8 +32,8 @@ void fp_generate_trend_seasonal_series(double* data, int n, double intercept, do
 void fp_generate_random_walk(double* data, int n, double start, double step_std, unsigned int seed);
 
 double fp_forecast_mape(const double* actual, const double* predicted, int n);
-double fp_forecast_mae(const double* actual, const double* predicted, int n);
-double fp_forecast_rmse(const double* actual, const double* predicted, int n);
+double fp_forecast_mae(const double* actual, const double* predicted, size_t n);
+double fp_forecast_rmse(const double* actual, const double* predicted, size_t n);
 
 void fp_forecast_print_result(const ForecastResult* result);
 void fp_forecast_free_result(ForecastResult* result);
