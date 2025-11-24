@@ -581,10 +581,10 @@ void fp_generate_random_walk(
 // ============================================================================
 
 // Mean Absolute Percentage Error
-double fp_forecast_mape(const double* actual, const double* predicted, int n) {
+double fp_forecast_mape(const double* actual, const double* predicted, size_t n) {
     double sum_ape = 0.0;
-    int count = 0;
-    for (int i = 0; i < n; i++) {
+    size_t count = 0;
+    for (size_t i = 0; i < n; i++) {
         if (fabs(actual[i]) > 1e-10) {  // Avoid division by zero
             sum_ape += fabs((actual[i] - predicted[i]) / actual[i]);
             count++;
