@@ -26,6 +26,7 @@
 #include <math.h>
 #include "fp_core.h"
 #include "fp_rng.h"
+#include "fp_linear_regression.h"  // API header with struct definitions
 
 // Pattern 1 helpers - NOW USING ASM PRIMITIVES
 // Refactored to use fp_reduce_add_f64 instead of for loops
@@ -56,20 +57,7 @@ static inline double fp_covariance_inline(const double* x, const double* y, size
     return mean_xy - mean_x * mean_y;     // E[XY] - E[X]E[Y]
 }
 
-// Linear regression model structure
-typedef struct {
-    double* weights;      // Model weights (d+1 dimensional, includes bias)
-    int n_features;       // Number of features (not including bias)
-    double final_loss;    // Final MSE loss
-    int converged;        // 1 if converged, 0 if max_iter reached
-} LinearRegressionModel;
-
-// Gradient descent result (includes training history)
-typedef struct {
-    LinearRegressionModel model;
-    double* loss_history;  // Loss at each iteration
-    int n_iterations;      // Number of iterations performed
-} GradientDescentResult;
+// NOTE: LinearRegressionModel and GradientDescentResult are defined in fp_linear_regression.h
 
 // ============================================================================
 // Helper Functions
@@ -223,13 +211,13 @@ GradientDescentResult fp_linear_regression_gradient_descent(
 ) {
     GradientDescentResult result;
     result.model.n_features = d;
-    result.model.weights = (double*)calloc(d + 1, sizeof(double));
-    result.loss_history = (double*)malloc(max_iterations * sizeof(double));
+    result.model.weights = (double*)calloc((size_t)(d + 1), sizeof(double));
+    result.loss_history = (double*)malloc((size_t)max_iterations * sizeof(double));
     result.model.converged = 0;
 
     // Allocate working memory
-    double* y_pred = (double*)malloc(n * sizeof(double));
-    double* gradients = (double*)malloc((d + 1) * sizeof(double));
+    double* y_pred = (double*)malloc((size_t)n * sizeof(double));
+    double* gradients = (double*)malloc((size_t)(d + 1) * sizeof(double));
 
     // DETERMINISTIC: Initialize weights using fp_rng (no rand()!)
     fp_rng_t rng = fp_rng_create(seed);
@@ -337,6 +325,51 @@ void fp_linear_regression_free(LinearRegressionModel* model) {
 void fp_gradient_descent_free(GradientDescentResult* result) {
     free(result->model.weights);
     free(result->loss_history);
+}
+
+// ============================================================================
+// TIER 4: Either Monad Wrapper for Safe Linear Regression
+// ============================================================================
+// Returns Left(error_msg, code) for errors, Right(result_ptr) on success
+// Error codes: 1=NULL data, 2=invalid params, 3=allocation failed
+// Note: Non-convergence is NOT an error - caller can check result->model.converged
+
+Either fp_linear_regression_gradient_descent_safe(
+    const double* X,
+    const double* y,
+    int n,
+    int d,
+    double learning_rate,
+    int max_iterations,
+    double convergence_threshold,
+    uint64_t seed
+) {
+    // Validate inputs
+    if (!X) return fp_left("NULL feature matrix X", 1);
+    if (!y) return fp_left("NULL target vector y", 1);
+    if (n <= 0) return fp_left("Invalid sample count n <= 0", 2);
+    if (d <= 0) return fp_left("Invalid feature count d <= 0", 2);
+    if (learning_rate <= 0.0) return fp_left("Invalid learning rate <= 0", 2);
+    if (max_iterations <= 0) return fp_left("Invalid max_iterations <= 0", 2);
+    if (convergence_threshold < 0.0) return fp_left("Invalid convergence threshold < 0", 2);
+
+    // Allocate result on heap
+    GradientDescentResult* result = (GradientDescentResult*)malloc(sizeof(GradientDescentResult));
+    if (!result) return fp_left("Failed to allocate result", 3);
+
+    // Run gradient descent
+    *result = fp_linear_regression_gradient_descent(X, y, n, d, learning_rate,
+                                                     max_iterations, convergence_threshold, seed);
+
+    // Check internal allocation
+    if (!result->model.weights || !result->loss_history) {
+        fp_gradient_descent_free(result);
+        free(result);
+        return fp_left("Failed to allocate model weights or history", 3);
+    }
+
+    // NOTE: Non-convergence is not an error - caller can check result->model.converged
+    return fp_right_ptr(result);
 }
 
 // ============================================================================
