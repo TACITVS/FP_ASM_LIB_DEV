@@ -14,6 +14,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
 #include "fp_naive_bayes.h"
 #include "fp_rng.h"
 
@@ -29,7 +34,8 @@ static void fp_gaussian_nb_predict_batch_imperative(
 ) {
     for (int i = 0; i < n; i++) {
         const double* x = &X[i * model->n_features];
-        NBPrediction pred = fp_gaussian_nb_predict(model, x);
+        NBPrediction pred;
+        pred = fp_gaussian_nb_predict(model, x);
         predictions[i] = pred.predicted_class;
         free(pred.probabilities);
     }
@@ -43,20 +49,28 @@ static void fp_multinomial_nb_predict_batch_imperative(
 ) {
     for (int i = 0; i < n; i++) {
         const double* x = &X[i * model->n_features];
-        NBPrediction pred = fp_multinomial_nb_predict(model, x);
+        NBPrediction pred;
+        pred = fp_multinomial_nb_predict(model, x);
         predictions[i] = pred.predicted_class;
         free(pred.probabilities);
     }
 }
 
 // ============================================================================
-// Timing Utilities
+// Timing Utilities (Windows-compatible)
 // ============================================================================
 
 double get_time_ms() {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1000000.0;
+#ifdef _WIN32
+    LARGE_INTEGER frequency, counter;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&counter);
+    return (counter.QuadPart * 1000.0) / frequency.QuadPart;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
+#endif
 }
 
 // ============================================================================
@@ -72,12 +86,14 @@ void bench_gaussian_nb(int n_samples, int n_features, int n_iterations) {
     int* y = (int*)malloc(n_samples * sizeof(int));
 
     uint64_t seed = 42;
-    fp_rng_seed(seed);
+    fp_rng_t rng = fp_rng_create(seed);
 
     for (int i = 0; i < n_samples; i++) {
         y[i] = i % n_classes;
         for (int j = 0; j < n_features; j++) {
-            X[i * n_features + j] = fp_rng_uniform() * 10.0 + y[i] * 5.0;
+            double val;
+            rng = fp_rng_next_f64(rng, &val);
+            X[i * n_features + j] = val * 10.0 + y[i] * 5.0;
         }
     }
 
@@ -151,13 +167,15 @@ void bench_multinomial_nb(int n_samples, int n_features, int n_iterations) {
     int* y = (int*)malloc(n_samples * sizeof(int));
 
     uint64_t seed = 42;
-    fp_rng_seed(seed);
+    fp_rng_t rng = fp_rng_create(seed);
 
     for (int i = 0; i < n_samples; i++) {
         y[i] = i % n_classes;
         for (int j = 0; j < n_features; j++) {
+            double val;
+            rng = fp_rng_next_f64(rng, &val);
             // Count data (integers >= 0)
-            X[i * n_features + j] = (int)(fp_rng_uniform() * 20.0);
+            X[i * n_features + j] = (int)(val * 20.0);
         }
     }
 
