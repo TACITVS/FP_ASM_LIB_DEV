@@ -408,7 +408,26 @@ Either fp_pca_fit_safe(
 
     *result = fp_pca_fit(X, n, d, n_components, max_iterations, tolerance, seed);
 
-    // Wrap result in Either Right
+    // Validate all internal allocations succeeded
+    // Check all heap-allocated fields in PCAModel
+    if (!result->model.mean ||
+        !result->model.components ||
+        !result->model.eigenvalues ||
+        !result->model.explained_variance_ratio ||
+        !result->model.cumulative_variance_ratio) {
+
+        // Clean up partial allocation (free non-NULL pointers)
+        if (result->model.mean) free(result->model.mean);
+        if (result->model.components) free(result->model.components);
+        if (result->model.eigenvalues) free(result->model.eigenvalues);
+        if (result->model.explained_variance_ratio) free(result->model.explained_variance_ratio);
+        if (result->model.cumulative_variance_ratio) free(result->model.cumulative_variance_ratio);
+        free(result);
+
+        return fp_left("Failed to allocate PCA model internals (mean/components/eigenvalues/variance_ratios)", 3);
+    }
+
+    // All allocations successful - wrap result in Either Right
     return fp_right_ptr(result);
 }
 

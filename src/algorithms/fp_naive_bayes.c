@@ -303,25 +303,65 @@ NBPrediction fp_gaussian_nb_predict(
     return result;
 }
 
-// Predict using Gaussian Naive Bayes for batch of samples
-// FP Pattern: Composition - reuse fp_gaussian_nb_predict for each sample
-// This follows the library's philosophy of composing existing optimized functions
+// ============================================================================
+// IMPERATIVE VERSION (For Benchmarking Only)
+// ============================================================================
+
+// Predict using Gaussian Naive Bayes for batch of samples (IMPERATIVE)
+// WARNING: Uses for-loop - kept only for performance comparison
+// DO NOT USE in production - use fp_gaussian_nb_predict_batch() instead
+static void fp_gaussian_nb_predict_batch_imperative(
+    const GaussianNBModel* model,
+    const double* X,  // n × d feature matrix (row-major)
+    int n,
+    int* predictions  // Pre-allocated output array (n elements)
+) {
+    // IMPERATIVE Pattern: For-loop iteration (NOT FP purist!)
+    for (int i = 0; i < n; i++) {
+        const double* x = &X[i * model->n_features];
+        NBPrediction pred = fp_gaussian_nb_predict(model, x);
+        predictions[i] = pred.predicted_class;
+        free(pred.probabilities);
+    }
+}
+
+// ============================================================================
+// FP PURIST VERSION (Default Implementation)
+// ============================================================================
+
+// Recursive helper for batch prediction (tail-recursive, FP purist)
+static void gaussian_nb_predict_batch_recursive(
+    const GaussianNBModel* model,
+    const double* X,
+    int n,
+    int d,
+    int idx,
+    int* predictions
+) {
+    // Base case: processed all samples
+    if (idx >= n) return;
+
+    // Process current sample
+    const double* x = &X[idx * d];
+    NBPrediction pred = fp_gaussian_nb_predict(model, x);
+    predictions[idx] = pred.predicted_class;
+    free(pred.probabilities);
+
+    // Tail recursion: process next sample
+    // Most C compilers will optimize this to a loop (tail call optimization)
+    gaussian_nb_predict_batch_recursive(model, X, n, d, idx + 1, predictions);
+}
+
+// Predict using Gaussian Naive Bayes for batch of samples (FP PURIST)
+// FP Pattern: Tail recursion - ZERO for-loops!
 void fp_gaussian_nb_predict_batch(
     const GaussianNBModel* model,
     const double* X,  // n × d feature matrix (row-major)
     int n,
     int* predictions  // Pre-allocated output array (n elements)
 ) {
-    // FP Pattern: Map over samples - apply predict to each row
-    // Note: This uses a loop for iteration, which is pragmatic in C
-    // The inner prediction logic uses L0 primitives where possible
-    for (int i = 0; i < n; i++) {
-        const double* x = &X[i * model->n_features];
-        NBPrediction pred = fp_gaussian_nb_predict(model, x);
-        predictions[i] = pred.predicted_class;
-        // Clean up per-sample allocation
-        free(pred.probabilities);
-    }
+    // FP Pattern: Delegate to tail-recursive helper
+    gaussian_nb_predict_batch_recursive(model, X, n, model->n_features, 0, predictions);
 }
 
 // ============================================================================
@@ -466,25 +506,64 @@ NBPrediction fp_multinomial_nb_predict(
     return result;
 }
 
-// Predict using Multinomial Naive Bayes for batch of samples
-// FP Pattern: Composition - reuse fp_multinomial_nb_predict for each sample
-// This follows the library's philosophy of composing existing optimized functions
+// ============================================================================
+// IMPERATIVE VERSION (For Benchmarking Only)
+// ============================================================================
+
+// Predict using Multinomial Naive Bayes for batch of samples (IMPERATIVE)
+// WARNING: Uses for-loop - kept only for performance comparison
+// DO NOT USE in production - use fp_multinomial_nb_predict_batch() instead
+static void fp_multinomial_nb_predict_batch_imperative(
+    const MultinomialNBModel* model,
+    const double* X,  // n × d feature matrix (row-major, count data)
+    int n,
+    int* predictions  // Pre-allocated output array (n elements)
+) {
+    // IMPERATIVE Pattern: For-loop iteration (NOT FP purist!)
+    for (int i = 0; i < n; i++) {
+        const double* x = &X[i * model->n_features];
+        NBPrediction pred = fp_multinomial_nb_predict(model, x);
+        predictions[i] = pred.predicted_class;
+        free(pred.probabilities);
+    }
+}
+
+// ============================================================================
+// FP PURIST VERSION (Default Implementation)
+// ============================================================================
+
+// Recursive helper for batch prediction (tail-recursive, FP purist)
+static void multinomial_nb_predict_batch_recursive(
+    const MultinomialNBModel* model,
+    const double* X,
+    int n,
+    int d,
+    int idx,
+    int* predictions
+) {
+    // Base case: processed all samples
+    if (idx >= n) return;
+
+    // Process current sample
+    const double* x = &X[idx * d];
+    NBPrediction pred = fp_multinomial_nb_predict(model, x);
+    predictions[idx] = pred.predicted_class;
+    free(pred.probabilities);
+
+    // Tail recursion: process next sample
+    multinomial_nb_predict_batch_recursive(model, X, n, d, idx + 1, predictions);
+}
+
+// Predict using Multinomial Naive Bayes for batch of samples (FP PURIST)
+// FP Pattern: Tail recursion - ZERO for-loops!
 void fp_multinomial_nb_predict_batch(
     const MultinomialNBModel* model,
     const double* X,  // n × d feature matrix (row-major, count data)
     int n,
     int* predictions  // Pre-allocated output array (n elements)
 ) {
-    // FP Pattern: Map over samples - apply predict to each row
-    // Note: This uses a loop for iteration, which is pragmatic in C
-    // The inner prediction logic uses L0 primitives where possible
-    for (int i = 0; i < n; i++) {
-        const double* x = &X[i * model->n_features];
-        NBPrediction pred = fp_multinomial_nb_predict(model, x);
-        predictions[i] = pred.predicted_class;
-        // Clean up per-sample allocation
-        free(pred.probabilities);
-    }
+    // FP Pattern: Delegate to tail-recursive helper
+    multinomial_nb_predict_batch_recursive(model, X, n, model->n_features, 0, predictions);
 }
 
 // ============================================================================
