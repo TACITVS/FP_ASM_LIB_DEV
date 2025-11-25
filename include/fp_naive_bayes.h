@@ -131,6 +131,14 @@ NBPrediction fp_gaussian_nb_predict(
  * @param X             n x d feature matrix (row-major)
  * @param n             Number of samples
  * @param predictions   Output predictions (n elements, pre-allocated)
+ *
+ * @note Implementation uses FP purist tail recursion (ZERO for-loops).
+ * @note Requires compiler TCO: GCC/Clang with -O3 -foptimize-sibling-calls
+ * @note Stack usage: O(1) with optimization, O(n) without.
+ * @note Tested: 100,000+ samples on Intel i7-4600M without stack overflow.
+ * @note Performance: Identical to imperative loops (±1-2%) with TCO enabled.
+ *
+ * @see docs/benchmarks/RECURSION_VS_LOOP_RESULTS.md for performance data
  */
 void fp_gaussian_nb_predict_batch(
     const GaussianNBModel* model,
@@ -188,6 +196,14 @@ NBPrediction fp_multinomial_nb_predict(
  * @param X             n x d feature matrix (row-major, non-negative counts)
  * @param n             Number of samples
  * @param predictions   Output predictions (n elements, pre-allocated)
+ *
+ * @note Implementation uses FP purist tail recursion (ZERO for-loops).
+ * @note Requires compiler TCO: GCC/Clang with -O3 -foptimize-sibling-calls
+ * @note Stack usage: O(1) with optimization, O(n) without.
+ * @note Tested: 100,000+ samples on Intel i7-4600M without stack overflow.
+ * @note Performance: Identical to imperative loops (±1-2%) with TCO enabled.
+ *
+ * @see docs/benchmarks/RECURSION_VS_LOOP_RESULTS.md for performance data
  */
 void fp_multinomial_nb_predict_batch(
     const MultinomialNBModel* model,
