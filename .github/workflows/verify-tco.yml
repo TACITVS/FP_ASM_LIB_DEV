@@ -7,63 +7,12 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test-tco-linux:
-    name: TCO Verification (Linux GCC)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nasm gcc
-
-      - name: Build L0 ASM objects
-        run: |
-          mkdir -p build/obj
-          nasm -f elf64 src/asm/fp_core_reductions.asm -o build/obj/fp_core_reductions.o
-          nasm -f elf64 src/asm/fp_core_fused_folds.asm -o build/obj/fp_core_fused_folds.o
-          nasm -f elf64 src/asm/fp_core_fused_maps.asm -o build/obj/fp_core_fused_maps.o
-          nasm -f elf64 src/asm/fp_core_simple_maps.asm -o build/obj/fp_core_simple_maps.o
-
-      - name: Build TCO benchmark with optimization
-        run: |
-          gcc examples/benchmarks/bench_nb_recursion_vs_loop.c \
-              src/algorithms/fp_naive_bayes.c \
-              src/wrappers/fp_monads.c \
-              build/obj/fp_core_reductions.o \
-              build/obj/fp_core_fused_folds.o \
-              build/obj/fp_core_fused_maps.o \
-              build/obj/fp_core_simple_maps.o \
-              -o bench_tco \
-              -I include -O3 -foptimize-sibling-calls -Wall -Wextra -lm
-
-      - name: Run deep recursion test (100K iterations)
-        run: |
-          echo "========================================="
-          echo "Testing TCO with 100,000 recursive calls"
-          echo "========================================="
-          ./bench_tco
-          echo ""
-          echo "✅ SUCCESS - No stack overflow! TCO is working."
-
-      - name: Verify performance parity
-        run: |
-          echo "Checking FP purist vs imperative performance..."
-          ./bench_tco | tee bench_output.txt
-
-          # Extract speedup values (just for logging, not enforcing)
-          echo ""
-          echo "Performance summary:"
-          grep -E "Speedup|Results" bench_output.txt || true
-
   test-tco-simple:
-    name: TCO Simple Test (Minimal)
+    name: TCO Verification (Pure C - Cross-Platform)
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create minimal TCO test
         run: |
@@ -85,37 +34,39 @@ jobs:
           }
           EOF
 
-      - name: Compile with TCO flags
+      - name: Compile with TCO flags (GCC)
         run: |
           gcc test_tco_minimal.c -O3 -foptimize-sibling-calls -o test_tco
 
-      - name: Run minimal test
+      - name: Run deep recursion test
         run: |
           ./test_tco
           echo ""
-          echo "✅ TCO verified with minimal test"
+          echo "✅ TCO verified: 100,000 recursive calls completed"
 
   test-tco-without-optimization:
-    name: Verify Debug Build Warning
+    name: Verify Debug Build Behavior
     runs-on: ubuntu-latest
-    continue-on-error: true  # Expected to fail
+    continue-on-error: true  # Expected to potentially fail
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Create minimal TCO test
+      - name: Create moderate recursion test
         run: |
           cat > test_tco_debug.c << 'EOF'
           #include <stdio.h>
           typedef struct { int n; } State;
+
           static void test_moderate(State s) {
               if (s.n <= 0) return;
               test_moderate((State){s.n - 1});
           }
+
           int main() {
               printf("Testing moderate recursion (10K) without TCO...\n");
               test_moderate((State){10000});
-              printf("Completed (may fail with deeper recursion)\n");
+              printf("Completed with 10K iterations\n");
               return 0;
           }
           EOF
@@ -124,9 +75,9 @@ jobs:
         run: |
           gcc test_tco_debug.c -O0 -g -o test_tco_debug
 
-      - name: Run test (may fail)
+      - name: Run test (may struggle without optimization)
         run: |
-          ./test_tco_debug || echo "⚠️ Failed as expected - TCO is NOT enabled without -O3"
+          ./test_tco_debug || echo "⚠️ Stack pressure without -O3"
 
       - name: Summary
         if: always()
@@ -136,3 +87,35 @@ jobs:
           echo "This demonstrates why -O3 is required!"
           echo "Without optimization, deep recursion may cause stack overflow."
           echo "========================================="
+
+  # NOTE: Full benchmark with L0 assembly requires Windows runners
+  # The FP-ASM library currently targets Windows x64 only (Windows ABI, NASM win64 format)
+  # To run full benchmarks, use Windows runners or local Windows build
+  #
+  # Uncomment below if Windows runners are available:
+  #
+  # test-tco-windows-full:
+  #   name: TCO Full Benchmark (Windows Only)
+  #   runs-on: windows-latest
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Setup MSYS2 (for MinGW GCC)
+  #       uses: msys2/setup-msys2@v2
+  #       with:
+  #         msystem: MINGW64
+  #         update: true
+  #         install: >-
+  #           mingw-w64-x86_64-gcc
+  #           mingw-w64-x86_64-nasm
+  #
+  #     - name: Build and run full benchmark
+  #       shell: msys2 {0}
+  #       run: |
+  #         ./build_bench_recursion.bat
+  #
+  #     - name: Verify results
+  #       shell: msys2 {0}
+  #       run: |
+  #         echo "✅ Full benchmark completed on Windows"
