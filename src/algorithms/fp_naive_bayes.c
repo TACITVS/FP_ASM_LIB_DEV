@@ -303,6 +303,27 @@ NBPrediction fp_gaussian_nb_predict(
     return result;
 }
 
+// Predict using Gaussian Naive Bayes for batch of samples
+// FP Pattern: Composition - reuse fp_gaussian_nb_predict for each sample
+// This follows the library's philosophy of composing existing optimized functions
+void fp_gaussian_nb_predict_batch(
+    const GaussianNBModel* model,
+    const double* X,  // n × d feature matrix (row-major)
+    int n,
+    int* predictions  // Pre-allocated output array (n elements)
+) {
+    // FP Pattern: Map over samples - apply predict to each row
+    // Note: This uses a loop for iteration, which is pragmatic in C
+    // The inner prediction logic uses L0 primitives where possible
+    for (int i = 0; i < n; i++) {
+        const double* x = &X[i * model->n_features];
+        NBPrediction pred = fp_gaussian_nb_predict(model, x);
+        predictions[i] = pred.predicted_class;
+        // Clean up per-sample allocation
+        free(pred.probabilities);
+    }
+}
+
 // ============================================================================
 // Multinomial Naive Bayes (Count/Text Features)
 // ============================================================================
@@ -443,6 +464,27 @@ NBPrediction fp_multinomial_nb_predict(
     result.confidence = result.probabilities[result.predicted_class];
 
     return result;
+}
+
+// Predict using Multinomial Naive Bayes for batch of samples
+// FP Pattern: Composition - reuse fp_multinomial_nb_predict for each sample
+// This follows the library's philosophy of composing existing optimized functions
+void fp_multinomial_nb_predict_batch(
+    const MultinomialNBModel* model,
+    const double* X,  // n × d feature matrix (row-major, count data)
+    int n,
+    int* predictions  // Pre-allocated output array (n elements)
+) {
+    // FP Pattern: Map over samples - apply predict to each row
+    // Note: This uses a loop for iteration, which is pragmatic in C
+    // The inner prediction logic uses L0 primitives where possible
+    for (int i = 0; i < n; i++) {
+        const double* x = &X[i * model->n_features];
+        NBPrediction pred = fp_multinomial_nb_predict(model, x);
+        predictions[i] = pred.predicted_class;
+        // Clean up per-sample allocation
+        free(pred.probabilities);
+    }
 }
 
 // ============================================================================
