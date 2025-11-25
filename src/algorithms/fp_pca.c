@@ -155,20 +155,6 @@ static void vector_normalize(double* x, int n) {
     }
 }
 
-// Vector scale: y = alpha * x
-// REFACTORED: Uses L0 ASM fp_map_scale_f64
-static void vector_scale(const double* x, double alpha, double* y, int n) {
-    // L0 ASM: SIMD scalar multiplication
-    fp_map_scale_f64(x, y, (size_t)n, alpha);
-}
-
-// Vector subtract: z = x - y
-// REFACTORED: Uses L0 ASM fp_map_axpy_f64 (z = x + (-1)*y)
-static void vector_subtract(const double* x, const double* y, double* z, int n) {
-    // L0 ASM: z = x + (-1)*y = x - y
-    fp_map_axpy_f64(y, x, z, (size_t)n, -1.0);
-}
-
 // ============================================================================
 // Statistical Computations
 // ============================================================================
