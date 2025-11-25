@@ -104,12 +104,15 @@ NeuralNetwork fp_neural_network_create(
  * @param X_train         Training data (n_samples × n_inputs, row-major)
  * @param y_train         Training labels (n_samples × n_outputs, row-major)
  * @param n_samples       Number of training samples
- * @param learning_rate   Learning rate for gradient descent
  * @param n_epochs        Number of training epochs
- * @param batch_size      Mini-batch size (1 = online learning)
+ * @param learning_rate   Learning rate for gradient descent
+ * @param verbose         Print progress every N epochs (0 = no output)
  * @param seed            RNG seed for weight initialization
  *
  * @return TrainingResult with trained network and training history
+ *
+ * NOTE: Does NOT validate inputs. For safe version with validation,
+ *       use a safe wrapper (to be implemented).
  */
 TrainingResult fp_neural_network_train(
     int n_inputs,
@@ -118,9 +121,9 @@ TrainingResult fp_neural_network_train(
     const double* X_train,
     const double* y_train,
     int n_samples,
-    double learning_rate,
     int n_epochs,
-    int batch_size,
+    double learning_rate,
+    int verbose,
     uint64_t seed
 );
 
@@ -129,12 +132,16 @@ TrainingResult fp_neural_network_train(
  *
  * @param net             Trained neural network
  * @param input           Input features (n_inputs elements)
- * @param output          Output buffer (n_outputs elements, pre-allocated)
+ * @param hidden_out      Output parameter for hidden layer activations (caller must free)
+ *
+ * @return Heap-allocated output array (n_outputs elements, caller must free)
+ *
+ * NOTE: Does NOT validate inputs. Caller must ensure net and input are non-NULL.
  */
-void fp_neural_network_forward(
+double* fp_neural_network_forward(
     const NeuralNetwork* net,
     const double* input,
-    double* output
+    double** hidden_out
 );
 
 /* ============================================================================
