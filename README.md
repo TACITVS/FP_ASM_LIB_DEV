@@ -83,6 +83,57 @@ git clone https://github.com/tacitvs/fp_asm_lib_dev.git
 cd fp_asm_lib_dev
 ```
 
+### Compiler Requirements
+
+**Tail-Call Optimization (TCO) is REQUIRED for L2 algorithms using tail recursion.**
+
+This library uses tail recursion extensively in batch operations (e.g., Naive Bayes batch prediction). Modern compilers optimize tail recursion into iteration (O(1) stack usage), but you **must** enable optimization flags:
+
+#### GCC / Clang / MinGW
+
+```bash
+gcc -O3 -foptimize-sibling-calls <source files> -o output
+```
+
+**Required flags:**
+- `-O3` - Enable aggressive optimizations
+- `-foptimize-sibling-calls` - Enable tail-call optimization
+
+#### MSVC
+
+```bash
+cl /O2 /Ob2 <source files>
+```
+
+**Required flags:**
+- `/O2` - Enable speed optimizations
+- `/Ob2` - Enable inline expansion
+
+#### Verification
+
+To verify TCO is working, run the recursion benchmark:
+
+```bash
+gcc examples/benchmarks/bench_nb_recursion_vs_loop.c \
+    src/algorithms/fp_naive_bayes.c \
+    src/wrappers/fp_monads.c \
+    build/obj/fp_core_*.o \
+    -o bench_tco.exe \
+    -I include -O3 -foptimize-sibling-calls -Wall -Wextra -lm
+
+./bench_tco.exe
+```
+
+**Expected result:** Completes without stack overflow, showing ~100,000 iterations.
+
+**Proven performance:** FP purist tail recursion matches imperative loops (±1-2% variance). See [`docs/benchmarks/RECURSION_VS_LOOP_RESULTS.md`](docs/benchmarks/RECURSION_VS_LOOP_RESULTS.md) for full benchmark data.
+
+#### Debug Builds
+
+⚠️ **Warning:** Debug builds (`-O0` or no optimization) may NOT optimize tail calls, potentially causing stack overflow on large datasets (>10K samples).
+
+**Recommendation:** Use release builds (`-O3`) for production and large-scale processing.
+
 ### Build & Test
 
 ```bash
