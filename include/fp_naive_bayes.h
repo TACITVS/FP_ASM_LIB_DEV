@@ -116,9 +116,10 @@ GaussianNBModel fp_gaussian_nb_train(
  * @param model         Trained Gaussian NB model
  * @param x             Feature vector (d elements)
  *
- * @return Predicted class (0 to n_classes-1)
+ * @return NBPrediction with predicted_class, probabilities, and confidence
+ *         Caller must free NBPrediction.probabilities after use!
  */
-int fp_gaussian_nb_predict(
+NBPrediction fp_gaussian_nb_predict(
     const GaussianNBModel* model,
     const double* x
 );
@@ -172,9 +173,10 @@ MultinomialNBModel fp_multinomial_nb_train(
  * @param model         Trained Multinomial NB model
  * @param x             Feature vector (d elements, non-negative counts)
  *
- * @return Predicted class (0 to n_classes-1)
+ * @return NBPrediction with predicted_class, probabilities, and confidence
+ *         Caller must free NBPrediction.probabilities after use!
  */
-int fp_multinomial_nb_predict(
+NBPrediction fp_multinomial_nb_predict(
     const MultinomialNBModel* model,
     const double* x
 );
