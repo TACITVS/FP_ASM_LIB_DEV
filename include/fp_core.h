@@ -1268,12 +1268,21 @@ void fp_zipWith_f64(const double* input_a, const double* input_b, double* output
 
 /* Types defined in fp_types.h (Mat4, Vec3f, Quaternion) */
 
-/* Quaternion operations (pure C functions, implemented in fp_quaternion_ops.c) */
+/* ========================================================================
+ * QUATERNION OPERATIONS - Complete Module
+ * ======================================================================== */
+
+/* Basic quaternion operations */
 void fp_quat_identity(Quaternion* out);
 void fp_quat_from_axis_angle(Quaternion* out, const Vec3f* axis, float angle);
 void fp_quat_mul(Quaternion* out, const Quaternion* a, const Quaternion* b);
 void fp_quat_rotate_vec3(Vec3f* out, const Quaternion* q, const Vec3f* v);
 void fp_quat_to_euler(Vec3f* out, const Quaternion* q);
+
+/* PHASE 1: Critical conversion functions for game engine */
+void fp_quat_normalize(Quaternion* out, const Quaternion* q);
+void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z);
+void fp_quat_to_mat4(Mat4* out, const Quaternion* q);
 
 /**
  * Create identity matrix
