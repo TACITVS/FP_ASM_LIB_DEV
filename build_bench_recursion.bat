@@ -5,6 +5,7 @@ echo ========================================
 
 gcc examples\benchmarks\bench_nb_recursion_vs_loop.c ^
     src\algorithms\fp_naive_bayes.c ^
+    src\wrappers\fp_monads.c ^
     build\obj\fp_core_reductions.o ^
     build\obj\fp_core_fused_folds.o ^
     build\obj\fp_core_fused_maps.o ^
