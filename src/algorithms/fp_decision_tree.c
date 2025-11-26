@@ -28,6 +28,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <limits.h>
 #include "../include/fp_core.h"          // L0: Assembly primitives
 #include "../include/fp_stats_v3_pure.h" // L1: Pure FP statistics (assembly-backed)
 
@@ -208,8 +209,15 @@ static BestSplit find_best_split_classification(
     double parent_impurity = gini_impurity(y, n, n_classes);
 
     // Sort indices by feature value
+    // HIGH-010 FIX: Add null checks for all allocations to prevent memory leaks
     double* feature_values = (double*)malloc(n * sizeof(double));
     int* sorted_indices = (int*)malloc(n * sizeof(int));
+
+    if (!feature_values || !sorted_indices) {
+        free(feature_values);
+        free(sorted_indices);
+        return best;
+    }
 
     // MED-005 FIX: Use qsort instead of bubble sort - O(n log n) vs O(n²)
     FeatureIndexPair* pairs = (FeatureIndexPair*)malloc(n * sizeof(FeatureIndexPair));
@@ -244,8 +252,15 @@ static BestSplit find_best_split_classification(
         int n_right = n - n_left;
 
         // Allocate temporary arrays for left/right labels
+        // HIGH-010 FIX: Add null checks to prevent memory leaks and crashes
         int* y_left = (int*)malloc(n_left * sizeof(int));
         int* y_right = (int*)malloc(n_right * sizeof(int));
+
+        if (!y_left || !y_right) {
+            free(y_left);
+            free(y_right);
+            continue;  // Skip this split if allocation fails
+        }
 
         for (int j = 0; j <= i; j++) {
             y_left[j] = y[sorted_indices[j]];
@@ -441,6 +456,15 @@ DecisionTreeModel fp_decision_tree_train(
 
     // Create indices array
     int* indices = (int*)malloc(n * sizeof(int));
+
+    // HIGH-010 FIX: Add malloc null checks to prevent crashes
+    if (!model.feature_importances || !indices) {
+        free(model.feature_importances);
+        free(indices);
+        DecisionTreeModel empty = {0};
+        return empty;
+    }
+
     for (int i = 0; i < n; i++) {
         indices[i] = i;
     }

@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "fp_core.h"
 #include "fp_rng.h"
 #include "fp_monads.h"  // TIER 4: Maybe monad for safe error handling

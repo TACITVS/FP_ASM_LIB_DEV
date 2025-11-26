@@ -293,7 +293,8 @@ int fp_mat4_inverse(Mat4* out, const Mat4* m) {
     for (int i = 0; i < 16; i++) {
         abs_max = fmaxf(abs_max, fabsf(m->m[i]));
     }
-    float threshold = FLT_EPSILON * abs_max * 16.0f;
+    // HIGH-002 FIX: Ensure minimum threshold to handle zero matrix edge case
+    float threshold = fmaxf(FLT_EPSILON, FLT_EPSILON * abs_max * 16.0f);
 
     if (fabsf(det) < threshold) {
         return 0;  // Singular matrix, no inverse

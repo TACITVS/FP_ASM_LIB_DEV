@@ -149,6 +149,16 @@ NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs
     net.W2 = (double*)malloc(n_outputs * n_hidden * sizeof(double));
     net.b2 = (double*)calloc(n_outputs, sizeof(double));
 
+    // HIGH-009 FIX: Add malloc null checks to prevent crashes
+    if (!net.W1 || !net.b1 || !net.W2 || !net.b2) {
+        free(net.W1);
+        free(net.b1);
+        free(net.W2);
+        free(net.b2);
+        NeuralNetwork empty = {0};
+        return empty;
+    }
+
     // DETERMINISTIC: Use fp_rng for Xavier initialization
     fp_rng_t rng = fp_rng_create(seed);
     double std1 = sqrt(2.0 / (n_inputs + n_hidden));

@@ -331,16 +331,48 @@ PCAResult fp_pca_fit(
     result.model.explained_variance_ratio = (double*)malloc(n_components * sizeof(double));
     result.model.cumulative_variance_ratio = (double*)malloc(n_components * sizeof(double));
 
+    // HIGH-006 FIX: Add malloc null checks to prevent crashes
+    if (!result.model.mean || !result.model.components || !result.model.eigenvalues ||
+        !result.model.explained_variance_ratio || !result.model.cumulative_variance_ratio) {
+        free(result.model.mean);
+        free(result.model.components);
+        free(result.model.eigenvalues);
+        free(result.model.explained_variance_ratio);
+        free(result.model.cumulative_variance_ratio);
+        PCAResult empty = {0};
+        return empty;
+    }
+
     // Step 1: Compute mean and center data
     compute_means(X, n, d, result.model.mean);
 
     // Create centered copy of X
     double* X_centered = (double*)malloc(n * d * sizeof(double));
+    if (!X_centered) {
+        free(result.model.mean);
+        free(result.model.components);
+        free(result.model.eigenvalues);
+        free(result.model.explained_variance_ratio);
+        free(result.model.cumulative_variance_ratio);
+        PCAResult empty = {0};
+        return empty;
+    }
+
     memcpy(X_centered, X, n * d * sizeof(double));
     center_data(X_centered, n, d, result.model.mean);
 
     // Step 2: Compute covariance matrix C = (1/n) * X^T * X
     double* C = (double*)malloc(d * d * sizeof(double));
+    if (!C) {
+        free(X_centered);
+        free(result.model.mean);
+        free(result.model.components);
+        free(result.model.eigenvalues);
+        free(result.model.explained_variance_ratio);
+        free(result.model.cumulative_variance_ratio);
+        PCAResult empty = {0};
+        return empty;
+    }
     compute_covariance_matrix(X_centered, n, d, C);
 
     // Step 3: Extract top k eigenvectors/eigenvalues (deterministic)

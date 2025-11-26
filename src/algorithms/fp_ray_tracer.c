@@ -334,12 +334,14 @@ void* render_thread_worker(void* arg) {
         // HIGH-004 FIX: Add bounds validation
         if (y < 0 || y >= data->height) continue;
         for (int x = 0; x < data->width; x++) {
+            // HIGH-004 FIX: Validate x individually before index calculation
+            if (x < 0 || x >= data->width) continue;
+
             Ray ray = generate_camera_ray(data->camera, (float)x, (float)y, data->width, data->height);
             Vec3f color = trace_ray(&ray, data->scene, 0, 0, true);  // Real-time mode (no reflections)
 
-            // HIGH-004 FIX: Use size_t to prevent integer overflow in index calculation
+            // HIGH-004 FIX: Calculate index only after bounds validation
             size_t idx = (size_t)y * (size_t)data->width + (size_t)x;
-            if (idx >= (size_t)(data->height * data->width)) continue;
             idx *= 3;
 
             data->framebuffer[idx + 0] = float_to_byte(gamma_correct(color.x));
