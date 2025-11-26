@@ -194,20 +194,24 @@ static void compute_gradients(
     // Pattern 1: Bias gradient is mean of errors
     gradients[0] = fp_mean_inline(errors, n);
 
-    // Compute feature gradients (gradient[1..d])
-    // gradient[j] = mean((y_pred - y_true) * x[j])
-    for (int j = 0; j < d; j++) {
-        double* weighted_errors = (double*)malloc((size_t)n * sizeof(double));
-        if (!weighted_errors) {
+    // MED-011 FIX: Allocate weighted_errors once outside loop instead of d times
+    double* weighted_errors = (double*)malloc((size_t)n * sizeof(double));
+    if (!weighted_errors) {
+        // Failed to allocate - zero out all feature gradients
+        for (int j = 0; j < d; j++) {
             gradients[j + 1] = 0.0;
-            continue;
         }
-        for (int i = 0; i < n; i++) {
-            const size_t idx = (size_t)i * (size_t)d + (size_t)j;
-            weighted_errors[i] = errors[i] * X[idx];
+    } else {
+        // Compute feature gradients (gradient[1..d])
+        // gradient[j] = mean((y_pred - y_true) * x[j])
+        for (int j = 0; j < d; j++) {
+            for (int i = 0; i < n; i++) {
+                const size_t idx = (size_t)i * (size_t)d + (size_t)j;
+                weighted_errors[i] = errors[i] * X[idx];
+            }
+            // Pattern 1: Each gradient is mean of weighted errors
+            gradients[j + 1] = fp_mean_inline(weighted_errors, n);
         }
-        // Pattern 1: Each gradient is mean of weighted errors
-        gradients[j + 1] = fp_mean_inline(weighted_errors, n);
         free(weighted_errors);
     }
 

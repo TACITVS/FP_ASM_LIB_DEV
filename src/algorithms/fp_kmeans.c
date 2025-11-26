@@ -152,7 +152,8 @@ static int assign_clusters(
 
 // Recompute centroids as mean of assigned points
 // REFACTORED: Uses Pattern 1's fp_mean() for clearer, safer computation
-static void update_centroids(
+// MED-007 FIX: Return int to indicate success/failure
+static int update_centroids(
     const double* data,       // n × d matrix
     int n,                    // number of points
     int d,                    // dimensionality
@@ -168,9 +169,8 @@ static void update_centroids(
     // Allocate temporary storage for cluster points (one dimension at a time)
     double* cluster_points = (double*)malloc(n * sizeof(double));
     if (!cluster_points) {
-        // Allocation failed - cluster_sizes are zeroed, centroids remain zeroed
-        // Algorithm will produce degenerate result but won't crash
-        return;
+        // MED-007 FIX: Return 0 to indicate failure
+        return 0;
     }
 
     // Compute centroid for each cluster, dimension by dimension
@@ -203,6 +203,8 @@ static void update_centroids(
     }
 
     free(cluster_points);
+    // MED-007 FIX: Return 1 to indicate success
+    return 1;
 }
 
 // Compute inertia (sum of squared distances to assigned centroids)
@@ -279,8 +281,12 @@ KMeansResult fp_kmeans_f64(
             break;
         }
 
-        // Update centroids
-        update_centroids(data, n, d, result.assignments, k, result.centroids, result.cluster_sizes);
+        // MED-007 FIX: Check if update_centroids succeeds
+        if (!update_centroids(data, n, d, result.assignments, k, result.centroids, result.cluster_sizes)) {
+            // Centroid update failed (malloc failure) - stop iterations
+            result.converged = 0;
+            break;
+        }
     }
 
     // Compute final inertia
