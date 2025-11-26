@@ -18,6 +18,7 @@ section .text
     global fp_map_quat_rotate_vec3_f32
     global fp_reduce_vec3_add_f32
     global fp_fold_vec3_dot_f32
+    global fp_quat_normalize_asm
 
 
 ; -----------------------------------------------------------------------------
@@ -491,6 +492,73 @@ fp_fold_vec3_dot_f32:
     EPILOGUE
     
 ; -----------------------------------------------------------------------------
+; void fp_quat_normalize(
+;     RCX: Quaternion* out,
+;     RDX: const Quaternion* q
+; );
+;
+; Normalize a quaternion to unit length using a fast inverse square root
+; (rsqrt + 2x Newton-Raphson refinement) to beat scalar sqrt/div from GCC.
+;
+; Behavior:
+;   - If |q|^2 < 1e-8f, returns identity quaternion [0,0,0,1]
+;   - Otherwise, out = q / |q|
+;
+; This should match fp_quat_normalize_pure_c within 1e-6f on all components
+; so that Phase 3 L0 verification tests pass.
+; -----------------------------------------------------------------------------
+fp_quat_normalize_asm:
+    ; Leaf function: uses only volatile XMM registers, no stack frame needed.
+    ; Load quaternion q = [x, y, z, w]
+    vmovups xmm0, [rdx]
+
+    ; Compute len_sq = x*x + y*y + z*z + w*w
+    vmulps xmm1, xmm0, xmm0        ; squares
+    HSUM_F32_XMM 1                 ; horizontal sum in xmm1[0]
+
+    ; If len_sq < epsilon, return identity quaternion
+    vmovss xmm2, [g_quat_eps]
+    vucomiss xmm1, xmm2
+    jb      .near_zero
+
+    ; Fast inverse square root with two Newton-Raphson refinements
+    ; y0 = rsqrt(len_sq)
+    vrsqrtss xmm2, xmm1, xmm1      ; xmm2 = y
+
+    ; First refinement: y = y * (1.5f - 0.5f * x * y * y)
+    vmulss xmm3, xmm2, xmm2        ; y*y
+    vmulss xmm3, xmm3, xmm1        ; x*y*y
+    vmovss xmm4, [g_quat_half]     ; 0.5f
+    vmulss xmm3, xmm3, xmm4        ; 0.5f*x*y*y
+    vmovss xmm5, [g_quat_three]    ; 1.5f
+    vsubss xmm5, xmm5, xmm3        ; 1.5f - 0.5f*x*y*y
+    vmulss xmm2, xmm2, xmm5        ; y *= (1.5f - 0.5f*x*y*y)
+
+    ; Second refinement for higher precision
+    vmulss xmm3, xmm2, xmm2
+    vmulss xmm3, xmm3, xmm1
+    vmovss xmm4, [g_quat_half]
+    vmulss xmm3, xmm3, xmm4
+    vmovss xmm5, [g_quat_three]
+    vsubss xmm5, xmm5, xmm3
+    vmulss xmm2, xmm2, xmm5        ; final y = 1/sqrt(len_sq)
+
+    ; Broadcast inv_len to all lanes and scale quaternion
+    vbroadcastss xmm2, xmm2
+    vmulps xmm0, xmm0, xmm2
+    vmovups [rcx], xmm0
+    jmp     .done
+
+.near_zero:
+    ; Out-of-range or near-zero length: return identity quaternion
+    vmovups xmm0, [g_quat_identity]
+    vmovups [rcx], xmm0
+
+.done:
+    vzeroupper
+    ret
+    
+; -----------------------------------------------------------------------------
 ; Data Section
 ; -----------------------------------------------------------------------------
 section .data
@@ -498,3 +566,11 @@ align 16
 g_neg_one: dd -1.0, -1.0, -1.0, -1.0
 align 32
 g_zero: dd 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+align 16
+g_quat_identity: dd 0.0, 0.0, 0.0, 1.0
+align 16
+g_quat_eps: dd 0.00000001
+align 16
+g_quat_half: dd 0.5
+align 16
+g_quat_three: dd 1.5
