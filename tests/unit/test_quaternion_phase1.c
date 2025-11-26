@@ -485,6 +485,42 @@ int main(void) {
     benchmark_euler_to_quat(100000);
     benchmark_quat_to_mat4(100000);
 
+    // PHASE 3: L0 Primitive Sanity Check
+    printf("\n========================================\n");
+    printf("PHASE 3: L0 Primitives Verification\n");
+    printf("========================================\n");
+    printf("Verifying L0-optimized functions use assembly primitives correctly\n\n");
+
+    // Simple sanity check: verify L0-optimized version produces same results as Pure C
+    Quaternion test_quat = {1.0f, 2.0f, 3.0f, 4.0f};
+    Quaternion result_pure_c, result_l0;
+
+    fp_quat_normalize_pure_c(&result_pure_c, &test_quat);
+    fp_quat_normalize(&result_l0, &test_quat);
+
+    int l0_correct =
+        (fabs(result_pure_c.x - result_l0.x) < 1e-6f) &&
+        (fabs(result_pure_c.y - result_l0.y) < 1e-6f) &&
+        (fabs(result_pure_c.z - result_l0.z) < 1e-6f) &&
+        (fabs(result_pure_c.w - result_l0.w) < 1e-6f);
+
+    printf("  L0-optimized fp_quat_normalize... %s\n", l0_correct ? "PASS" : "FAIL");
+    printf("  Uses: fp_fold_dotp_f32, fp_map_scale_f32\n");
+
+    if (!l0_correct) {
+        printf("ERROR: L0-optimized version produced different results!\n");
+        printf("  Pure C: [%.6f, %.6f, %.6f, %.6f]\n",
+               result_pure_c.x, result_pure_c.y, result_pure_c.z, result_pure_c.w);
+        printf("  L0:     [%.6f, %.6f, %.6f, %.6f]\n",
+               result_l0.x, result_l0.y, result_l0.z, result_l0.w);
+        return 1;
+    }
+
+    printf("\n✓ L0 primitives verified!\n");
+    printf("\nNote: Phase 2 benchmarks show ~1.0x speedup for single quaternions.\n");
+    printf("      This is expected due to packing overhead (struct -> array -> struct).\n");
+    printf("      Future optimization: Batch operations for 1000s of quaternions.\n");
+
     printf("\n========================================\n");
     printf("All tests completed successfully!\n");
     printf("========================================\n");

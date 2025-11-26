@@ -23,6 +23,8 @@ gcc tests\unit\test_quaternion_phase1.c ^
     build\obj\fp_matrix_ops.o ^
     build\obj\fp_core_matrix.o ^
     build\obj\3d_math_kernels.o ^
+    build\obj\fp_core_fused_folds_f32.o ^
+    build\obj\fp_core_fused_maps_f32.o ^
     -o tests\unit\test_quaternion_phase1.exe ^
     -I include -O3 -march=native -Wall -Wextra -lm 2>&1
 

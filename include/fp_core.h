@@ -1284,6 +1284,14 @@ void fp_quat_normalize(Quaternion* out, const Quaternion* q);
 void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z);
 void fp_quat_to_mat4(Mat4* out, const Quaternion* q);
 
+/* Pure C baseline versions (for benchmarking L0 optimizations) */
+void fp_quat_normalize_pure_c(Quaternion* out, const Quaternion* q);
+void fp_euler_to_quat_pure_c(Quaternion* out, float pitch_x, float yaw_y, float roll_z);
+void fp_quat_to_mat4_pure_c(Mat4* out, const Quaternion* q);
+
+/* Batched quaternion normalization (engine-scale workloads) */
+void fp_quat_normalize_batch(Quaternion* out, const Quaternion* in, size_t n);
+
 /**
  * Create identity matrix
  *

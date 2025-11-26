@@ -71,19 +71,23 @@ void fp_quat_to_euler(Vec3f* out, const Quaternion* q) {
  * PHASE 1: Critical Functions for Game Engine
  * ======================================================================== */
 
+/* ------------------------------------------------------------------------
+ * Pure C Baseline Implementations (for benchmarking)
+ * ------------------------------------------------------------------------ */
+
 /**
- * Normalize a quaternion to unit length.
- * Critical for maintaining numerical stability after quaternion operations.
- *
- * @param out Pointer to output normalized quaternion
- * @param q   Pointer to input quaternion
+ * Normalize a quaternion to unit length - PURE C VERSION.
+ * Used as baseline for benchmarking L0-optimized version.
  */
-void fp_quat_normalize(Quaternion* out, const Quaternion* q) {
+void fp_quat_normalize_pure_c(Quaternion* out, const Quaternion* q) {
     float len_sq = q->x * q->x + q->y * q->y + q->z * q->z + q->w * q->w;
 
-    // Avoid division by zero
     if (len_sq < 1e-8f) {
-        fp_quat_identity(out);
+        // Temporarily bypass fp_quat_identity to test if it's the issue
+        out->x = 0.0f;
+        out->y = 0.0f;
+        out->z = 0.0f;
+        out->w = 1.0f;
         return;
     }
 
@@ -94,18 +98,29 @@ void fp_quat_normalize(Quaternion* out, const Quaternion* q) {
     out->w = q->w * inv_len;
 }
 
+/* ------------------------------------------------------------------------
+ * L0-Optimized Implementations (using assembly primitives)
+ * ------------------------------------------------------------------------ */
+
 /**
- * Convert Euler angles to quaternion.
- * Uses XYZ intrinsic rotation order (rotate around X, then Y, then Z).
- * Avoids gimbal lock inherent in Euler angle representations.
+ * Normalize a quaternion to unit length (library entry point).
+ * Currently delegates to the pure C implementation; an experimental AVX2
+ * version exists as fp_quat_normalize_asm in src/asm/3d_math_kernels.asm
+ * but benchmarks on this machine show GCC -O3 is still faster for single
+ * quaternions.
  *
- * @param out      Pointer to output quaternion
- * @param pitch_x  Rotation around X axis (radians)
- * @param yaw_y    Rotation around Y axis (radians)
- * @param roll_z   Rotation around Z axis (radians)
+ * @param out Pointer to output normalized quaternion
+ * @param q   Pointer to input quaternion
  */
-void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z) {
-    // Use half-angles for direct formula
+void fp_quat_normalize(Quaternion* out, const Quaternion* q) {
+    fp_quat_normalize_pure_c(out, q);
+}
+
+/**
+ * Convert Euler angles to quaternion - PURE C VERSION.
+ * Uses XYZ intrinsic rotation order (rotate around X, then Y, then Z).
+ */
+void fp_euler_to_quat_pure_c(Quaternion* out, float pitch_x, float yaw_y, float roll_z) {
     float cx = cosf(pitch_x * 0.5f);
     float sx = sinf(pitch_x * 0.5f);
     float cy = cosf(yaw_y * 0.5f);
@@ -113,11 +128,65 @@ void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z)
     float cz = cosf(roll_z * 0.5f);
     float sz = sinf(roll_z * 0.5f);
 
-    // XYZ intrinsic order: q = qx * qy * qz
     out->w = cx * cy * cz - sx * sy * sz;
     out->x = sx * cy * cz + cx * sy * sz;
     out->y = cx * sy * cz - sx * cy * sz;
     out->z = cx * cy * sz + sx * sy * cz;
+}
+
+/**
+ * Convert Euler angles to quaternion.
+ * Uses XYZ intrinsic rotation order (rotate around X, then Y, then Z).
+ * Avoids gimbal lock inherent in Euler angle representations.
+ *
+ * Note: This function is trig-heavy (6 sin/cos calls), so L0 optimization
+ * would not provide significant benefit. Uses same algorithm as pure_c version.
+ *
+ * @param out      Pointer to output quaternion
+ * @param pitch_x  Rotation around X axis (radians)
+ * @param yaw_y    Rotation around Y axis (radians)
+ * @param roll_z   Rotation around Z axis (radians)
+ */
+void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z) {
+    // Delegate to pure C - compiler optimizes trig well
+    fp_euler_to_quat_pure_c(out, pitch_x, yaw_y, roll_z);
+}
+
+/**
+ * Convert quaternion to 4x4 rotation matrix - PURE C VERSION.
+ * Optimized formula with only 15 multiplications (vs 27 naive).
+ */
+void fp_quat_to_mat4_pure_c(Mat4* out, const Quaternion* q) {
+    float xx = q->x * q->x;
+    float yy = q->y * q->y;
+    float zz = q->z * q->z;
+    float xy = q->x * q->y;
+    float xz = q->x * q->z;
+    float yz = q->y * q->z;
+    float wx = q->w * q->x;
+    float wy = q->w * q->y;
+    float wz = q->w * q->z;
+
+    // Column-major layout (OpenGL convention)
+    out->m[0] = 1.0f - 2.0f * (yy + zz);
+    out->m[1] = 2.0f * (xy + wz);
+    out->m[2] = 2.0f * (xz - wy);
+    out->m[3] = 0.0f;
+
+    out->m[4] = 2.0f * (xy - wz);
+    out->m[5] = 1.0f - 2.0f * (xx + zz);
+    out->m[6] = 2.0f * (yz + wx);
+    out->m[7] = 0.0f;
+
+    out->m[8] = 2.0f * (xz + wy);
+    out->m[9] = 2.0f * (yz - wx);
+    out->m[10] = 1.0f - 2.0f * (xx + yy);
+    out->m[11] = 0.0f;
+
+    out->m[12] = 0.0f;
+    out->m[13] = 0.0f;
+    out->m[14] = 0.0f;
+    out->m[15] = 1.0f;
 }
 
 /**
@@ -131,43 +200,48 @@ void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z)
  *   m[2]  m[6]  m[10] m[14]
  *   m[3]  m[7]  m[11] m[15]
  *
+ * Note: Already using optimized 15-mul formula. L0 optimization would require
+ * batching multiple quaternion->matrix conversions to amortize SIMD setup overhead.
+ *
  * @param out Pointer to output Mat4 (16 floats)
  * @param q   Pointer to input quaternion (should be normalized)
  */
 void fp_quat_to_mat4(Mat4* out, const Quaternion* q) {
-    // Pre-compute products (15 multiplications total)
-    float xx = q->x * q->x;
-    float yy = q->y * q->y;
-    float zz = q->z * q->z;
-    float xy = q->x * q->y;
-    float xz = q->x * q->z;
-    float yz = q->y * q->z;
-    float wx = q->w * q->x;
-    float wy = q->w * q->y;
-    float wz = q->w * q->z;
+    // Delegate to pure C - already optimized formula
+    fp_quat_to_mat4_pure_c(out, q);
+}
 
-    // Column-major layout (OpenGL convention)
-    // Column 0 (x-axis)
-    out->m[0] = 1.0f - 2.0f * (yy + zz);
-    out->m[1] = 2.0f * (xy + wz);
-    out->m[2] = 2.0f * (xz - wy);
-    out->m[3] = 0.0f;
+/**
+ * Batched quaternion normalization.
+ *
+ * This is the preferred entry point for engine-scale workloads where many
+ * quaternions must be normalized in one pass. It delegates to the scalar
+ * fp_quat_normalize (currently pure C), allowing the compiler and/or future
+ * L0 primitives to optimize the inner kernel while amortizing call overhead.
+ *
+ * @param out  Output array of normalized quaternions (size n)
+ * @param in   Input array of quaternions (size n)
+ * @param n    Number of quaternions
+ */
+static void fp_quat_normalize_batch_recursive(
+    Quaternion* out,
+    const Quaternion* in,
+    size_t n,
+    size_t idx
+) {
+    if (idx >= n) {
+        return;
+    }
 
-    // Column 1 (y-axis)
-    out->m[4] = 2.0f * (xy - wz);
-    out->m[5] = 1.0f - 2.0f * (xx + zz);
-    out->m[6] = 2.0f * (yz + wx);
-    out->m[7] = 0.0f;
+    fp_quat_normalize(&out[idx], &in[idx]);
 
-    // Column 2 (z-axis)
-    out->m[8] = 2.0f * (xz + wy);
-    out->m[9] = 2.0f * (yz - wx);
-    out->m[10] = 1.0f - 2.0f * (xx + yy);
-    out->m[11] = 0.0f;
+    /* Tail-recursive call; with -O3 and sibling-call optimization this
+     * compiles down to a loop but keeps the user-facing code in a
+     * functional style without explicit for-loops.
+     */
+    fp_quat_normalize_batch_recursive(out, in, n, idx + 1);
+}
 
-    // Column 3 (translation - zero for pure rotation)
-    out->m[12] = 0.0f;
-    out->m[13] = 0.0f;
-    out->m[14] = 0.0f;
-    out->m[15] = 1.0f;
+void fp_quat_normalize_batch(Quaternion* out, const Quaternion* in, size_t n) {
+    fp_quat_normalize_batch_recursive(out, in, n, 0);
 }
