@@ -46,6 +46,12 @@ void lighting_compute_directional(Vec3f* out_color,
                                   const Material* material,
                                   const Vec3f* normal,
                                   const Vec3f* view_dir) {
+    // HIGH-001 FIX: Add null pointer guards
+    if (!out_color || !light || !material || !normal || !view_dir) {
+        if (out_color) *out_color = (Vec3f){0.0f, 0.0f, 0.0f, 0.0f};
+        return;
+    }
+
     // Diffuse component: max(N · L, 0)
     Vec3f light_dir_neg;
     vec3_scale(&light_dir_neg, &light->direction, -1.0f);  // Negate because light.direction points away
@@ -70,10 +76,24 @@ void lighting_compute_point(Vec3f* out_color,
                             const Vec3f* position,
                             const Vec3f* normal,
                             const Vec3f* view_dir) {
+    // HIGH-001 FIX: Add null pointer guards
+    if (!out_color || !light || !material || !position || !normal || !view_dir) {
+        if (out_color) *out_color = (Vec3f){0.0f, 0.0f, 0.0f, 0.0f};
+        return;
+    }
+
     // Calculate light direction (from surface to light)
     Vec3f light_dir;
     vec3_sub(&light_dir, &light->position, position);
     float distance = vec3_length(&light_dir);
+
+    // CRIT-001 FIX: Prevent division by zero when light is at surface point
+    if (distance < 1e-6f) {
+        // Light at surface point - no contribution
+        *out_color = (Vec3f){0.0f, 0.0f, 0.0f, 0.0f};
+        return;
+    }
+
     vec3_normalize(&light_dir, &light_dir);
 
     // Calculate attenuation
@@ -118,6 +138,13 @@ void lighting_compute_phong(Vec3f* out_color,
                             const Vec3f* position,
                             const Vec3f* normal,
                             const Vec3f* view_dir) {
+    // HIGH-001 FIX: Add null pointer guards
+    if (!out_color || !ambient || !material || !position || !normal || !view_dir) {
+        if (out_color) *out_color = (Vec3f){0.0f, 0.0f, 0.0f, 0.0f};
+        return;
+    }
+    // Note: dir_light and point_lights can be NULL (no lights of that type)
+
     // Start with ambient
     Vec3f ambient_color;
     lighting_compute_ambient(&ambient_color, ambient, material);

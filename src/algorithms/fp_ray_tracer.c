@@ -331,11 +331,17 @@ void* render_thread_worker(void* arg) {
 
     // Render assigned rows
     for (int y = data->start_y; y < data->end_y; y++) {
+        // HIGH-004 FIX: Add bounds validation
+        if (y < 0 || y >= data->height) continue;
         for (int x = 0; x < data->width; x++) {
             Ray ray = generate_camera_ray(data->camera, (float)x, (float)y, data->width, data->height);
             Vec3f color = trace_ray(&ray, data->scene, 0, 0, true);  // Real-time mode (no reflections)
 
-            int idx = (y * data->width + x) * 3;
+            // HIGH-004 FIX: Use size_t to prevent integer overflow in index calculation
+            size_t idx = (size_t)y * (size_t)data->width + (size_t)x;
+            if (idx >= (size_t)(data->height * data->width)) continue;
+            idx *= 3;
+
             data->framebuffer[idx + 0] = float_to_byte(gamma_correct(color.x));
             data->framebuffer[idx + 1] = float_to_byte(gamma_correct(color.y));
             data->framebuffer[idx + 2] = float_to_byte(gamma_correct(color.z));

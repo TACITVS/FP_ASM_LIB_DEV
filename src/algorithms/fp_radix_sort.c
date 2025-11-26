@@ -92,6 +92,13 @@ void fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n) {
     // Need temporary buffer for ping-pong sorting
     uint32_t* temp = (uint32_t*)malloc(n * sizeof(uint32_t));
 
+    // HIGH-003 FIX: Handle malloc failure
+    if (!temp) {
+        // Fallback: copy input to output without sorting
+        memcpy(out, in, n * sizeof(uint32_t));
+        return;
+    }
+
     // Copy input to output for first pass
     memcpy(out, in, n * sizeof(uint32_t));
 
@@ -150,6 +157,13 @@ static void counting_sort_u64_by_byte(
 // LSD Radix Sort for u64 (8 passes, LSB to MSB)
 void fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n) {
     uint64_t* temp = (uint64_t*)malloc(n * sizeof(uint64_t));
+
+    // HIGH-003 FIX: Handle malloc failure
+    if (!temp) {
+        // Fallback: copy input to output without sorting
+        memcpy(out, in, n * sizeof(uint64_t));
+        return;
+    }
 
     memcpy(out, in, n * sizeof(uint64_t));
 

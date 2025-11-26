@@ -309,6 +309,16 @@ PCAResult fp_pca_fit(
     double tolerance,           // Convergence threshold
     uint64_t seed               // RNG seed for deterministic eigenvalue extraction
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow
+    if (d > 0 && n_components > INT_MAX / d) {
+        PCAResult empty = {0};
+        return empty;
+    }
+    if (d > 0 && n > INT_MAX / d) {
+        PCAResult empty = {0};
+        return empty;
+    }
+
     PCAResult result;
     result.converged = 1;
 
@@ -352,12 +362,21 @@ PCAResult fp_pca_fit(
         result.model.total_variance += result.model.eigenvalues[i];
     }
 
-    double cumsum = 0.0;
-    for (int i = 0; i < n_components; i++) {
-        result.model.explained_variance_ratio[i] =
-            result.model.eigenvalues[i] / result.model.total_variance;
-        cumsum += result.model.explained_variance_ratio[i];
-        result.model.cumulative_variance_ratio[i] = cumsum;
+    // HIGH-006 FIX: Handle zero total variance case
+    if (result.model.total_variance < 1e-10) {
+        // No variance - all components zero
+        for (int i = 0; i < n_components; i++) {
+            result.model.explained_variance_ratio[i] = 0.0;
+            result.model.cumulative_variance_ratio[i] = 0.0;
+        }
+    } else {
+        double cumsum = 0.0;
+        for (int i = 0; i < n_components; i++) {
+            result.model.explained_variance_ratio[i] =
+                result.model.eigenvalues[i] / result.model.total_variance;
+            cumsum += result.model.explained_variance_ratio[i];
+            result.model.cumulative_variance_ratio[i] = cumsum;
+        }
     }
 
     free(X_centered);
