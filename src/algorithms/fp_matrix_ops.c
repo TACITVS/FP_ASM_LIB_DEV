@@ -12,6 +12,7 @@
 
 #include "fp_core.h"
 #include <math.h>
+#include <float.h>
 
 /* ========== BASIC TRANSFORMATIONS ========== */
 
