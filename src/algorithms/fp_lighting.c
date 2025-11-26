@@ -39,6 +39,14 @@ typedef struct {
     float shininess;  // Specular exponent (1-128)
 } Material;
 
+// LOW-001 FIX: Define default material to avoid magic numbers
+static const Material DEFAULT_MATERIAL = {
+    {0.1f, 0.1f, 0.1f, 0.0f},  // ambient: 10% reflectance
+    {0.8f, 0.8f, 0.8f, 0.0f},  // diffuse: 80% reflectance
+    {0.5f, 0.5f, 0.5f, 0.0f},  // specular: 50% reflectance
+    32.0f                       // shininess: moderate sharpness
+};
+
 /* ========== SHADING FUNCTIONS ========== */
 
 void lighting_compute_directional(Vec3f* out_color,
@@ -197,18 +205,11 @@ void lighting_shade_vertices_batch(Vec3f* out_colors,
         // Compute lighting (simplified - just ambient + directional)
         Vec3f ambient_color, dir_color;
 
-        // Default material for now
-        Material default_mat = {
-            {0.1f, 0.1f, 0.1f, 0.0f},  // ambient
-            {0.8f, 0.8f, 0.8f, 0.0f},  // diffuse
-            {0.5f, 0.5f, 0.5f, 0.0f},  // specular
-            32.0f                       // shininess
-        };
-
-        lighting_compute_ambient(&ambient_color, ambient, &default_mat);
+        // LOW-001 FIX: Use DEFAULT_MATERIAL constant instead of magic numbers
+        lighting_compute_ambient(&ambient_color, ambient, &DEFAULT_MATERIAL);
 
         if (dir_light) {
-            lighting_compute_directional(&dir_color, dir_light, &default_mat, &normals[i], &view_dir);
+            lighting_compute_directional(&dir_color, dir_light, &DEFAULT_MATERIAL, &normals[i], &view_dir);
             out_colors[i].x = ambient_color.x + dir_color.x;
             out_colors[i].y = ambient_color.y + dir_color.y;
             out_colors[i].z = ambient_color.z + dir_color.z;
