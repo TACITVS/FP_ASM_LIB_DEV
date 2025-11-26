@@ -400,6 +400,19 @@ DecisionTreeModel fp_decision_tree_train(
     int max_depth,
     int min_samples_split
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow in n * d
+    if (d > 0 && n > INT_MAX / d) {
+        // Return zero-initialized model to indicate error
+        DecisionTreeModel empty = {0};
+        return empty;
+    }
+
+    // HIGH-010 FIX: Add input validation
+    if (!X || !y || n <= 0 || d <= 0 || n_classes <= 0 || max_depth <= 0 || min_samples_split <= 0) {
+        DecisionTreeModel error = {0};
+        return error;
+    }
+
     DecisionTreeModel model;
     model.max_depth = max_depth;
     model.min_samples_split = min_samples_split;

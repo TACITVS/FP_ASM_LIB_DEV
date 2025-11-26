@@ -227,6 +227,23 @@ GradientDescentResult fp_linear_regression_gradient_descent(
     double convergence_threshold, // stop if loss change < threshold
     uint64_t seed                 // RNG seed for deterministic initialization
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow in n * d
+    if (d > 0 && n > INT_MAX / d) {
+        GradientDescentResult empty = {0};
+        return empty;
+    }
+    // Also check d+1 doesn't overflow (for weights array allocation)
+    if (d >= INT_MAX) {
+        GradientDescentResult empty = {0};
+        return empty;
+    }
+
+    // HIGH-012 FIX: Add input validation
+    if (!X || !y || n <= 0 || d <= 0 || learning_rate <= 0.0 || max_iterations <= 0 || convergence_threshold < 0.0) {
+        GradientDescentResult error = {0};
+        return error;
+    }
+
     GradientDescentResult result;
     result.model.n_features = d;
     result.model.weights = NULL;

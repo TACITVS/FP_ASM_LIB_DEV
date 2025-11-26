@@ -164,6 +164,19 @@ GaussianNBModel fp_gaussian_nb_train(
     int d,
     int n_classes
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow in n_classes * d
+    if (d > 0 && n_classes > INT_MAX / d) {
+        // Return zero-initialized model to indicate error
+        GaussianNBModel empty = {0};
+        return empty;
+    }
+
+    // HIGH-008 FIX: Add input validation
+    if (!X || !y || n <= 0 || d <= 0 || n_classes <= 0) {
+        GaussianNBModel error = {0};
+        return error;
+    }
+
     GaussianNBModel model;
     model.n_classes = n_classes;
     model.n_features = d;

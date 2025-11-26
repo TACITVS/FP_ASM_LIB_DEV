@@ -121,6 +121,23 @@ static inline double relu_derivative(double x) {
 // Create neural network with Xavier initialization
 // REFACTORED: Uses fp_rng for deterministic, reproducible weight initialization
 NeuralNetwork fp_neural_network_create(int n_inputs, int n_hidden, int n_outputs, uint64_t seed) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow
+    if (n_inputs > 0 && n_hidden > INT_MAX / n_inputs) {
+        // Return zero-initialized network to indicate error
+        NeuralNetwork empty = {0};
+        return empty;
+    }
+    if (n_hidden > 0 && n_outputs > INT_MAX / n_hidden) {
+        NeuralNetwork empty = {0};
+        return empty;
+    }
+
+    // HIGH-009 FIX: Add input validation
+    if (n_inputs <= 0 || n_hidden <= 0 || n_outputs <= 0) {
+        NeuralNetwork error = {0};
+        return error;
+    }
+
     NeuralNetwork net;
     net.n_inputs = n_inputs;
     net.n_hidden = n_hidden;

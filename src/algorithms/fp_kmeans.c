@@ -238,6 +238,12 @@ KMeansResult fp_kmeans_f64(
     double tol,               // convergence tolerance
     uint64_t seed             // RNG seed for deterministic initialization
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow in k * d
+    if (d > 0 && k > INT_MAX / d) {
+        KMeansResult empty = {0};
+        return empty;
+    }
+
     // Zero-initialize to ensure NULL pointers if malloc fails partway through
     KMeansResult result = {0};
 

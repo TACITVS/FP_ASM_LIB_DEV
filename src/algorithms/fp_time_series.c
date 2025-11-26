@@ -213,6 +213,12 @@ ForecastResult fp_forecast_sma(
     int window,
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || window <= 0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -261,6 +267,12 @@ ForecastResult fp_forecast_exponential_smoothing(
     double alpha,           // Smoothing parameter (0 < α < 1)
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || alpha <= 0.0 || alpha >= 1.0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -312,6 +324,12 @@ ForecastResult fp_forecast_double_exponential_smoothing(
     double beta,            // Trend smoothing
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || alpha <= 0.0 || alpha >= 1.0 || beta <= 0.0 || beta >= 1.0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -363,6 +381,12 @@ ForecastResult fp_forecast_linear_trend(
     int n,
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -427,6 +451,12 @@ ForecastResult fp_forecast_seasonal_naive(
     int period,             // Seasonal period (e.g., 12 for monthly data)
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || period <= 0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));

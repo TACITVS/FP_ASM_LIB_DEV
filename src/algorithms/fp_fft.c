@@ -94,6 +94,11 @@ static unsigned int reverse_bits(unsigned int x, int log2n) {
 
 // Bit-reversal permutation (in-place)
 static void bit_reverse_permutation(Complex* data, int n) {
+    // CRIT-003 FIX: Validate n is power of 2 before bit reversal
+    if (n <= 0 || (n & (n - 1)) != 0) {
+        return;  // Not a power of 2 - skip reversal
+    }
+
     int log2n = 0;
     int temp_n = n;
     while (temp_n > 1) {
@@ -103,7 +108,7 @@ static void bit_reverse_permutation(Complex* data, int n) {
 
     for (unsigned int i = 0; i < (unsigned int)n; i++) {
         unsigned int j = reverse_bits(i, log2n);
-        if (j > i) {
+        if (j > i && j < (unsigned int)n) {  // Add bounds check
             // Swap data[i] and data[j]
             Complex temp = data[i];
             data[i] = data[j];
