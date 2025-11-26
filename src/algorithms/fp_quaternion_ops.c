@@ -83,7 +83,6 @@ void fp_quat_normalize_pure_c(Quaternion* out, const Quaternion* q) {
     float len_sq = q->x * q->x + q->y * q->y + q->z * q->z + q->w * q->w;
 
     if (len_sq < 1e-8f) {
-        // Temporarily bypass fp_quat_identity to test if it's the issue
         out->x = 0.0f;
         out->y = 0.0f;
         out->z = 0.0f;
@@ -92,10 +91,15 @@ void fp_quat_normalize_pure_c(Quaternion* out, const Quaternion* q) {
     }
 
     float inv_len = 1.0f / sqrtf(len_sq);
-    out->x = q->x * inv_len;
-    out->y = q->y * inv_len;
-    out->z = q->z * inv_len;
-    out->w = q->w * inv_len;
+    // Use temporaries to handle aliasing (in-place normalization: out == q)
+    float temp_x = q->x * inv_len;
+    float temp_y = q->y * inv_len;
+    float temp_z = q->z * inv_len;
+    float temp_w = q->w * inv_len;
+    out->x = temp_x;
+    out->y = temp_y;
+    out->z = temp_z;
+    out->w = temp_w;
 }
 
 /* ------------------------------------------------------------------------
@@ -104,21 +108,38 @@ void fp_quat_normalize_pure_c(Quaternion* out, const Quaternion* q) {
 
 /**
  * Normalize a quaternion to unit length (library entry point).
- * Currently delegates to the pure C implementation; an experimental AVX2
- * version exists as fp_quat_normalize_asm in src/asm/3d_math_kernels.asm
- * but benchmarks on this machine show GCC -O3 is still faster for single
- * quaternions.
+ * Inline implementation to avoid function call overhead.
  *
  * @param out Pointer to output normalized quaternion
  * @param q   Pointer to input quaternion
  */
 void fp_quat_normalize(Quaternion* out, const Quaternion* q) {
-    fp_quat_normalize_pure_c(out, q);
+    float len_sq = q->x * q->x + q->y * q->y + q->z * q->z + q->w * q->w;
+
+    if (len_sq < 1e-8f) {
+        out->x = 0.0f;
+        out->y = 0.0f;
+        out->z = 0.0f;
+        out->w = 1.0f;
+        return;
+    }
+
+    float inv_len = 1.0f / sqrtf(len_sq);
+    // Use temporaries to handle aliasing (in-place normalization: out == q)
+    float temp_x = q->x * inv_len;
+    float temp_y = q->y * inv_len;
+    float temp_z = q->z * inv_len;
+    float temp_w = q->w * inv_len;
+    out->x = temp_x;
+    out->y = temp_y;
+    out->z = temp_z;
+    out->w = temp_w;
 }
 
 /**
  * Convert Euler angles to quaternion - PURE C VERSION.
- * Uses XYZ intrinsic rotation order (rotate around X, then Y, then Z).
+ * Uses ZYX rotation order to match fp_mat4_rotation_euler (Rz * Ry * Rx).
+ * This is the standard yaw-pitch-roll convention.
  */
 void fp_euler_to_quat_pure_c(Quaternion* out, float pitch_x, float yaw_y, float roll_z) {
     float cx = cosf(pitch_x * 0.5f);
@@ -128,19 +149,20 @@ void fp_euler_to_quat_pure_c(Quaternion* out, float pitch_x, float yaw_y, float 
     float cz = cosf(roll_z * 0.5f);
     float sz = sinf(roll_z * 0.5f);
 
-    out->w = cx * cy * cz - sx * sy * sz;
-    out->x = sx * cy * cz + cx * sy * sz;
-    out->y = cx * sy * cz - sx * cy * sz;
-    out->z = cx * cy * sz + sx * sy * cz;
+    // ZYX order: Rz * Ry * Rx (matches fp_mat4_rotation_euler)
+    out->w = cx * cy * cz + sx * sy * sz;
+    out->x = sx * cy * cz - cx * sy * sz;
+    out->y = cx * sy * cz + sx * cy * sz;
+    out->z = cx * cy * sz - sx * sy * cz;
 }
 
 /**
  * Convert Euler angles to quaternion.
- * Uses XYZ intrinsic rotation order (rotate around X, then Y, then Z).
+ * Uses ZYX rotation order (Rz * Ry * Rx) to match fp_mat4_rotation_euler.
+ * This is the standard yaw-pitch-roll convention.
  * Avoids gimbal lock inherent in Euler angle representations.
  *
- * Note: This function is trig-heavy (6 sin/cos calls), so L0 optimization
- * would not provide significant benefit. Uses same algorithm as pure_c version.
+ * Inline implementation to avoid function call overhead.
  *
  * @param out      Pointer to output quaternion
  * @param pitch_x  Rotation around X axis (radians)
@@ -148,8 +170,18 @@ void fp_euler_to_quat_pure_c(Quaternion* out, float pitch_x, float yaw_y, float 
  * @param roll_z   Rotation around Z axis (radians)
  */
 void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z) {
-    // Delegate to pure C - compiler optimizes trig well
-    fp_euler_to_quat_pure_c(out, pitch_x, yaw_y, roll_z);
+    float cx = cosf(pitch_x * 0.5f);
+    float sx = sinf(pitch_x * 0.5f);
+    float cy = cosf(yaw_y * 0.5f);
+    float sy = sinf(yaw_y * 0.5f);
+    float cz = cosf(roll_z * 0.5f);
+    float sz = sinf(roll_z * 0.5f);
+
+    // ZYX order: Rz * Ry * Rx (matches fp_mat4_rotation_euler)
+    out->w = cx * cy * cz + sx * sy * sz;
+    out->x = sx * cy * cz - cx * sy * sz;
+    out->y = cx * sy * cz + sx * cy * sz;
+    out->z = cx * cy * sz - sx * sy * cz;
 }
 
 /**
@@ -157,15 +189,9 @@ void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z)
  * Optimized formula with only 15 multiplications (vs 27 naive).
  */
 void fp_quat_to_mat4_pure_c(Mat4* out, const Quaternion* q) {
-    float xx = q->x * q->x;
-    float yy = q->y * q->y;
-    float zz = q->z * q->z;
-    float xy = q->x * q->y;
-    float xz = q->x * q->z;
-    float yz = q->y * q->z;
-    float wx = q->w * q->x;
-    float wy = q->w * q->y;
-    float wz = q->w * q->z;
+    float xx = q->x * q->x, yy = q->y * q->y, zz = q->z * q->z;
+    float xy = q->x * q->y, xz = q->x * q->z, yz = q->y * q->z;
+    float wx = q->w * q->x, wy = q->w * q->y, wz = q->w * q->z;
 
     // Column-major layout (OpenGL convention)
     out->m[0] = 1.0f - 2.0f * (yy + zz);
@@ -187,28 +213,6 @@ void fp_quat_to_mat4_pure_c(Mat4* out, const Quaternion* q) {
     out->m[13] = 0.0f;
     out->m[14] = 0.0f;
     out->m[15] = 1.0f;
-}
-
-/**
- * Convert quaternion to 4x4 rotation matrix.
- * THIS IS THE MOST CRITICAL FUNCTION for game engine rendering.
- * Uses optimized formula with only 15 multiplications (vs 27 naive).
- *
- * Matrix format is column-major (OpenGL convention):
- *   m[0]  m[4]  m[8]  m[12]
- *   m[1]  m[5]  m[9]  m[13]
- *   m[2]  m[6]  m[10] m[14]
- *   m[3]  m[7]  m[11] m[15]
- *
- * Note: Already using optimized 15-mul formula. L0 optimization would require
- * batching multiple quaternion->matrix conversions to amortize SIMD setup overhead.
- *
- * @param out Pointer to output Mat4 (16 floats)
- * @param q   Pointer to input quaternion (should be normalized)
- */
-void fp_quat_to_mat4(Mat4* out, const Quaternion* q) {
-    // Delegate to pure C - already optimized formula
-    fp_quat_to_mat4_pure_c(out, q);
 }
 
 /**

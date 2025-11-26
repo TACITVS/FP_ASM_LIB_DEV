@@ -1282,12 +1282,42 @@ void fp_quat_to_euler(Vec3f* out, const Quaternion* q);
 /* PHASE 1: Critical conversion functions for game engine */
 void fp_quat_normalize(Quaternion* out, const Quaternion* q);
 void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z);
-void fp_quat_to_mat4(Mat4* out, const Quaternion* q);
 
 /* Pure C baseline versions (for benchmarking L0 optimizations) */
 void fp_quat_normalize_pure_c(Quaternion* out, const Quaternion* q);
 void fp_euler_to_quat_pure_c(Quaternion* out, float pitch_x, float yaw_y, float roll_z);
 void fp_quat_to_mat4_pure_c(Mat4* out, const Quaternion* q);
+
+/* Public API: mat4 from quaternion.
+ * Header-inline pure C implementation so engine code can inline,
+ * while fp_quat_to_mat4_pure_c remains available as a baseline.
+ */
+static inline void fp_quat_to_mat4(Mat4* out, const Quaternion* q) {
+    float xx = q->x * q->x, yy = q->y * q->y, zz = q->z * q->z;
+    float xy = q->x * q->y, xz = q->x * q->z, yz = q->y * q->z;
+    float wx = q->w * q->x, wy = q->w * q->y, wz = q->w * q->z;
+
+    /* Column-major layout (OpenGL convention) */
+    out->m[0]  = 1.0f - 2.0f * (yy + zz);
+    out->m[1]  = 2.0f * (xy + wz);
+    out->m[2]  = 2.0f * (xz - wy);
+    out->m[3]  = 0.0f;
+
+    out->m[4]  = 2.0f * (xy - wz);
+    out->m[5]  = 1.0f - 2.0f * (xx + zz);
+    out->m[6]  = 2.0f * (yz + wx);
+    out->m[7]  = 0.0f;
+
+    out->m[8]  = 2.0f * (xz + wy);
+    out->m[9]  = 2.0f * (yz - wx);
+    out->m[10] = 1.0f - 2.0f * (xx + yy);
+    out->m[11] = 0.0f;
+
+    out->m[12] = 0.0f;
+    out->m[13] = 0.0f;
+    out->m[14] = 0.0f;
+    out->m[15] = 1.0f;
+}
 
 /* Batched quaternion normalization (engine-scale workloads) */
 void fp_quat_normalize_batch(Quaternion* out, const Quaternion* in, size_t n);

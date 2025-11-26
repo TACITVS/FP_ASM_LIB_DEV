@@ -20,6 +20,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+// ============================================================================
+// High-Resolution Timing
+// ============================================================================
+
+#ifdef _WIN32
+static double get_time_seconds(void) {
+    static LARGE_INTEGER frequency;
+    static int initialized = 0;
+    LARGE_INTEGER counter;
+
+    if (!initialized) {
+        QueryPerformanceFrequency(&frequency);
+        initialized = 1;
+    }
+
+    QueryPerformanceCounter(&counter);
+    return (double)counter.QuadPart / (double)frequency.QuadPart;
+}
+#else
+static double get_time_seconds(void) {
+    return (double)clock() / CLOCKS_PER_SEC;
+}
+#endif
+
 // ============================================================================
 // Test Utilities
 // ============================================================================
@@ -130,6 +158,27 @@ static int test_quat_normalize_near_zero() {
     return 1;
 }
 
+static int test_quat_normalize_aliasing() {
+    printf("  Test: normalize with aliasing (in-place)... ");
+
+    // Test in-place normalization: out == q (common use case)
+    Quaternion q = {3.0f, 4.0f, 0.0f, 0.0f};  // length = 5
+    fp_quat_normalize(&q, &q);  // In-place: same pointer for input and output
+
+    // Expected: (3, 4, 0, 0) / 5 = (0.6, 0.8, 0.0, 0.0)
+    Quaternion expected = {0.6f, 0.8f, 0.0f, 0.0f};
+
+    if (!assert_quat_eq(&q, &expected, TOLERANCE, "In-place normalization failed")) {
+        return 0;
+    }
+    if (!assert_quat_normalized(&q, TOLERANCE, "Result should be unit length")) {
+        return 0;
+    }
+
+    printf("PASS\n");
+    return 1;
+}
+
 static int test_euler_to_quat_identity() {
     printf("  Test: euler_to_quat with zero angles... ");
 
@@ -223,6 +272,37 @@ static int test_quat_to_mat4_90deg_x() {
     return 1;
 }
 
+static int test_euler_quat_mat4_consistency() {
+    printf("  Test: euler->quat->mat4 vs mat4_rotation_euler... ");
+
+    // Test with arbitrary angles
+    float pitch = 0.3f, yaw = 0.5f, roll = 0.2f;
+
+    // Path 1: euler -> quat -> mat4
+    Quaternion q;
+    fp_euler_to_quat(&q, pitch, yaw, roll);
+    Mat4 mat_from_quat;
+    fp_quat_to_mat4(&mat_from_quat, &q);
+
+    // Path 2: euler -> mat4 directly
+    Mat4 mat_direct;
+    fp_mat4_rotation_euler(&mat_direct, pitch, yaw, roll);
+
+    // Both paths should produce the same rotation matrix
+    for (int i = 0; i < 16; i++) {
+        if (fabsf(mat_from_quat.m[i] - mat_direct.m[i]) > TOLERANCE) {
+            printf("FAIL\n");
+            printf("    Matrix mismatch at index %d:\n", i);
+            printf("    quat path: %f, direct path: %f\n",
+                   mat_from_quat.m[i], mat_direct.m[i]);
+            return 0;
+        }
+    }
+
+    printf("PASS\n");
+    return 1;
+}
+
 static int test_round_trip_quat_euler_quat() {
     printf("  Test: round-trip quat->euler->quat... ");
 
@@ -276,35 +356,18 @@ static void euler_to_quat_baseline(Quaternion* out, float pitch, float yaw, floa
     float cz = cosf(roll * 0.5f);
     float sz = sinf(roll * 0.5f);
 
-    out->w = cx * cy * cz - sx * sy * sz;
-    out->x = sx * cy * cz + cx * sy * sz;
-    out->y = cx * sy * cz - sx * cy * sz;
-    out->z = cx * cy * sz + sx * sy * cz;
+    // ZYX order: Rz * Ry * Rx (matches fp_mat4_rotation_euler)
+    out->w = cx * cy * cz + sx * sy * sz;
+    out->x = sx * cy * cz - cx * sy * sz;
+    out->y = cx * sy * cz + sx * cy * sz;
+    out->z = cx * cy * sz - sx * sy * cz;
 }
 
-// C Baseline: fp_quat_to_mat4 (SAME ALGORITHM)
+// C Baseline: fp_quat_to_mat4_pure_c (SAME ALGORITHM)
+// Uses the canonical pure C implementation from the library so that both
+// the library path and the baseline reflect realistic separate-TU usage.
 static void quat_to_mat4_baseline(Mat4* out, const Quaternion* q) {
-    float xx = q->x * q->x, yy = q->y * q->y, zz = q->z * q->z;
-    float xy = q->x * q->y, xz = q->x * q->z, yz = q->y * q->z;
-    float wx = q->w * q->x, wy = q->w * q->y, wz = q->w * q->z;
-
-    out->m[0] = 1.0f - 2.0f * (yy + zz);
-    out->m[1] = 2.0f * (xy + wz);
-    out->m[2] = 2.0f * (xz - wy);
-    out->m[3] = 0.0f;
-
-    out->m[4] = 2.0f * (xy - wz);
-    out->m[5] = 1.0f - 2.0f * (xx + zz);
-    out->m[6] = 2.0f * (yz + wx);
-    out->m[7] = 0.0f;
-
-    out->m[8] = 2.0f * (xz + wy);
-    out->m[9] = 2.0f * (yz - wx);
-    out->m[10] = 1.0f - 2.0f * (xx + yy);
-    out->m[11] = 0.0f;
-
-    out->m[12] = 0.0f; out->m[13] = 0.0f;
-    out->m[14] = 0.0f; out->m[15] = 1.0f;
+    fp_quat_to_mat4_pure_c(out, q);
 }
 
 static void benchmark_normalize(int iterations) {
@@ -329,20 +392,18 @@ static void benchmark_normalize(int iterations) {
     }
 
     // Benchmark library implementation
-    clock_t start = clock();
+    double start = get_time_seconds();
     for (int i = 0; i < iterations; i++) {
         fp_quat_normalize(&outputs[i], &inputs[i]);
     }
-    clock_t end = clock();
-    double time_lib = (double)(end - start) / CLOCKS_PER_SEC;
+    double time_lib = get_time_seconds() - start;
 
     // Benchmark C baseline
-    start = clock();
+    start = get_time_seconds();
     for (int i = 0; i < iterations; i++) {
         quat_normalize_baseline(&outputs[i], &inputs[i]);
     }
-    end = clock();
-    double time_c = (double)(end - start) / CLOCKS_PER_SEC;
+    double time_c = get_time_seconds() - start;
 
     printf("Library:  %.6f seconds\n", time_lib);
     printf("C:        %.6f seconds\n", time_c);
@@ -376,20 +437,18 @@ static void benchmark_euler_to_quat(int iterations) {
     }
 
     // Benchmark library implementation
-    clock_t start = clock();
+    double start = get_time_seconds();
     for (int i = 0; i < iterations; i++) {
         fp_euler_to_quat(&outputs[i], pitches[i], yaws[i], rolls[i]);
     }
-    clock_t end = clock();
-    double time_lib = (double)(end - start) / CLOCKS_PER_SEC;
+    double time_lib = get_time_seconds() - start;
 
     // Benchmark C baseline
-    start = clock();
+    start = get_time_seconds();
     for (int i = 0; i < iterations; i++) {
         euler_to_quat_baseline(&outputs[i], pitches[i], yaws[i], rolls[i]);
     }
-    end = clock();
-    double time_c = (double)(end - start) / CLOCKS_PER_SEC;
+    double time_c = get_time_seconds() - start;
 
     printf("Library:  %.6f seconds\n", time_lib);
     printf("C:        %.6f seconds\n", time_c);
@@ -425,20 +484,18 @@ static void benchmark_quat_to_mat4(int iterations) {
     }
 
     // Benchmark library implementation
-    clock_t start = clock();
+    double start = get_time_seconds();
     for (int i = 0; i < iterations; i++) {
         fp_quat_to_mat4(&outputs[i], &inputs[i]);
     }
-    clock_t end = clock();
-    double time_lib = (double)(end - start) / CLOCKS_PER_SEC;
+    double time_lib = get_time_seconds() - start;
 
     // Benchmark C baseline
-    start = clock();
+    start = get_time_seconds();
     for (int i = 0; i < iterations; i++) {
         quat_to_mat4_baseline(&outputs[i], &inputs[i]);
     }
-    end = clock();
-    double time_c = (double)(end - start) / CLOCKS_PER_SEC;
+    double time_c = get_time_seconds() - start;
 
     printf("Library:  %.6f seconds\n", time_lib);
     printf("C:        %.6f seconds\n", time_c);
@@ -466,10 +523,12 @@ int main(void) {
     if (!test_quat_normalize_identity()) return 1;
     if (!test_quat_normalize_arbitrary()) return 1;
     if (!test_quat_normalize_near_zero()) return 1;
+    if (!test_quat_normalize_aliasing()) return 1;
     if (!test_euler_to_quat_identity()) return 1;
     if (!test_euler_to_quat_90deg_rotations()) return 1;
     if (!test_quat_to_mat4_identity()) return 1;
     if (!test_quat_to_mat4_90deg_x()) return 1;
+    if (!test_euler_quat_mat4_consistency()) return 1;
     if (!test_round_trip_quat_euler_quat()) return 1;
 
     printf("\n✓ All correctness tests PASSED!\n");
@@ -481,9 +540,9 @@ int main(void) {
 
     srand(42);  // Deterministic random data
 
-    benchmark_normalize(100000);
-    benchmark_euler_to_quat(100000);
-    benchmark_quat_to_mat4(100000);
+    benchmark_normalize(1000000);
+    benchmark_euler_to_quat(1000000);
+    benchmark_quat_to_mat4(1000000);
 
     // PHASE 3: L0 Primitive Sanity Check
     printf("\n========================================\n");
