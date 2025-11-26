@@ -125,9 +125,13 @@ fp_map_axpy_f32:
 global fp_map_scale_f32
 fp_map_scale_f32:
     push rbp
+    push r12                        ; Preserve non-volatile R12
+    push r14                        ; Preserve non-volatile R14
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
+    sub rsp, 32                     ; Space for YMM15
+    vmovdqa [rsp], ymm15            ; Preserve non-volatile YMM15
 
     ; Broadcast scalar c (already in xmm3 per Windows ABI)
     vbroadcastss ymm15, xmm3
@@ -188,8 +192,11 @@ fp_map_scale_f32:
     jnz .tail_loop
 
 .done:
+    vmovdqa ymm15, [rsp]            ; Restore non-volatile YMM15
     vzeroupper
     mov rsp, rbp
+    pop r14                         ; Restore non-volatile R14
+    pop r12                         ; Restore non-volatile R12
     pop rbp
     ret
 

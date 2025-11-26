@@ -121,6 +121,8 @@ fp_fold_dotp_f32:
     ; Return: XMM0 = dot product
 
     push rbp
+    push r12                        ; Preserve non-volatile R12
+    push r13                        ; Preserve non-volatile R13
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -196,6 +198,8 @@ fp_fold_dotp_f32:
 
     vzeroupper
     mov rsp, rbp
+    pop r13                         ; Restore non-volatile R13
+    pop r12                         ; Restore non-volatile R12
     pop rbp
     ret
 
