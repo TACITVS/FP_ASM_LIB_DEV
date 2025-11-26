@@ -96,7 +96,7 @@ void fp_quat_normalize(Quaternion* out, const Quaternion* q) {
 
 /**
  * Convert Euler angles to quaternion.
- * Uses ZYX rotation order (standard yaw-pitch-roll convention).
+ * Uses XYZ intrinsic rotation order (rotate around X, then Y, then Z).
  * Avoids gimbal lock inherent in Euler angle representations.
  *
  * @param out      Pointer to output quaternion
@@ -106,18 +106,18 @@ void fp_quat_normalize(Quaternion* out, const Quaternion* q) {
  */
 void fp_euler_to_quat(Quaternion* out, float pitch_x, float yaw_y, float roll_z) {
     // Use half-angles for direct formula
+    float cx = cosf(pitch_x * 0.5f);
+    float sx = sinf(pitch_x * 0.5f);
     float cy = cosf(yaw_y * 0.5f);
     float sy = sinf(yaw_y * 0.5f);
-    float cp = cosf(pitch_x * 0.5f);
-    float sp = sinf(pitch_x * 0.5f);
-    float cr = cosf(roll_z * 0.5f);
-    float sr = sinf(roll_z * 0.5f);
+    float cz = cosf(roll_z * 0.5f);
+    float sz = sinf(roll_z * 0.5f);
 
-    // ZYX order (standard): q = qz * qy * qx
-    out->w = cr * cp * cy + sr * sp * sy;
-    out->x = sr * cp * cy - cr * sp * sy;
-    out->y = cr * sp * cy + sr * cp * sy;
-    out->z = cr * cp * sy - sr * sp * cy;
+    // XYZ intrinsic order: q = qx * qy * qz
+    out->w = cx * cy * cz - sx * sy * sz;
+    out->x = sx * cy * cz + cx * sy * sz;
+    out->y = cx * sy * cz - sx * cy * sz;
+    out->z = cx * cy * sz + sx * sy * cz;
 }
 
 /**
