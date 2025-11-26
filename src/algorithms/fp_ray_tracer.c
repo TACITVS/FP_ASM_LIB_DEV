@@ -1215,10 +1215,21 @@ uint8_t float_to_byte(float f) {
 }
 
 float gamma_correct(float linear) {
-    // sRGB gamma correction
-    if (linear <= 0.0031308f) {
+    // MED-010 FIX: Smooth transition near threshold to avoid discontinuity artifacts
+    const float threshold = 0.0031308f;
+    const float blend_width = 0.0001f;  // Small blend zone
+
+    if (linear < threshold - blend_width) {
+        // Pure linear
         return 12.92f * linear;
-    } else {
+    } else if (linear > threshold + blend_width) {
+        // Pure gamma
         return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
+    } else {
+        // Blend zone - smooth interpolation
+        float t = (linear - (threshold - blend_width)) / (2.0f * blend_width);
+        float linear_val = 12.92f * linear;
+        float gamma_val = 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
+        return linear_val * (1.0f - t) + gamma_val * t;
     }
 }

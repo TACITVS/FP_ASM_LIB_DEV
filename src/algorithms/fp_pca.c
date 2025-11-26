@@ -461,10 +461,13 @@ void fp_pca_transform(
     int d = model->n_features;
     int k = model->n_components;
 
+    // MED-004 FIX: Allocate x_centered once outside loop instead of n times
+    double* x_centered = (double*)malloc(d * sizeof(double));
+    if (!x_centered) return;  // Fail silently on malloc failure
+
     // For each sample
     for (int i = 0; i < n; i++) {
         // Center the sample
-        double* x_centered = (double*)malloc(d * sizeof(double));
         for (int j = 0; j < d; j++) {
             x_centered[j] = X[i * d + j] - model->mean[j];
         }
@@ -477,9 +480,9 @@ void fp_pca_transform(
                 d
             );
         }
-
-        free(x_centered);
     }
+
+    free(x_centered);
 }
 
 // Inverse transform: reconstruct original space from PCA space
