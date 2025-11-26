@@ -494,8 +494,12 @@ void render_multithread(
         num_threads = get_cpu_cores();
     }
 
+    // LOW-007 FIX: Use dynamic limit based on CPU cores instead of hardcoded 16
+    int max_threads = get_cpu_cores() * 2;  // Hyperthreading consideration
+    if (max_threads < 4) max_threads = 4;   // Minimum reasonable limit
+
     // Clamp to reasonable range
-    if (num_threads > 16) num_threads = 16;
+    if (num_threads > max_threads) num_threads = max_threads;
     if (num_threads < 1) num_threads = 1;
 
     printf("Using %d threads for rendering...\n", num_threads);
