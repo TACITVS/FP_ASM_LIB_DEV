@@ -18,6 +18,8 @@ section .text
     global fp_map_quat_rotate_vec3_f32
     global fp_reduce_vec3_add_f32
     global fp_fold_vec3_dot_f32
+    global fp_quat_normalize_asm
+    global fp_quat_to_mat4
 
 
 ; -----------------------------------------------------------------------------
@@ -491,6 +493,199 @@ fp_fold_vec3_dot_f32:
     EPILOGUE
     
 ; -----------------------------------------------------------------------------
+; void fp_quat_normalize(
+;     RCX: Quaternion* out,
+;     RDX: const Quaternion* q
+; );
+;
+; Normalize a quaternion to unit length using a fast inverse square root
+; (rsqrt + 2x Newton-Raphson refinement) to beat scalar sqrt/div from GCC.
+;
+; Behavior:
+;   - If |q|^2 < 1e-8f, returns identity quaternion [0,0,0,1]
+;   - Otherwise, out = q / |q|
+;
+; This should match fp_quat_normalize_pure_c within 1e-6f on all components
+; so that Phase 3 L0 verification tests pass.
+; -----------------------------------------------------------------------------
+fp_quat_normalize_asm:
+    ; Leaf function: uses only volatile XMM registers, no stack frame needed.
+    ; Load quaternion q = [x, y, z, w]
+    vmovups xmm0, [rdx]
+
+    ; Compute len_sq = x*x + y*y + z*z + w*w
+    vmulps xmm1, xmm0, xmm0        ; squares
+    HSUM_F32_XMM 1                 ; horizontal sum in xmm1[0]
+
+    ; If len_sq < epsilon, return identity quaternion
+    vmovss xmm2, [g_quat_eps]
+    vucomiss xmm1, xmm2
+    jb      .near_zero
+
+    ; Fast inverse square root with two Newton-Raphson refinements
+    ; y0 = rsqrt(len_sq)
+    vrsqrtss xmm2, xmm1, xmm1      ; xmm2 = y
+
+    ; First refinement: y = y * (1.5f - 0.5f * x * y * y)
+    vmulss xmm3, xmm2, xmm2        ; y*y
+    vmulss xmm3, xmm3, xmm1        ; x*y*y
+    vmovss xmm4, [g_quat_half]     ; 0.5f
+    vmulss xmm3, xmm3, xmm4        ; 0.5f*x*y*y
+    vmovss xmm5, [g_quat_three]    ; 1.5f
+    vsubss xmm5, xmm5, xmm3        ; 1.5f - 0.5f*x*y*y
+    vmulss xmm2, xmm2, xmm5        ; y *= (1.5f - 0.5f*x*y*y)
+
+    ; Second refinement for higher precision
+    vmulss xmm3, xmm2, xmm2
+    vmulss xmm3, xmm3, xmm1
+    vmovss xmm4, [g_quat_half]
+    vmulss xmm3, xmm3, xmm4
+    vmovss xmm5, [g_quat_three]
+    vsubss xmm5, xmm5, xmm3
+    vmulss xmm2, xmm2, xmm5        ; final y = 1/sqrt(len_sq)
+
+    ; Broadcast inv_len to all lanes and scale quaternion
+    vbroadcastss xmm2, xmm2
+    vmulps xmm0, xmm0, xmm2
+    vmovups [rcx], xmm0
+    jmp     .done
+
+.near_zero:
+    ; Out-of-range or near-zero length: return identity quaternion
+    vmovups xmm0, [g_quat_identity]
+    vmovups [rcx], xmm0
+
+.done:
+    vzeroupper
+    ret
+
+; -----------------------------------------------------------------------------
+; void fp_quat_to_mat4(
+;     RCX: Mat4* out,
+;     RDX: const Quaternion* q
+; );
+;
+; Quaternion to 4x4 rotation matrix (column-major, OpenGL style).
+; Scalar SSE implementation with minimal calling overhead. Computes the
+; standard 15-multiplication optimized formula.
+; -----------------------------------------------------------------------------
+fp_quat_to_mat4:
+    ; Load quaternion components: x, y, z
+    vmovss xmm0, [rdx]        ; x
+    vmovss xmm1, [rdx+4]      ; y
+    vmovss xmm2, [rdx+8]      ; z
+
+    ; Load 1.0f constant into xmm5
+    vmovss xmm5, [g_one_f32]
+
+    ; m[0] = 1 - 2*(yy + zz)
+    vmovaps xmm4, xmm1        ; y
+    vmulss  xmm4, xmm4, xmm1  ; yy
+    vmovaps xmm3, xmm2        ; z
+    vmulss  xmm3, xmm3, xmm2  ; zz
+    vaddss  xmm4, xmm4, xmm3  ; yy + zz
+    vaddss  xmm4, xmm4, xmm4  ; 2*(yy + zz)
+    vsubss  xmm4, xmm5, xmm4  ; 1 - 2*(yy + zz)
+    vmovss  [rcx+0], xmm4
+
+    ; m[1] = 2*(xy + wz)
+    vmovaps xmm4, xmm0
+    vmulss  xmm4, xmm4, xmm1  ; xy
+    vmovss  xmm3, [rdx+12]    ; w
+    vmulss  xmm3, xmm3, xmm2  ; wz
+    vaddss  xmm4, xmm4, xmm3  ; xy + wz
+    vaddss  xmm4, xmm4, xmm4  ; 2*(xy + wz)
+    vmovss  [rcx+4], xmm4
+
+    ; m[2] = 2*(xz - wy)
+    vmovaps xmm4, xmm0
+    vmulss  xmm4, xmm4, xmm2  ; xz
+    vmovss  xmm3, [rdx+12]    ; w
+    vmulss  xmm3, xmm3, xmm1  ; wy
+    vsubss  xmm4, xmm4, xmm3  ; xz - wy
+    vaddss  xmm4, xmm4, xmm4  ; 2*(xz - wy)
+    vmovss  [rcx+8], xmm4
+
+    ; m[3] = 0.0f
+    vxorps  xmm4, xmm4, xmm4
+    vmovss  [rcx+12], xmm4
+
+    ; m[4] = 2*(xy - wz)
+    vmovaps xmm4, xmm0
+    vmulss  xmm4, xmm4, xmm1  ; xy
+    vmovss  xmm3, [rdx+12]    ; w
+    vmulss  xmm3, xmm3, xmm2  ; wz
+    vsubss  xmm4, xmm4, xmm3  ; xy - wz
+    vaddss  xmm4, xmm4, xmm4  ; 2*(xy - wz)
+    vmovss  [rcx+16], xmm4
+
+    ; m[5] = 1 - 2*(xx + zz)
+    vmovaps xmm4, xmm0
+    vmulss  xmm4, xmm4, xmm0  ; xx
+    vmovaps xmm3, xmm2
+    vmulss  xmm3, xmm3, xmm2  ; zz
+    vaddss  xmm4, xmm4, xmm3  ; xx + zz
+    vaddss  xmm4, xmm4, xmm4  ; 2*(xx + zz)
+    vsubss  xmm4, xmm5, xmm4  ; 1 - 2*(xx + zz)
+    vmovss  [rcx+20], xmm4
+
+    ; m[6] = 2*(yz + wx)
+    vmovaps xmm4, xmm1
+    vmulss  xmm4, xmm4, xmm2  ; yz
+    vmovss  xmm3, [rdx+12]    ; w
+    vmulss  xmm3, xmm3, xmm0  ; wx
+    vaddss  xmm4, xmm4, xmm3  ; yz + wx
+    vaddss  xmm4, xmm4, xmm4  ; 2*(yz + wx)
+    vmovss  [rcx+24], xmm4
+
+    ; m[7] = 0.0f
+    vxorps  xmm4, xmm4, xmm4
+    vmovss  [rcx+28], xmm4
+
+    ; m[8] = 2*(xz + wy)
+    vmovaps xmm4, xmm0
+    vmulss  xmm4, xmm4, xmm2  ; xz
+    vmovss  xmm3, [rdx+12]    ; w
+    vmulss  xmm3, xmm3, xmm1  ; wy
+    vaddss  xmm4, xmm4, xmm3  ; xz + wy
+    vaddss  xmm4, xmm4, xmm4  ; 2*(xz + wy)
+    vmovss  [rcx+32], xmm4
+
+    ; m[9] = 2*(yz - wx)
+    vmovaps xmm4, xmm1
+    vmulss  xmm4, xmm4, xmm2  ; yz
+    vmovss  xmm3, [rdx+12]    ; w
+    vmulss  xmm3, xmm3, xmm0  ; wx
+    vsubss  xmm4, xmm4, xmm3  ; yz - wx
+    vaddss  xmm4, xmm4, xmm4  ; 2*(yz - wx)
+    vmovss  [rcx+36], xmm4
+
+    ; m[10] = 1 - 2*(xx + yy)
+    vmovaps xmm4, xmm0
+    vmulss  xmm4, xmm4, xmm0  ; xx
+    vmovaps xmm3, xmm1
+    vmulss  xmm3, xmm3, xmm1  ; yy
+    vaddss  xmm4, xmm4, xmm3  ; xx + yy
+    vaddss  xmm4, xmm4, xmm4  ; 2*(xx + yy)
+    vsubss  xmm4, xmm5, xmm4  ; 1 - 2*(xx + yy)
+    vmovss  [rcx+40], xmm4
+
+    ; m[11] = 0.0f
+    vxorps  xmm4, xmm4, xmm4
+    vmovss  [rcx+44], xmm4
+
+    ; m[12], m[13], m[14] = 0.0f
+    vmovss  [rcx+48], xmm4
+    vmovss  [rcx+52], xmm4
+    vmovss  [rcx+56], xmm4
+
+    ; m[15] = 1.0f
+    vmovss  [rcx+60], xmm5
+
+    vzeroupper
+    ret
+    
+; -----------------------------------------------------------------------------
 ; Data Section
 ; -----------------------------------------------------------------------------
 section .data
@@ -498,3 +693,13 @@ align 16
 g_neg_one: dd -1.0, -1.0, -1.0, -1.0
 align 32
 g_zero: dd 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+align 16
+g_quat_identity: dd 0.0, 0.0, 0.0, 1.0
+align 16
+g_quat_eps: dd 0.00000001
+align 16
+g_quat_half: dd 0.5
+align 16
+g_quat_three: dd 1.5
+align 16
+g_one_f32: dd 1.0
