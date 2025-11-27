@@ -331,11 +331,19 @@ void* render_thread_worker(void* arg) {
 
     // Render assigned rows
     for (int y = data->start_y; y < data->end_y; y++) {
+        // HIGH-004 FIX: Add bounds validation
+        if (y < 0 || y >= data->height) continue;
         for (int x = 0; x < data->width; x++) {
+            // HIGH-004 FIX: Validate x individually before index calculation
+            if (x < 0 || x >= data->width) continue;
+
             Ray ray = generate_camera_ray(data->camera, (float)x, (float)y, data->width, data->height);
             Vec3f color = trace_ray(&ray, data->scene, 0, 0, true);  // Real-time mode (no reflections)
 
-            int idx = (y * data->width + x) * 3;
+            // HIGH-004 FIX: Calculate index only after bounds validation
+            size_t idx = (size_t)y * (size_t)data->width + (size_t)x;
+            idx *= 3;
+
             data->framebuffer[idx + 0] = float_to_byte(gamma_correct(color.x));
             data->framebuffer[idx + 1] = float_to_byte(gamma_correct(color.y));
             data->framebuffer[idx + 2] = float_to_byte(gamma_correct(color.z));
@@ -488,8 +496,12 @@ void render_multithread(
         num_threads = get_cpu_cores();
     }
 
+    // LOW-007 FIX: Use dynamic limit based on CPU cores instead of hardcoded 16
+    int max_threads = get_cpu_cores() * 2;  // Hyperthreading consideration
+    if (max_threads < 4) max_threads = 4;   // Minimum reasonable limit
+
     // Clamp to reasonable range
-    if (num_threads > 16) num_threads = 16;
+    if (num_threads > max_threads) num_threads = max_threads;
     if (num_threads < 1) num_threads = 1;
 
     printf("Using %d threads for rendering...\n", num_threads);
@@ -1209,10 +1221,21 @@ uint8_t float_to_byte(float f) {
 }
 
 float gamma_correct(float linear) {
-    // sRGB gamma correction
-    if (linear <= 0.0031308f) {
+    // MED-010 FIX: Smooth transition near threshold to avoid discontinuity artifacts
+    const float threshold = 0.0031308f;
+    const float blend_width = 0.0001f;  // Small blend zone
+
+    if (linear < threshold - blend_width) {
+        // Pure linear
         return 12.92f * linear;
-    } else {
+    } else if (linear > threshold + blend_width) {
+        // Pure gamma
         return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
+    } else {
+        // Blend zone - smooth interpolation
+        float t = (linear - (threshold - blend_width)) / (2.0f * blend_width);
+        float linear_val = 12.92f * linear;
+        float gamma_val = 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
+        return linear_val * (1.0f - t) + gamma_val * t;
     }
 }

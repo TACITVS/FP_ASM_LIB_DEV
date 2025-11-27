@@ -12,6 +12,7 @@
 
 #include "fp_core.h"
 #include <math.h>
+#include <float.h>
 
 /* ========== BASIC TRANSFORMATIONS ========== */
 
@@ -287,7 +288,16 @@ int fp_mat4_inverse(Mat4* out, const Mat4* m) {
     // Calculate determinant
     det = m->m[0] * inv[0] + m->m[1] * inv[4] + m->m[2] * inv[8] + m->m[3] * inv[12];
 
-    if (fabsf(det) < 1e-8f) {
+    // HIGH-002 FIX: Use relative threshold based on matrix magnitude
+    // 16.0f is the number of elements in a 4x4 matrix (scales epsilon by matrix size)
+    float abs_max = 0.0f;
+    for (int i = 0; i < 16; i++) {
+        abs_max = fmaxf(abs_max, fabsf(m->m[i]));
+    }
+    // HIGH-002 FIX: Ensure minimum threshold to handle zero matrix edge case
+    float threshold = fmaxf(FLT_EPSILON, fminf(1.0f, FLT_EPSILON * abs_max * 16.0f));
+
+    if (fabsf(det) < threshold) {
         return 0;  // Singular matrix, no inverse
     }
 

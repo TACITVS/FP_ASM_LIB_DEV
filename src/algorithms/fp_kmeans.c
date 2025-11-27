@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "fp_core.h"
 #include "fp_rng.h"
 #include "fp_monads.h"  // TIER 4: Maybe monad for safe error handling
@@ -152,7 +153,8 @@ static int assign_clusters(
 
 // Recompute centroids as mean of assigned points
 // REFACTORED: Uses Pattern 1's fp_mean() for clearer, safer computation
-static void update_centroids(
+// MED-007 FIX: Return int to indicate success/failure
+static int update_centroids(
     const double* data,       // n × d matrix
     int n,                    // number of points
     int d,                    // dimensionality
@@ -168,9 +170,8 @@ static void update_centroids(
     // Allocate temporary storage for cluster points (one dimension at a time)
     double* cluster_points = (double*)malloc(n * sizeof(double));
     if (!cluster_points) {
-        // Allocation failed - cluster_sizes are zeroed, centroids remain zeroed
-        // Algorithm will produce degenerate result but won't crash
-        return;
+        // MED-007 FIX: Return 0 to indicate failure
+        return 0;
     }
 
     // Compute centroid for each cluster, dimension by dimension
@@ -203,6 +204,8 @@ static void update_centroids(
     }
 
     free(cluster_points);
+    // MED-007 FIX: Return 1 to indicate success
+    return 1;
 }
 
 // Compute inertia (sum of squared distances to assigned centroids)
@@ -238,6 +241,12 @@ KMeansResult fp_kmeans_f64(
     double tol,               // convergence tolerance
     uint64_t seed             // RNG seed for deterministic initialization
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow in k * d
+    if (d > 0 && k > INT_MAX / d) {
+        KMeansResult empty = {0};
+        return empty;
+    }
+
     // Zero-initialize to ensure NULL pointers if malloc fails partway through
     KMeansResult result = {0};
 
@@ -273,8 +282,12 @@ KMeansResult fp_kmeans_f64(
             break;
         }
 
-        // Update centroids
-        update_centroids(data, n, d, result.assignments, k, result.centroids, result.cluster_sizes);
+        // MED-007 FIX: Check if update_centroids succeeds
+        if (!update_centroids(data, n, d, result.assignments, k, result.centroids, result.cluster_sizes)) {
+            // Centroid update failed (malloc failure) - stop iterations
+            result.converged = 0;
+            break;
+        }
     }
 
     // Compute final inertia

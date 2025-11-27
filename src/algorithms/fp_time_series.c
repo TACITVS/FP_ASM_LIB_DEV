@@ -50,7 +50,8 @@ static inline double fp_mse_inline(const double* actual, const double* predicted
 
     // Allocate error array
     double* errors = (double*)malloc(n * sizeof(double));
-    if (!errors) return 0.0;
+    // MED-006 FIX: Return INFINITY instead of 0.0 on malloc failure (0.0 is valid MSE)
+    if (!errors) return INFINITY;
 
     // L1: Compute errors using fp_map_axpy (SIMD!)
     // errors = -1.0 * predicted + actual = actual - predicted
@@ -70,7 +71,8 @@ static inline double fp_mae_inline(const double* actual, const double* predicted
 
     // Compute errors: actual - predicted
     double* errors = (double*)malloc(n * sizeof(double));
-    if (!errors) return 0.0;
+    // MED-006 FIX: Return INFINITY instead of 0.0 on malloc failure (0.0 is valid MAE)
+    if (!errors) return INFINITY;
 
     // L0: errors = actual - predicted using SIMD map
     fp_map_axpy_f64(predicted, actual, errors, n, -1.0);
@@ -213,6 +215,12 @@ ForecastResult fp_forecast_sma(
     int window,
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || window <= 0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -261,6 +269,12 @@ ForecastResult fp_forecast_exponential_smoothing(
     double alpha,           // Smoothing parameter (0 < α < 1)
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || alpha <= 0.0 || alpha >= 1.0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -312,6 +326,12 @@ ForecastResult fp_forecast_double_exponential_smoothing(
     double beta,            // Trend smoothing
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || alpha <= 0.0 || alpha >= 1.0 || beta <= 0.0 || beta >= 1.0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -363,6 +383,12 @@ ForecastResult fp_forecast_linear_trend(
     int n,
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -427,6 +453,12 @@ ForecastResult fp_forecast_seasonal_naive(
     int period,             // Seasonal period (e.g., 12 for monthly data)
     int horizon
 ) {
+    // HIGH-007 FIX: Add input validation
+    if (!data || n <= 0 || period <= 0 || horizon <= 0) {
+        ForecastResult error = {0};
+        return error;
+    }
+
     ForecastResult result;
     result.horizon = horizon;
     result.forecast = (double*)malloc(horizon * sizeof(double));
@@ -557,10 +589,20 @@ void fp_generate_random_walk(
 
 // Mean Absolute Percentage Error
 double fp_forecast_mape(const double* actual, const double* predicted, size_t n) {
+    // MED-018 FIX: Use relative threshold based on max value instead of fixed threshold
+    double max_abs = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        double abs_val = fabs(actual[i]);
+        if (abs_val > max_abs) max_abs = abs_val;
+    }
+
+    double threshold = max_abs * 1e-10;  // Relative threshold
+    if (threshold < 1e-15) threshold = 1e-15;  // Minimum absolute threshold
+
     double sum_ape = 0.0;
     size_t count = 0;
     for (size_t i = 0; i < n; i++) {
-        if (fabs(actual[i]) > 1e-10) {  // Avoid division by zero
+        if (fabs(actual[i]) > threshold) {
             sum_ape += fabs((actual[i] - predicted[i]) / actual[i]);
             count++;
         }

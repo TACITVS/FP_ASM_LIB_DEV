@@ -309,6 +309,16 @@ PCAResult fp_pca_fit(
     double tolerance,           // Convergence threshold
     uint64_t seed               // RNG seed for deterministic eigenvalue extraction
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow
+    if (d > 0 && n_components > INT_MAX / d) {
+        PCAResult empty = {0};
+        return empty;
+    }
+    if (d > 0 && n > INT_MAX / d) {
+        PCAResult empty = {0};
+        return empty;
+    }
+
     PCAResult result;
     result.converged = 1;
 
@@ -321,16 +331,48 @@ PCAResult fp_pca_fit(
     result.model.explained_variance_ratio = (double*)malloc(n_components * sizeof(double));
     result.model.cumulative_variance_ratio = (double*)malloc(n_components * sizeof(double));
 
+    // HIGH-006 FIX: Add malloc null checks to prevent crashes
+    if (!result.model.mean || !result.model.components || !result.model.eigenvalues ||
+        !result.model.explained_variance_ratio || !result.model.cumulative_variance_ratio) {
+        free(result.model.mean);
+        free(result.model.components);
+        free(result.model.eigenvalues);
+        free(result.model.explained_variance_ratio);
+        free(result.model.cumulative_variance_ratio);
+        PCAResult empty = {0};
+        return empty;
+    }
+
     // Step 1: Compute mean and center data
     compute_means(X, n, d, result.model.mean);
 
     // Create centered copy of X
     double* X_centered = (double*)malloc(n * d * sizeof(double));
+    if (!X_centered) {
+        free(result.model.mean);
+        free(result.model.components);
+        free(result.model.eigenvalues);
+        free(result.model.explained_variance_ratio);
+        free(result.model.cumulative_variance_ratio);
+        PCAResult empty = {0};
+        return empty;
+    }
+
     memcpy(X_centered, X, n * d * sizeof(double));
     center_data(X_centered, n, d, result.model.mean);
 
     // Step 2: Compute covariance matrix C = (1/n) * X^T * X
     double* C = (double*)malloc(d * d * sizeof(double));
+    if (!C) {
+        free(X_centered);
+        free(result.model.mean);
+        free(result.model.components);
+        free(result.model.eigenvalues);
+        free(result.model.explained_variance_ratio);
+        free(result.model.cumulative_variance_ratio);
+        PCAResult empty = {0};
+        return empty;
+    }
     compute_covariance_matrix(X_centered, n, d, C);
 
     // Step 3: Extract top k eigenvectors/eigenvalues (deterministic)
@@ -352,12 +394,21 @@ PCAResult fp_pca_fit(
         result.model.total_variance += result.model.eigenvalues[i];
     }
 
-    double cumsum = 0.0;
-    for (int i = 0; i < n_components; i++) {
-        result.model.explained_variance_ratio[i] =
-            result.model.eigenvalues[i] / result.model.total_variance;
-        cumsum += result.model.explained_variance_ratio[i];
-        result.model.cumulative_variance_ratio[i] = cumsum;
+    // HIGH-006 FIX: Handle zero total variance case
+    if (result.model.total_variance < 1e-10) {
+        // No variance - all components zero
+        for (int i = 0; i < n_components; i++) {
+            result.model.explained_variance_ratio[i] = 0.0;
+            result.model.cumulative_variance_ratio[i] = 0.0;
+        }
+    } else {
+        double cumsum = 0.0;
+        for (int i = 0; i < n_components; i++) {
+            result.model.explained_variance_ratio[i] =
+                result.model.eigenvalues[i] / result.model.total_variance;
+            cumsum += result.model.explained_variance_ratio[i];
+            result.model.cumulative_variance_ratio[i] = cumsum;
+        }
     }
 
     free(X_centered);
@@ -442,10 +493,18 @@ void fp_pca_transform(
     int d = model->n_features;
     int k = model->n_components;
 
+    // MED-004 FIX: Allocate x_centered once outside loop instead of n times
+    double* x_centered = (double*)malloc(d * sizeof(double));
+    if (!x_centered) {
+        if (X_transformed) {
+            memset(X_transformed, 0, (size_t)n * (size_t)k * sizeof(double));
+        }
+        return;  // Fail silently on malloc failure
+    }
+
     // For each sample
     for (int i = 0; i < n; i++) {
         // Center the sample
-        double* x_centered = (double*)malloc(d * sizeof(double));
         for (int j = 0; j < d; j++) {
             x_centered[j] = X[i * d + j] - model->mean[j];
         }
@@ -458,9 +517,9 @@ void fp_pca_transform(
                 d
             );
         }
-
-        free(x_centered);
     }
+
+    free(x_centered);
 }
 
 // Inverse transform: reconstruct original space from PCA space
@@ -497,10 +556,15 @@ double fp_pca_reconstruction_error(
 
     // Transform to PCA space
     double* X_pca = (double*)malloc(n * k * sizeof(double));
+    double* X_reconstructed = (double*)malloc(n * d * sizeof(double));
+    if (!X_pca || !X_reconstructed) {
+        free(X_pca);
+        free(X_reconstructed);
+        return INFINITY;
+    }
     fp_pca_transform(model, X, X_pca, n);
 
     // Reconstruct
-    double* X_reconstructed = (double*)malloc(n * d * sizeof(double));
     fp_pca_inverse_transform(model, X_pca, X_reconstructed, n);
 
     // Compute MSE
