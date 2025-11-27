@@ -90,6 +90,9 @@ typedef struct {
     double final_accuracy; // Final accuracy (for classification)
 } TrainingResult;
 
+// Forward declaration for cleanup helper
+void fp_neural_network_free(NeuralNetwork* net);
+
 // ============================================================================
 // Activation Functions
 // ============================================================================
@@ -198,7 +201,7 @@ Either fp_neural_network_create_safe(int n_inputs, int n_hidden, int n_outputs, 
     *net = fp_neural_network_create(n_inputs, n_hidden, n_outputs, seed);
 
     // Check if allocation in create succeeded (W1 and W2 should be non-NULL)
-    if (!net->W1 || !net->W2) {
+    if (!net->W1 || !net->b1 || !net->W2 || !net->b2) {
         free(net);
         return fp_left("Failed to allocate network weights", 3);
     }
@@ -218,8 +221,18 @@ double* fp_neural_network_forward(
     const double* input,       // n_inputs
     double** hidden_out        // Output: hidden activations (caller must free)
 ) {
+    if (!net || !input || !hidden_out) {
+        if (hidden_out) {
+            *hidden_out = NULL;
+        }
+        return NULL;
+    }
+
     // Allocate hidden layer activations
     *hidden_out = (double*)malloc(net->n_hidden * sizeof(double));
+    if (!*hidden_out) {
+        return NULL;
+    }
     double* hidden = *hidden_out;
 
     // Layer 1: Input → Hidden
@@ -234,6 +247,11 @@ double* fp_neural_network_forward(
 
     // Allocate output layer
     double* output = (double*)malloc(net->n_outputs * sizeof(double));
+    if (!output) {
+        free(hidden);
+        *hidden_out = NULL;
+        return NULL;
+    }
 
     // Layer 2: Hidden → Output
     // output = sigmoid(W2 * hidden + b2)
@@ -272,10 +290,22 @@ static void backpropagate_single(
     // Forward pass
     double* hidden = NULL;
     double* output = fp_neural_network_forward(net, input, &hidden);
+    if (!output || !hidden) {
+        free(output);
+        free(hidden);
+        return;
+    }
 
     // Allocate gradient storage
     double* output_grad = (double*)malloc(net->n_outputs * sizeof(double));
     double* hidden_grad = (double*)malloc(net->n_hidden * sizeof(double));
+    if (!output_grad || !hidden_grad) {
+        free(output_grad);
+        free(hidden_grad);
+        free(output);
+        free(hidden);
+        return;
+    }
 
     // Backward pass - Output layer
     // output_grad = (output - target) * sigmoid'(output)
@@ -341,10 +371,19 @@ TrainingResult fp_neural_network_train(
     int verbose,               // Print progress every N epochs (0 = no output)
     uint64_t seed              // RNG seed for reproducible weight initialization
 ) {
-    TrainingResult result;
+    TrainingResult result = (TrainingResult){0};
     // Use user-provided seed for reproducibility (FP purity)
     result.network = fp_neural_network_create(n_inputs, n_hidden, n_outputs, seed);
+    if (!result.network.W1 || !result.network.b1 || !result.network.W2 || !result.network.b2) {
+        fp_neural_network_free(&result.network);
+        return result;
+    }
+
     result.loss_history = (double*)malloc(n_epochs * sizeof(double));
+    if (!result.loss_history) {
+        fp_neural_network_free(&result.network);
+        return result;
+    }
     result.n_epochs = n_epochs;
 
     // Training loop
@@ -359,6 +398,13 @@ TrainingResult fp_neural_network_train(
             // Compute loss before update
             double* hidden = NULL;
             double* output = fp_neural_network_forward(&result.network, input, &hidden);
+            if (!output || !hidden) {
+                free(output);
+                free(hidden);
+                fp_neural_network_free(&result.network);
+                free(result.loss_history);
+                return (TrainingResult){0};
+            }
             total_loss += mse_loss(output, target, n_outputs);
             free(output);
             free(hidden);
@@ -386,6 +432,13 @@ TrainingResult fp_neural_network_train(
 
         double* hidden = NULL;
         double* output = fp_neural_network_forward(&result.network, input, &hidden);
+        if (!output || !hidden) {
+            free(output);
+            free(hidden);
+            fp_neural_network_free(&result.network);
+            free(result.loss_history);
+            return (TrainingResult){0};
+        }
 
         // Find predicted and true class
         int pred_class = 0, true_class = 0;
@@ -425,6 +478,9 @@ int fp_neural_network_predict_class(
     const double* input
 ) {
     double* output = fp_neural_network_predict(net, input);
+    if (!output) {
+        return -1;
+    }
 
     int max_idx = 0;
     for (int i = 1; i < net->n_outputs; i++) {
@@ -449,12 +505,18 @@ double fp_neural_network_accuracy(
     int n_samples
 ) {
     int correct = 0;
+    if (!net || !net->W1 || !net->b1 || !net->W2 || !net->b2) {
+        return 0.0;
+    }
 
     for (int i = 0; i < n_samples; i++) {
         const double* input = &X_test[i * net->n_inputs];
         const double* target = &y_test[i * net->n_outputs];
 
         int pred_class = fp_neural_network_predict_class(net, input);
+        if (pred_class < 0) {
+            return 0.0;
+        }
 
         // Find true class
         int true_class = 0;
@@ -505,8 +567,10 @@ void fp_training_result_print(const TrainingResult* result) {
     printf("  Epochs: %d\n", result->n_epochs);
     printf("  Final Loss: %.6f\n", result->final_loss);
     printf("  Final Accuracy: %.2f%%\n", result->final_accuracy * 100.0);
-    printf("  Initial Loss: %.6f\n", result->loss_history[0]);
-    printf("  Loss Reduction: %.6f (%.1f%%)\n",
-           result->loss_history[0] - result->final_loss,
-           100.0 * (result->loss_history[0] - result->final_loss) / result->loss_history[0]);
+    if (result->loss_history) {
+        printf("  Initial Loss: %.6f\n", result->loss_history[0]);
+        printf("  Loss Reduction: %.6f (%.1f%%)\n",
+               result->loss_history[0] - result->final_loss,
+               100.0 * (result->loss_history[0] - result->final_loss) / result->loss_history[0]);
+    }
 }

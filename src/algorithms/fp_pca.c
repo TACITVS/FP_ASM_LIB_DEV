@@ -495,7 +495,12 @@ void fp_pca_transform(
 
     // MED-004 FIX: Allocate x_centered once outside loop instead of n times
     double* x_centered = (double*)malloc(d * sizeof(double));
-    if (!x_centered) return;  // Fail silently on malloc failure
+    if (!x_centered) {
+        if (X_transformed) {
+            memset(X_transformed, 0, (size_t)n * (size_t)k * sizeof(double));
+        }
+        return;  // Fail silently on malloc failure
+    }
 
     // For each sample
     for (int i = 0; i < n; i++) {
@@ -551,10 +556,15 @@ double fp_pca_reconstruction_error(
 
     // Transform to PCA space
     double* X_pca = (double*)malloc(n * k * sizeof(double));
+    double* X_reconstructed = (double*)malloc(n * d * sizeof(double));
+    if (!X_pca || !X_reconstructed) {
+        free(X_pca);
+        free(X_reconstructed);
+        return INFINITY;
+    }
     fp_pca_transform(model, X, X_pca, n);
 
     // Reconstruct
-    double* X_reconstructed = (double*)malloc(n * d * sizeof(double));
     fp_pca_inverse_transform(model, X_pca, X_reconstructed, n);
 
     // Compute MSE
