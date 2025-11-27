@@ -289,6 +289,7 @@ int fp_mat4_inverse(Mat4* out, const Mat4* m) {
     det = m->m[0] * inv[0] + m->m[1] * inv[4] + m->m[2] * inv[8] + m->m[3] * inv[12];
 
     // HIGH-002 FIX: Use relative threshold based on matrix magnitude
+    // 16.0f is the number of elements in a 4x4 matrix (scales epsilon by matrix size)
     float abs_max = 0.0f;
     for (int i = 0; i < 16; i++) {
         abs_max = fmaxf(abs_max, fabsf(m->m[i]));
