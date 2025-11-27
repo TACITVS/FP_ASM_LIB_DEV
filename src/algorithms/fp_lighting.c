@@ -47,6 +47,9 @@ static const Material DEFAULT_MATERIAL = {
     32.0f                       // shininess: moderate sharpness
 };
 
+// CRIT-001 constant: minimum distance to avoid division by zero
+static const float LIGHTING_MIN_DISTANCE = 1e-6f;
+
 /* ========== SHADING FUNCTIONS ========== */
 
 void lighting_compute_directional(Vec3f* out_color,
@@ -96,7 +99,7 @@ void lighting_compute_point(Vec3f* out_color,
     float distance = vec3_length(&light_dir);
 
     // CRIT-001 FIX: Prevent division by zero when light is at surface point
-    if (distance < 1e-6f) {
+    if (distance < LIGHTING_MIN_DISTANCE) {
         // Light at surface point - no contribution
         *out_color = (Vec3f){0.0f, 0.0f, 0.0f, 0.0f};
         return;

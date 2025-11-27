@@ -77,8 +77,7 @@ bool fp_gpu_quat_to_mat4_batch(
     const char* in_start = (const char*)in;
     const char* in_end = (const char*)(in + n);
 
-    if ((out_start < in_end && out_end > in_start) ||
-        (in_start < out_end && in_end > out_start)) {
+    if (out_start < in_end && out_end > in_start) {
         // Memory regions overlap - undefined behavior
         return false;
     }
