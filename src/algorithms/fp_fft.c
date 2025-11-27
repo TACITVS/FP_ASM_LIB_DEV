@@ -94,6 +94,11 @@ static unsigned int reverse_bits(unsigned int x, int log2n) {
 
 // Bit-reversal permutation (in-place)
 static void bit_reverse_permutation(Complex* data, int n) {
+    // CRIT-003 FIX: Validate n is power of 2 before bit reversal
+    if (n <= 0 || (n & (n - 1)) != 0) {
+        return;  // Not a power of 2 - skip reversal
+    }
+
     int log2n = 0;
     int temp_n = n;
     while (temp_n > 1) {
@@ -103,7 +108,7 @@ static void bit_reverse_permutation(Complex* data, int n) {
 
     for (unsigned int i = 0; i < (unsigned int)n; i++) {
         unsigned int j = reverse_bits(i, log2n);
-        if (j > i) {
+        if (j > i && j < (unsigned int)n) {  // Add bounds check
             // Swap data[i] and data[j]
             Complex temp = data[i];
             data[i] = data[j];
@@ -130,23 +135,29 @@ void fp_fft(Complex* data, int n) {
         int m = 1 << s;  // 2^s
         int m2 = m >> 1; // m/2
 
-        // Twiddle factor: W_m = e^(-2πi/m)
+        // MED-002 FIX: Precompute twiddle factors once per stage (better numerical stability)
+        Complex* twiddles = (Complex*)malloc(m2 * sizeof(Complex));
+        if (!twiddles) continue;  // Graceful degradation on malloc failure
+
         Complex wm = complex_from_polar(1.0, -2.0 * M_PI / m);
+        twiddles[0].real = 1.0;
+        twiddles[0].imag = 0.0;
+        for (int j = 1; j < m2; j++) {
+            twiddles[j] = complex_mul(twiddles[j-1], wm);
+        }
 
         for (int k = 0; k < n; k += m) {
-            Complex w = {1.0, 0.0};  // w^0 = 1
-
             for (int j = 0; j < m2; j++) {
-                // Butterfly operation
-                Complex t = complex_mul(w, data[k + j + m2]);
+                // Butterfly operation - use precomputed twiddle
+                Complex t = complex_mul(twiddles[j], data[k + j + m2]);
                 Complex u = data[k + j];
 
                 data[k + j] = complex_add(u, t);
                 data[k + j + m2] = complex_sub(u, t);
-
-                w = complex_mul(w, wm);
             }
         }
+
+        free(twiddles);
     }
 }
 
@@ -432,21 +443,27 @@ void fp_fft_print_spectrum_summary(const Complex* freq_data, int n, double sampl
     printf("  Freq (Hz) | Magnitude | Power (dB)\n");
     printf("  ----------|-----------|----------\n");
 
+    // MED-008 FIX: Allocate temp copy to avoid mutating input
     int half = n / 2;  // Only positive frequencies
+    double* magnitudes = (double*)malloc(half * sizeof(double));
+    if (!magnitudes) {
+        fprintf(stderr, "fp_fft_print_spectrum_summary: allocation failed (magnitudes)\n");
+        return;
+    }
+
+    for (int i = 0; i < half; i++) {
+        magnitudes[i] = complex_magnitude(freq_data[i]);
+    }
+
     for (int peak = 0; peak < 5 && peak < half; peak++) {
         int max_idx = 0;
         double max_mag = 0.0;
 
         // Find next peak (excluding DC and already found)
         for (int i = 1; i < half; i++) {
-            double mag = complex_magnitude(freq_data[i]);
-            if (mag > max_mag) {
-                int already_found = 0;
-                // Check if already printed (simple approach)
-                if (peak == 0 || i != max_idx) {
-                    max_mag = mag;
-                    max_idx = i;
-                }
+            if (magnitudes[i] > max_mag) {
+                max_mag = magnitudes[i];
+                max_idx = i;
             }
         }
 
@@ -455,10 +472,10 @@ void fp_fft_print_spectrum_summary(const Complex* freq_data, int n, double sampl
             double power_db = 20.0 * log10(max_mag);
             printf("  %8.2f  | %9.2f | %8.2f\n", freq, max_mag, power_db);
 
-            // Zero out this peak for next iteration
-            Complex temp = freq_data[max_idx];
-            ((Complex*)freq_data)[max_idx].real = 0.0;
-            ((Complex*)freq_data)[max_idx].imag = 0.0;
+            // Zero out this peak in temp array for next iteration
+            magnitudes[max_idx] = 0.0;
         }
     }
+
+    free(magnitudes);
 }

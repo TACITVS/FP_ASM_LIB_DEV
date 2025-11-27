@@ -28,6 +28,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <limits.h>
 #include "../include/fp_core.h"          // L0: Assembly primitives
 #include "../include/fp_stats_v3_pure.h" // L1: Pure FP statistics (assembly-backed)
 
@@ -171,6 +172,20 @@ static double variance(const double* y, int n) {
 // Splitting Logic
 // ============================================================================
 
+// MED-005 FIX: Helper for qsort-based feature sorting
+typedef struct {
+    double value;
+    int index;
+} FeatureIndexPair;
+
+static int compare_feature_pairs(const void* a, const void* b) {
+    const FeatureIndexPair* pa = (const FeatureIndexPair*)a;
+    const FeatureIndexPair* pb = (const FeatureIndexPair*)b;
+    if (pa->value < pb->value) return -1;
+    if (pa->value > pb->value) return 1;
+    return 0;
+}
+
 // Find best split for a feature (classification)
 static BestSplit find_best_split_classification(
     const double* X,
@@ -194,28 +209,37 @@ static BestSplit find_best_split_classification(
     double parent_impurity = gini_impurity(y, n, n_classes);
 
     // Sort indices by feature value
+    // HIGH-010 FIX: Add null checks for all allocations to prevent memory leaks
     double* feature_values = (double*)malloc(n * sizeof(double));
     int* sorted_indices = (int*)malloc(n * sizeof(int));
 
+    if (!feature_values || !sorted_indices) {
+        free(feature_values);
+        free(sorted_indices);
+        return best;
+    }
+
+    // MED-005 FIX: Use qsort instead of bubble sort - O(n log n) vs O(n²)
+    FeatureIndexPair* pairs = (FeatureIndexPair*)malloc(n * sizeof(FeatureIndexPair));
+    if (!pairs) {
+        free(feature_values);
+        free(sorted_indices);
+        return best;
+    }
+
     for (int i = 0; i < n; i++) {
-        sorted_indices[i] = i;
-        feature_values[i] = X[indices[i] * n_features + feature_idx];
+        pairs[i].value = X[indices[i] * n_features + feature_idx];
+        pairs[i].index = i;
     }
 
-    // Simple bubble sort (good enough for small n)
-    for (int i = 0; i < n - 1; i++) {
-        for (int j = 0; j < n - i - 1; j++) {
-            if (feature_values[j] > feature_values[j + 1]) {
-                double temp = feature_values[j];
-                feature_values[j] = feature_values[j + 1];
-                feature_values[j + 1] = temp;
+    qsort(pairs, n, sizeof(FeatureIndexPair), compare_feature_pairs);
 
-                int temp_idx = sorted_indices[j];
-                sorted_indices[j] = sorted_indices[j + 1];
-                sorted_indices[j + 1] = temp_idx;
-            }
-        }
+    for (int i = 0; i < n; i++) {
+        feature_values[i] = pairs[i].value;
+        sorted_indices[i] = pairs[i].index;
     }
+
+    free(pairs);
 
     // Try splits between consecutive unique values
     for (int i = 0; i < n - 1; i++) {
@@ -228,8 +252,15 @@ static BestSplit find_best_split_classification(
         int n_right = n - n_left;
 
         // Allocate temporary arrays for left/right labels
+        // HIGH-010 FIX: Add null checks to prevent memory leaks and crashes
         int* y_left = (int*)malloc(n_left * sizeof(int));
         int* y_right = (int*)malloc(n_right * sizeof(int));
+
+        if (!y_left || !y_right) {
+            free(y_left);
+            free(y_right);
+            continue;  // Skip this split if allocation fails
+        }
 
         for (int j = 0; j <= i; j++) {
             y_left[j] = y[sorted_indices[j]];
@@ -400,6 +431,19 @@ DecisionTreeModel fp_decision_tree_train(
     int max_depth,
     int min_samples_split
 ) {
+    // CRIT-002 FIX: Validate dimensions to prevent integer overflow in n * d
+    if (d > 0 && n > INT_MAX / d) {
+        // Return zero-initialized model to indicate error
+        DecisionTreeModel empty = {0};
+        return empty;
+    }
+
+    // HIGH-010 FIX: Add input validation
+    if (!X || !y || n <= 0 || d <= 0 || n_classes <= 0 || max_depth <= 0 || min_samples_split <= 0) {
+        DecisionTreeModel error = {0};
+        return error;
+    }
+
     DecisionTreeModel model;
     model.max_depth = max_depth;
     model.min_samples_split = min_samples_split;
@@ -412,6 +456,15 @@ DecisionTreeModel fp_decision_tree_train(
 
     // Create indices array
     int* indices = (int*)malloc(n * sizeof(int));
+
+    // HIGH-010 FIX: Add malloc null checks to prevent crashes
+    if (!model.feature_importances || !indices) {
+        free(model.feature_importances);
+        free(indices);
+        DecisionTreeModel empty = {0};
+        return empty;
+    }
+
     for (int i = 0; i < n; i++) {
         indices[i] = i;
     }

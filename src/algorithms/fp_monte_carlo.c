@@ -91,6 +91,12 @@ typedef struct {
 } PiEstimationResult;
 
 PiEstimationResult fp_monte_carlo_estimate_pi(int n_samples, uint64_t seed) {
+    // HIGH-011 FIX: Add input validation
+    if (n_samples <= 0) {
+        PiEstimationResult error = {0};
+        return error;
+    }
+
     fp_rng_t rng = fp_rng_create(seed);
     int inside = 0;
 
@@ -157,6 +163,12 @@ IntegrationResult fp_monte_carlo_integrate(
     double true_value,  // Pass 0 if unknown
     uint64_t seed
 ) {
+    // HIGH-011 FIX: Add input validation
+    if (!f || n_samples <= 0 || b <= a) {
+        IntegrationResult error = {0};
+        return error;
+    }
+
     fp_rng_t rng = fp_rng_create(seed);
     double sum = 0.0;
     double sum_sq = 0.0;
@@ -221,6 +233,12 @@ OptionPricingResult fp_monte_carlo_option_price(
     int n_sims,     // Number of simulations
     uint64_t seed
 ) {
+    // HIGH-011 FIX: Add input validation
+    if (S0 <= 0.0 || K <= 0.0 || sigma <= 0.0 || T <= 0.0 || n_sims <= 0) {
+        OptionPricingResult error = {0};
+        return error;
+    }
+
     fp_rng_t rng = fp_rng_create(seed);
     double sum_payoff = 0.0;
     double sum_payoff_sq = 0.0;
@@ -301,6 +319,12 @@ typedef struct {
 } RandomWalkResult;
 
 RandomWalkResult fp_monte_carlo_random_walk_2d(int n_steps, double step_size, fp_rng_t rng) {
+    // HIGH-011 FIX: Add input validation
+    if (n_steps <= 0 || step_size <= 0.0) {
+        RandomWalkResult error = {0};
+        return error;
+    }
+
     double x = 0.0;
     double y = 0.0;
     double sum_distance = 0.0;
