@@ -16,9 +16,9 @@
 #include <string.h>
 
 // Forward declarations from fp_radix_sort.c
-void fp_radix_sort_u8(const uint8_t* in, uint8_t* out, size_t n);
-void fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n);
-void fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n);
+int fp_radix_sort_u8(const uint8_t* in, uint8_t* out, size_t n);
+int fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n);
+int fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n);
 
 int is_sorted_u8(const uint8_t* arr, size_t n);
 int is_sorted_u32(const uint32_t* arr, size_t n);
@@ -75,7 +75,9 @@ void test_u8_sorting() {
 
     // Test 1: Radix Sort
     clock_t start = clock();
-    fp_radix_sort_u8(original, radix_sorted, n);
+    if (!fp_radix_sort_u8(original, radix_sorted, n)) {
+        printf("  [WARN] Radix sort fell back to unsorted copy (allocation failure)\n");
+    }
     clock_t end = clock();
     double radix_time = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
 
@@ -124,7 +126,9 @@ void test_u32_sorting() {
 
     // Test 1: Radix Sort
     clock_t start = clock();
-    fp_radix_sort_u32(original, radix_sorted, n);
+    if (!fp_radix_sort_u32(original, radix_sorted, n)) {
+        printf("  [WARN] Radix sort fell back to unsorted copy (allocation failure)\n");
+    }
     clock_t end = clock();
     double radix_time = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
 
@@ -172,7 +176,9 @@ void test_u64_sorting() {
 
     // Test 1: Radix Sort
     clock_t start = clock();
-    fp_radix_sort_u64(original, radix_sorted, n);
+    if (!fp_radix_sort_u64(original, radix_sorted, n)) {
+        printf("  [WARN] Radix sort fell back to unsorted copy (allocation failure)\n");
+    }
     clock_t end = clock();
     double radix_time = ((double)(end - start)) / CLOCKS_PER_SEC * 1000.0;
 
@@ -212,7 +218,9 @@ void test_correctness() {
     printf("u8 Test:\n");
     uint8_t u8_in[10] = {5, 2, 8, 1, 9, 3, 7, 4, 6, 0};
     uint8_t u8_out[10];
-    fp_radix_sort_u8(u8_in, u8_out, 10);
+    if (!fp_radix_sort_u8(u8_in, u8_out, 10)) {
+        printf("  [WARN] Radix sort fell back to unsorted copy (allocation failure)\n");
+    }
     printf("  Input:  [");
     for (int i = 0; i < 10; i++) printf("%d%s", u8_in[i], i < 9 ? ", " : "");
     printf("]\n  Output: [");
@@ -223,7 +231,9 @@ void test_correctness() {
     printf("u32 Test:\n");
     uint32_t u32_in[10] = {500, 200, 800, 100, 900, 300, 700, 400, 600, 0};
     uint32_t u32_out[10];
-    fp_radix_sort_u32(u32_in, u32_out, 10);
+    if (!fp_radix_sort_u32(u32_in, u32_out, 10)) {
+        printf("  [WARN] Radix sort fell back to unsorted copy (allocation failure)\n");
+    }
     printf("  Input:  [");
     for (int i = 0; i < 10; i++) printf("%u%s", u32_in[i], i < 9 ? ", " : "");
     printf("]\n  Output: [");
@@ -236,7 +246,9 @@ void test_correctness() {
                            1000000000ULL, 9000000000ULL, 3000000000ULL,
                            7000000000ULL, 4000000000ULL, 6000000000ULL, 0ULL};
     uint64_t u64_out[10];
-    fp_radix_sort_u64(u64_in, u64_out, 10);
+    if (!fp_radix_sort_u64(u64_in, u64_out, 10)) {
+        printf("  [WARN] Radix sort fell back to unsorted copy (allocation failure)\n");
+    }
     printf("  Input:  [");
     for (int i = 0; i < 10; i++) printf("%llu%s", u64_in[i], i < 9 ? ", " : "");
     printf("]\n  Output: [");

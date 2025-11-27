@@ -1,6 +1,7 @@
 #include "../../include/fp_gpu_math.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 /**
  * fp_gpu_math.c
@@ -64,6 +65,11 @@ bool fp_gpu_quat_to_mat4_batch(
         return false;
     }
 
+    /* Prevent pointer arithmetic overflow before region checks */
+    if (n > SIZE_MAX / sizeof(Mat4) || n > SIZE_MAX / sizeof(Quaternion)) {
+        return false;
+    }
+
     // MED-019 FIX: Validate out and in don't overlap (aliasing check)
     // Check if memory regions overlap
     const char* out_start = (const char*)out;
@@ -88,4 +94,3 @@ bool fp_gpu_quat_to_mat4_batch(
 
     return true;
 }
-
