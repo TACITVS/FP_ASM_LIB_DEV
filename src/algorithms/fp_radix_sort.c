@@ -33,7 +33,7 @@ typedef struct {
 // ============================================================================
 
 // Counting sort for u8 (0-255 range, single pass)
-void fp_radix_sort_u8(const uint8_t* in, uint8_t* out, size_t n) {
+int fp_radix_sort_u8(const uint8_t* in, uint8_t* out, size_t n) {
     // Allocate histogram for 256 possible byte values
     uint32_t histogram[256] = {0};
 
@@ -49,6 +49,7 @@ void fp_radix_sort_u8(const uint8_t* in, uint8_t* out, size_t n) {
             out[write_idx++] = (uint8_t)value;
         }
     }
+    return 1;
 }
 
 // ============================================================================
@@ -88,7 +89,7 @@ static void counting_sort_u32_by_byte(
 }
 
 // LSD Radix Sort for u32 (4 passes, LSB to MSB)
-void fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n) {
+int fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n) {
     // Need temporary buffer for ping-pong sorting
     uint32_t* temp = (uint32_t*)malloc(n * sizeof(uint32_t));
 
@@ -96,7 +97,7 @@ void fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n) {
     if (!temp) {
         // Fallback: copy input to output without sorting
         memcpy(out, in, n * sizeof(uint32_t));
-        return;
+        return 0;
     }
 
     // Copy input to output for first pass
@@ -117,6 +118,7 @@ void fp_radix_sort_u32(const uint32_t* in, uint32_t* out, size_t n) {
     // So result is already in out
 
     free(temp);
+    return 1;
 }
 
 // ============================================================================
@@ -155,14 +157,14 @@ static void counting_sort_u64_by_byte(
 }
 
 // LSD Radix Sort for u64 (8 passes, LSB to MSB)
-void fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n) {
+int fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n) {
     uint64_t* temp = (uint64_t*)malloc(n * sizeof(uint64_t));
 
     // HIGH-003 FIX: Handle malloc failure
     if (!temp) {
         // Fallback: copy input to output without sorting
         memcpy(out, in, n * sizeof(uint64_t));
-        return;
+        return 0;
     }
 
     memcpy(out, in, n * sizeof(uint64_t));
@@ -179,6 +181,7 @@ void fp_radix_sort_u64(const uint64_t* in, uint64_t* out, size_t n) {
     // 8 passes means result is in out (even number)
 
     free(temp);
+    return 1;
 }
 
 // ============================================================================

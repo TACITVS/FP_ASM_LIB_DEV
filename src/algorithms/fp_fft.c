@@ -446,7 +446,10 @@ void fp_fft_print_spectrum_summary(const Complex* freq_data, int n, double sampl
     // MED-008 FIX: Allocate temp copy to avoid mutating input
     int half = n / 2;  // Only positive frequencies
     double* magnitudes = (double*)malloc(half * sizeof(double));
-    if (!magnitudes) return;  // Fail silently if can't allocate
+    if (!magnitudes) {
+        fprintf(stderr, "fp_fft_print_spectrum_summary: allocation failed (magnitudes)\n");
+        return;
+    }
 
     for (int i = 0; i < half; i++) {
         magnitudes[i] = complex_magnitude(freq_data[i]);
