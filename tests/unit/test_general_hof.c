@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
-#include "include/fp_core.h"
+#include "fp_core.h"
 
 // ============================================================================
 // FOLDL TEST FUNCTIONS
