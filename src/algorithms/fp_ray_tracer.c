@@ -205,10 +205,9 @@ Vec3f phong_shading(const Hit* hit, const Scene* scene, const Vec3f* view_dir, b
             continue;  // Light is occluded
         }
 
-        // Compute light direction and distance
+        // Compute light direction
         Vec3f light_dir;
         vec3_sub(&light_dir, &light->position, &hit->point);
-        float distance = vec3_length(&light_dir);
         vec3_normalize(&light_dir, &light_dir);
 
         // Diffuse component (Lambertian)

@@ -317,28 +317,6 @@ NBPrediction fp_gaussian_nb_predict(
 }
 
 // ============================================================================
-// IMPERATIVE VERSION (For Benchmarking Only)
-// ============================================================================
-
-// Predict using Gaussian Naive Bayes for batch of samples (IMPERATIVE)
-// WARNING: Uses for-loop - kept only for performance comparison
-// DO NOT USE in production - use fp_gaussian_nb_predict_batch() instead
-static void fp_gaussian_nb_predict_batch_imperative(
-    const GaussianNBModel* model,
-    const double* X,  // n × d feature matrix (row-major)
-    int n,
-    int* predictions  // Pre-allocated output array (n elements)
-) {
-    // IMPERATIVE Pattern: For-loop iteration (NOT FP purist!)
-    for (int i = 0; i < n; i++) {
-        const double* x = &X[i * model->n_features];
-        NBPrediction pred = fp_gaussian_nb_predict(model, x);
-        predictions[i] = pred.predicted_class;
-        free(pred.probabilities);
-    }
-}
-
-// ============================================================================
 // FP PURIST VERSION (Default Implementation)
 // ============================================================================
 
@@ -517,28 +495,6 @@ NBPrediction fp_multinomial_nb_predict(
     result.confidence = result.probabilities[result.predicted_class];
 
     return result;
-}
-
-// ============================================================================
-// IMPERATIVE VERSION (For Benchmarking Only)
-// ============================================================================
-
-// Predict using Multinomial Naive Bayes for batch of samples (IMPERATIVE)
-// WARNING: Uses for-loop - kept only for performance comparison
-// DO NOT USE in production - use fp_multinomial_nb_predict_batch() instead
-static void fp_multinomial_nb_predict_batch_imperative(
-    const MultinomialNBModel* model,
-    const double* X,  // n × d feature matrix (row-major, count data)
-    int n,
-    int* predictions  // Pre-allocated output array (n elements)
-) {
-    // IMPERATIVE Pattern: For-loop iteration (NOT FP purist!)
-    for (int i = 0; i < n; i++) {
-        const double* x = &X[i * model->n_features];
-        NBPrediction pred = fp_multinomial_nb_predict(model, x);
-        predictions[i] = pred.predicted_class;
-        free(pred.probabilities);
-    }
 }
 
 // ============================================================================

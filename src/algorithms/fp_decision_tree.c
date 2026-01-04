@@ -158,15 +158,6 @@ static double gini_impurity(const int* y, int n, int n_classes) {
     return gini;
 }
 
-// Variance for regression
-// REFACTORED: Uses L1 fp_mean_variance_pure() - Welford's algorithm (assembly-backed)
-// NO IMPERATIVE LOOPS - pure tail recursion optimized to loop by compiler
-static double variance(const double* y, int n) {
-    if (n == 0) return 0.0;
-
-    MeanVarianceResult result = fp_mean_variance_pure(y, n);
-    return result.variance;
-}
 
 // ============================================================================
 // Splitting Logic

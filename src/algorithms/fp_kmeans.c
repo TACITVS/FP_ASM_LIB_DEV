@@ -232,14 +232,15 @@ static double compute_inertia(
 // Main K-Means function
 // REFACTORED: Added seed parameter for deterministic, reproducible results
 // Uses functional composition: init -> iterate (assign + update) -> converge
-KMeansResult fp_kmeans_f64(
-    const double* data,       // n × d data matrix (row-major)
+KMeansResult fp_kmeans_f64_progress(
+    const double* data,       // n x d data matrix (row-major)
     int n,                    // number of data points
     int d,                    // dimensionality
     int k,                    // number of clusters
     int max_iter,             // maximum iterations
     double tol,               // convergence tolerance
-    uint64_t seed             // RNG seed for deterministic initialization
+    uint64_t seed,            // RNG seed for deterministic initialization
+    fp_progress_t progress    // progress callback + user pointer
 ) {
     // CRIT-002 FIX: Validate dimensions to prevent integer overflow in k * d
     if (d > 0 && k > INT_MAX / d) {
@@ -272,6 +273,13 @@ KMeansResult fp_kmeans_f64(
 
     // Iterate until convergence or max iterations
     result.converged = 0;
+    int cancelled = 0;
+
+    if (!fp_progress_emit(progress, 0, (uint64_t)max_iter, "init")) {
+        result.converged = 0;
+        return result;
+    }
+
     for (result.iterations = 0; result.iterations < max_iter; result.iterations++) {
         // Assign points to nearest centroids
         int changed = assign_clusters(data, n, d, result.centroids, k, result.assignments);
@@ -279,6 +287,9 @@ KMeansResult fp_kmeans_f64(
         // Check for convergence
         if (changed == 0) {
             result.converged = 1;
+            if (!fp_progress_emit(progress, (uint64_t)result.iterations + 1, (uint64_t)max_iter, "converged")) {
+                cancelled = 1;
+            }
             break;
         }
 
@@ -288,12 +299,41 @@ KMeansResult fp_kmeans_f64(
             result.converged = 0;
             break;
         }
+
+        if (!fp_progress_emit(progress, (uint64_t)result.iterations + 1, (uint64_t)max_iter, "iter")) {
+            cancelled = 1;
+            break;
+        }
+    }
+
+    if (cancelled) {
+        result.inertia = 0.0;
+        return result;
+    }
+
+    if (!fp_progress_emit(progress, (uint64_t)result.iterations, (uint64_t)max_iter, "finalize")) {
+        result.inertia = 0.0;
+        return result;
     }
 
     // Compute final inertia
     result.inertia = compute_inertia(data, n, d, result.centroids, result.assignments);
 
     return result;
+}
+
+// Wrapper without progress callback for backwards compatibility
+KMeansResult fp_kmeans_f64(
+    const double* data,
+    int n,
+    int d,
+    int k,
+    int max_iter,
+    double tol,
+    uint64_t seed
+) {
+    fp_progress_t progress = {0};
+    return fp_kmeans_f64_progress(data, n, d, k, max_iter, tol, seed, progress);
 }
 
 // Free K-Means result (internal arrays only)
