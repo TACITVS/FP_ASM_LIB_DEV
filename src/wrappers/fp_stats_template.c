@@ -54,16 +54,6 @@ static inline double fp_mean(const double* data, size_t n) {
 static inline double fp_variance(const double* data, size_t n, double mean) {
     if (!data || n == 0) return 0.0;
 
-    typedef struct { double mean; } MeanCtx;
-
-    double squared_diff(double x, void* ctx) {
-        double m = ((MeanCtx*)ctx)->mean;
-        double diff = x - m;
-        return diff * diff;
-    }
-
-    double add(double acc, double x) { return acc + x; }
-
     double sum_sq_diff = 0.0;
     for (size_t i = 0; i < n; i++) {
         double diff = data[i] - mean;

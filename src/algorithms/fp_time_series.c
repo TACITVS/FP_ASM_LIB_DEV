@@ -181,29 +181,6 @@ static double compute_variance(const double* data, int n) {
     return fp_variance_pure(data, n, mean);
 }
 
-// REFACTORED: Uses fp_std_pure() from fp_stats_v3_pure.h
-static double compute_std(const double* data, int n) {
-    double mean = fp_mean_pure(data, n);
-    return fp_std_pure(data, n, mean);
-}
-
-// Compute autocorrelation at lag k
-static double compute_autocorrelation(const double* data, int n, int lag) {
-    if (lag >= n) return 0.0;
-
-    double mean = compute_mean(data, n);
-    double variance = compute_variance(data, n);
-
-    if (variance < 1e-10) return 0.0;
-
-    double sum = 0.0;
-    for (int i = 0; i < n - lag; i++) {
-        sum += (data[i] - mean) * (data[i + lag] - mean);
-    }
-
-    return sum / ((n - lag) * variance);
-}
-
 // ============================================================================
 // 1. Simple Moving Average (SMA)
 // ============================================================================

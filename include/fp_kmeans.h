@@ -29,6 +29,7 @@
 
 #include <stdint.h>
 #include "fp_monads.h"
+#include "fp_progress.h"
 
 /* ============================================================================
  * K-MEANS RESULT STRUCTURE
@@ -70,6 +71,25 @@ KMeansResult fp_kmeans_f64(
     int max_iter,
     double tol,
     uint64_t seed
+);
+
+/**
+ * fp_kmeans_f64_progress - Run K-Means with progress callbacks per iteration
+ *
+ * @param progress  Progress callback + user pointer (can be {NULL, NULL})
+ *
+ * The callback receives (current_iter, max_iter, phase) and should return:
+ *   1 to continue, 0 to stop early (cancellation).
+ */
+KMeansResult fp_kmeans_f64_progress(
+    const double* data,
+    int n,
+    int d,
+    int k,
+    int max_iter,
+    double tol,
+    uint64_t seed,
+    fp_progress_t progress
 );
 
 /**
