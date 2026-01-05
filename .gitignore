@@ -47,8 +47,12 @@ build/tmp/
 *~
 .DS_Store
 
-# Claude Code temporary files
+# AI/Agent temporary files
 .claude/
+.codex/
+.aider/
+.cursor/
+.windsurf/
 benchmarks/logs/
 research_notes.md
 
