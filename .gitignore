@@ -49,6 +49,10 @@ build/tmp/
 
 # Claude Code temporary files
 .claude/
+.codex/
+.aider/
+.cursor/
+.windsurf/
 benchmarks/logs/
 research_notes.md
 
