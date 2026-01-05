@@ -166,17 +166,23 @@ static inline double fp_sliding_window_mse_inline(const double* data, size_t n, 
 // ForecastResult, TimeSeriesDecomposition, and ARIMAModel are now defined
 // in the public header to ensure declaration/definition consistency.
 
-// ============================================================================
+// ============================================================================ 
 // Basic Statistics (Using fp_stats_v3_pure.h - Assembly Optimized)
-// ============================================================================
+// ============================================================================ 
+
+#if defined(__GNUC__) || defined(__clang__)
+#define FP_TS_UNUSED __attribute__((unused))
+#else
+#define FP_TS_UNUSED
+#endif
 
 // REFACTORED: Uses fp_mean_pure() which uses fp_reduce_add_f64() assembly primitive
-static double compute_mean(const double* data, int n) {
+static FP_TS_UNUSED double compute_mean(const double* data, int n) {
     return fp_mean_pure(data, n);
 }
 
 // REFACTORED: Uses fp_variance_pure() from fp_stats_v3_pure.h
-static double compute_variance(const double* data, int n) {
+static FP_TS_UNUSED double compute_variance(const double* data, int n) {
     double mean = fp_mean_pure(data, n);
     return fp_variance_pure(data, n, mean);
 }

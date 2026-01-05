@@ -300,7 +300,13 @@ static void chunk_to_cv(
 /**
  * Merge two child CVs into parent CV - PURE
  */
-static void parent_cv(
+#if defined(__GNUC__) || defined(__clang__)
+#define FP_BLAKE3_UNUSED __attribute__((unused))
+#else
+#define FP_BLAKE3_UNUSED
+#endif
+
+static FP_BLAKE3_UNUSED void parent_cv(
     const uint32_t* left_cv,
     const uint32_t* right_cv,
     const uint32_t* key,
