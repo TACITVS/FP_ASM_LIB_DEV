@@ -18,7 +18,7 @@ ifeq ($(OS),Windows_NT)
     ASM = C:/Users/baian/AppData/Local/bin/NASM/nasm.exe
     CC = C:/msys64/mingw64/bin/gcc.exe
     ASMFLAGS = -f win64 -I$(SRC_ASM)/
-    CFLAGS = -I$(INCLUDE) -O3 -march=native
+    CFLAGS = -I$(INCLUDE) -O3 -march=native -DBLAKE3_NO_AVX512
     LDFLAGS = -lOpenCL
     RM = del /F
     RMDIR = rmdir /S /Q
@@ -28,7 +28,7 @@ else
     ASM = nasm
     CC = gcc
     ASMFLAGS = -f elf64 -I$(SRC_ASM)/
-    CFLAGS = -I$(INCLUDE) -O3 -march=native -fPIC
+    CFLAGS = -I$(INCLUDE) -O3 -march=native -fPIC -DBLAKE3_NO_AVX512
     LDFLAGS = -lm
     RM = rm -f
     RMDIR = rm -rf
@@ -46,6 +46,14 @@ WRAPPER_OBJECTS = $(patsubst $(SRC_WRAPPERS)/%.c,$(BUILD_OBJ)/%.o,$(WRAPPER_SOUR
 # Algorithm source files
 ALGORITHM_SOURCES = $(wildcard src/algorithms/*.c)
 ALGORITHM_OBJECTS = $(patsubst src/algorithms/%.c,$(BUILD_OBJ)/%.o,$(ALGORITHM_SOURCES))
+
+# BLAKE3 sources (core + official + parallel)
+BLAKE3_SOURCES = src/fp_blake3.c src/fp_blake3_fast.c src/fp_blake3_parallel.c src/fp_blake3_official.c
+BLAKE3_OBJECTS = $(patsubst src/%.c,$(BUILD_OBJ)/%.o,$(BLAKE3_SOURCES))
+
+# Vendor BLAKE3 sources
+VENDOR_SOURCES = $(wildcard vendor/*.c)
+VENDOR_OBJECTS = $(patsubst vendor/%.c,$(BUILD_OBJ)/vendor_%.o,$(VENDOR_SOURCES))
 
 # Test source files
 TEST_SOURCES = $(wildcard $(TESTS)/*.c)
@@ -69,7 +77,7 @@ wrappers: $(WRAPPER_OBJECTS)
 
 # Build all algorithms
 .PHONY: algorithms
-algorithms: $(ALGORITHM_OBJECTS)
+algorithms: $(ALGORITHM_OBJECTS) $(BLAKE3_OBJECTS) $(VENDOR_OBJECTS)
 
 # Build all tests
 .PHONY: tests
@@ -98,17 +106,38 @@ $(BUILD_OBJ)/%.o: src/algorithms/%.c
 	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# BLAKE3 compilation rules
+$(BUILD_OBJ)/fp_blake3.o: src/fp_blake3.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_OBJ)/fp_blake3_fast.o: src/fp_blake3_fast.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_OBJ)/fp_blake3_parallel.o: src/fp_blake3_parallel.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_OBJ)/fp_blake3_official.o: src/fp_blake3_official.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Vendor compilation rule
+$(BUILD_OBJ)/vendor_%.o: vendor/%.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
 
 
 # Test compilation rule
-$(BUILD_BIN)/test_%.exe: $(TESTS)/test_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS)
+$(BUILD_BIN)/test_%.exe: $(TESTS)/test_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) $(BLAKE3_OBJECTS) $(VENDOR_OBJECTS)
 	@echo "Building test $@..."
-	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) $(BLAKE3_OBJECTS) $(VENDOR_OBJECTS) -o $@ $(LDFLAGS)
 
 # Benchmark compilation rule (demo_*.c files)
-$(BUILD_BIN)/demo_%.exe: $(BENCHMARKS)/demo_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS)
+$(BUILD_BIN)/demo_%.exe: $(BENCHMARKS)/demo_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) $(BLAKE3_OBJECTS) $(VENDOR_OBJECTS)
 	@echo "Building benchmark $@..."
-	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) $(BLAKE3_OBJECTS) $(VENDOR_OBJECTS) -o $@ $(LDFLAGS)
 
 # Clean build artifacts
 .PHONY: clean

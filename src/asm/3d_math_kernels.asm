@@ -4,9 +4,9 @@
 ; CORRECTED VERSION:
 ; - Removed all non-breaking space characters (0xA0)
 ; - Fixed all functions to use ONLY AVX2 registers (ymm0-ymm15)
-; - Matched fp_map_transform_vec3_f32 to column-major layout (OpenGL style)
-;   and implemented a 2-vector-at-a-time loop with full w preservation.
-; - Fixed fp_fold_vec3_dot_f32 to use 4 accumulators (ymm4-ymm7).
+; - Matched fp_map_transform_vec3_f32 to column-major layout (OpenGL style)    
+;   and implemented a 2-vector-at-a-time loop with perspective divide + pad=0. 
+; - Matched fp_fold_vec3_dot_f32 accumulation order to the C reference.
 ; =============================================================================
 default rel
 
@@ -72,6 +72,17 @@ fp_map_transform_vec3_f32:
     vfmadd231ps ymm8, ymm5, ymm2    ; += y * column1
     vfmadd231ps ymm8, ymm6, ymm3    ; += z * column2
 
+    ; Apply perspective divide when w != 0 and w != 1, then zero pad lane.
+    vshufps ymm9, ymm8, ymm8, 0xFF  ; ymm9 = [w0,w0,w0,w0 | w1,w1,w1,w1]
+    vxorps  ymm10, ymm10, ymm10     ; ymm10 = 0
+    vcmpps  ymm11, ymm9, ymm10, 0x4 ; w != 0
+    vbroadcastss ymm12, [g_one_f32] ; ymm12 = 1
+    vcmpps  ymm13, ymm9, ymm12, 0x4 ; w != 1
+    vandps  ymm11, ymm11, ymm13     ; mask = w != 0 && w != 1
+    vdivps  ymm9, ymm8, ymm9        ; divide by w
+    vblendvps ymm8, ymm8, ymm9, ymm11
+    vblendps ymm8, ymm8, ymm10, 0x88 ; zero w lanes
+
     ; Store 2 transformed vectors
     vmovdqu [r13], ymm8
 
@@ -95,7 +106,18 @@ fp_map_transform_vec3_f32:
     vfmadd231ps xmm8, xmm4, xmm1    ; += x * column0
     vfmadd231ps xmm8, xmm5, xmm2    ; += y * column1
     vfmadd231ps xmm8, xmm6, xmm3    ; += z * column2
-    
+
+    ; Apply perspective divide when w != 0 and w != 1, then zero pad lane.
+    vshufps xmm9, xmm8, xmm8, 0xFF  ; xmm9 = [w,w,w,w]
+    vxorps  xmm10, xmm10, xmm10     ; xmm10 = 0
+    vcmpps  xmm11, xmm9, xmm10, 0x4 ; w != 0
+    vbroadcastss xmm12, [g_one_f32] ; xmm12 = 1
+    vcmpps  xmm13, xmm9, xmm12, 0x4 ; w != 1
+    vandps  xmm11, xmm11, xmm13     ; mask = w != 0 && w != 1
+    vdivps  xmm9, xmm8, xmm9        ; divide by w
+    vblendvps xmm8, xmm8, xmm9, xmm11
+    vblendps xmm8, xmm8, xmm10, 0x8 ; zero w lane
+
     vmovdqu [r13], xmm8
 
 .cleanup:
@@ -206,143 +228,177 @@ fp_zipWith_vec3_add_f32:
 ;     R8:  size_t n,
 ;     R9:  const QuatF32* quat
 ; );
-; Quaternion rotation optimized with SIMD math
-; -----------------------------------------------------------------------------
+; Quaternion rotation using reference-equivalent SIMD math (2 vectors at a time)
+; ----------------------------------------------------------------------------- 
 fp_map_quat_rotate_vec3_f32:
     PROLOGUE
 
     mov     r12, rcx                ; r12 = in_vecs
     mov     r13, rdx                ; r13 = out_vecs
     mov     r14, r8                 ; r14 = n
-    ; Load quaternion (u = xyz, s = w) and precompute constants
-    vmovups xmm8, [r9]              ; u = [qx,qy,qz, qw]
-    vbroadcastss xmm11, [r9+12]     ; s broadcast
-    vxorps xmm13, xmm13, xmm13
-    vblendps xmm8, xmm8, xmm13, 0x8 ; zero w lane for u
-
-    ; Precompute 2*s (broadcast)
-    vaddss  xmm10, xmm11, xmm11
-    vbroadcastss xmm10, xmm10
+    ; Load quaternion components (broadcast)
+    vbroadcastss ymm10, [r9]        ; qx
+    vbroadcastss ymm11, [r9+4]      ; qy
+    vbroadcastss ymm12, [r9+8]      ; qz
+    vbroadcastss ymm13, [r9+12]     ; qw
+    vxorps ymm9, ymm9, ymm9         ; zero
 
 .loop_quat:
-    test    r14, r14
-    jz      .cleanup_quat
     cmp     r14, 2
-    jb      .loop_quat_single
+    jb      .tail_quat
 
-    vmovups xmm0, [r12]             ; v
+    ; Load 2 vectors
+    vmovdqu ymm0, [r12]
+    vshufps ymm1, ymm0, ymm0, 0x00  ; vx
+    vshufps ymm2, ymm0, ymm0, 0x55  ; vy
+    vshufps ymm3, ymm0, ymm0, 0xAA  ; vz
 
-    ; cross(u, v)
-    vshufps xmm1, xmm8, xmm8, 0xC9  ; u_y, u_z, u_x
-    vshufps xmm2, xmm0, xmm0, 0xD2  ; v_z, v_x, v_y
-    vmulps  xmm3, xmm1, xmm2
+    ; temp_w = -(qx*vx + qy*vy + qz*vz)
+    vmulps ymm4, ymm10, ymm1
+    vmulps ymm8, ymm11, ymm2
+    vaddps ymm4, ymm4, ymm8
+    vmulps ymm8, ymm12, ymm3
+    vaddps ymm4, ymm4, ymm8
+    vsubps ymm4, ymm9, ymm4
 
-    vshufps xmm4, xmm8, xmm8, 0xD2  ; u_z, u_x, u_y
-    vshufps xmm5, xmm0, xmm0, 0xC9  ; v_y, v_z, v_x
-    vmulps  xmm4, xmm4, xmm5
+    ; temp_x = qw*vx + qy*vz - qz*vy
+    vmulps ymm5, ymm13, ymm1
+    vmulps ymm8, ymm11, ymm3
+    vaddps ymm5, ymm5, ymm8
+    vmulps ymm8, ymm12, ymm2
+    vsubps ymm5, ymm5, ymm8
 
-    vsubps  xmm3, xmm3, xmm4        ; cross(u,v)
+    ; temp_y = qw*vy - qx*vz + qz*vx
+    vmulps ymm6, ymm13, ymm2
+    vmulps ymm8, ymm10, ymm3
+    vsubps ymm6, ymm6, ymm8
+    vmulps ymm8, ymm12, ymm1
+    vaddps ymm6, ymm6, ymm8
 
-    ; t = 2 * cross(u, v)
-    vaddps  xmm3, xmm3, xmm3
+    ; temp_z = qw*vz + qx*vy - qy*vx
+    vmulps ymm7, ymm13, ymm3
+    vmulps ymm8, ymm10, ymm2
+    vaddps ymm7, ymm7, ymm8
+    vmulps ymm8, ymm11, ymm1
+    vsubps ymm7, ymm7, ymm8
 
-    ; term = v + s * t
-    vmulps  xmm4, xmm3, xmm11
-    vaddps  xmm0, xmm0, xmm4
+    ; q_conj = (-qx, -qy, -qz, qw)
+    vsubps ymm1, ymm9, ymm10        ; qcx
+    vsubps ymm2, ymm9, ymm11        ; qcy
+    vsubps ymm3, ymm9, ymm12        ; qcz
 
-    ; cross(u, t)
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm3, xmm3, 0xD2
-    vmulps  xmm4, xmm1, xmm2
+    ; result_x = temp_w*qcx + temp_x*qw + temp_y*qcz - temp_z*qcy
+    vmulps ymm0, ymm4, ymm1
+    vmulps ymm8, ymm5, ymm13
+    vaddps ymm0, ymm0, ymm8
+    vmulps ymm8, ymm6, ymm3
+    vaddps ymm0, ymm0, ymm8
+    vmulps ymm8, ymm7, ymm2
+    vsubps ymm0, ymm0, ymm8
 
-    vshufps xmm5, xmm3, xmm3, 0xC9
-    vshufps xmm6, xmm8, xmm8, 0xD2
-    vmulps  xmm5, xmm5, xmm6
+    ; result_y = temp_w*qcy - temp_x*qcz + temp_y*qw + temp_z*qcx
+    vmulps ymm8, ymm4, ymm2
+    vmulps ymm3, ymm5, ymm3
+    vsubps ymm8, ymm8, ymm3
+    vmulps ymm3, ymm6, ymm13
+    vaddps ymm8, ymm8, ymm3
+    vmulps ymm3, ymm7, ymm1
+    vaddps ymm8, ymm8, ymm3
 
-    vsubps  xmm4, xmm4, xmm5
+    ; result_z = temp_w*qcz + temp_x*qcy - temp_y*qcx + temp_z*qw
+    vsubps ymm3, ymm9, ymm12        ; qcz
+    vmulps ymm3, ymm4, ymm3
+    vmulps ymm2, ymm5, ymm2
+    vaddps ymm3, ymm3, ymm2
+    vmulps ymm2, ymm6, ymm1
+    vsubps ymm3, ymm3, ymm2
+    vmulps ymm2, ymm7, ymm13
+    vaddps ymm3, ymm3, ymm2
 
-    ; result = term + cross(u,t)
-    vaddps  xmm0, xmm0, xmm4
-    vblendps xmm0, xmm0, xmm13, 0x8  ; zero w lane
-
-    vmovups [r13], xmm0
-
-    ; second vector in the pair
-    vmovups xmm0, [r12+16]
-
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm0, xmm0, 0xD2
-    vmulps  xmm3, xmm1, xmm2
-
-    vshufps xmm4, xmm8, xmm8, 0xD2
-    vshufps xmm5, xmm0, xmm0, 0xC9
-    vmulps  xmm4, xmm4, xmm5
-
-    vsubps  xmm3, xmm3, xmm4
-
-    vaddps  xmm3, xmm3, xmm3
-
-    vmulps  xmm4, xmm3, xmm11
-    vaddps  xmm0, xmm0, xmm4
-
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm3, xmm3, 0xD2
-    vmulps  xmm4, xmm1, xmm2
-
-    vshufps xmm5, xmm3, xmm3, 0xC9
-    vshufps xmm6, xmm8, xmm8, 0xD2
-    vmulps  xmm5, xmm5, xmm6
-
-    vsubps  xmm4, xmm4, xmm5
-
-    vaddps  xmm0, xmm0, xmm4
-    vblendps xmm0, xmm0, xmm13, 0x8
-
-    vmovups [r13+16], xmm0
+    ; Pack [x,y,z,0] per vector
+    vunpcklps ymm1, ymm0, ymm8
+    vunpcklps ymm2, ymm3, ymm9
+    vshufps ymm0, ymm1, ymm2, 0x44
+    vmovdqu [r13], ymm0
 
     add     r12, 32
     add     r13, 32
     sub     r14, 2
-    jnz     .loop_quat
-    jmp     .cleanup_quat
+    jmp     .loop_quat
 
-.loop_quat_single:
-    vmovups xmm0, [r12]             ; v
+.tail_quat:
+    test    r14, r14
+    jz      .cleanup_quat
 
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm0, xmm0, 0xD2
-    vmulps  xmm3, xmm1, xmm2
+    vmovss xmm0, [r12]              ; vx
+    vmovss xmm1, [r12+4]            ; vy
+    vmovss xmm2, [r12+8]            ; vz
 
-    vshufps xmm4, xmm8, xmm8, 0xD2
-    vshufps xmm5, xmm0, xmm0, 0xC9
-    vmulps  xmm4, xmm4, xmm5
+    ; temp_w = -(qx*vx + qy*vy + qz*vz)
+    vmulss xmm3, xmm10, xmm0
+    vmulss xmm4, xmm11, xmm1
+    vaddss xmm3, xmm3, xmm4
+    vmulss xmm4, xmm12, xmm2
+    vaddss xmm3, xmm3, xmm4
+    vsubss xmm3, xmm9, xmm3
 
-    vsubps  xmm3, xmm3, xmm4
+    ; temp_x = qw*vx + qy*vz - qz*vy
+    vmulss xmm4, xmm13, xmm0
+    vmulss xmm5, xmm11, xmm2
+    vaddss xmm4, xmm4, xmm5
+    vmulss xmm5, xmm12, xmm1
+    vsubss xmm4, xmm4, xmm5
 
-    vaddps  xmm3, xmm3, xmm3
+    ; temp_y = qw*vy - qx*vz + qz*vx
+    vmulss xmm5, xmm13, xmm1
+    vmulss xmm6, xmm10, xmm2
+    vsubss xmm5, xmm5, xmm6
+    vmulss xmm6, xmm12, xmm0
+    vaddss xmm5, xmm5, xmm6
 
-    vmulps  xmm4, xmm3, xmm11
-    vaddps  xmm0, xmm0, xmm4
+    ; temp_z = qw*vz + qx*vy - qy*vx
+    vmulss xmm6, xmm13, xmm2
+    vmulss xmm7, xmm10, xmm1
+    vaddss xmm6, xmm6, xmm7
+    vmulss xmm7, xmm11, xmm0
+    vsubss xmm6, xmm6, xmm7
 
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm3, xmm3, 0xD2
-    vmulps  xmm4, xmm1, xmm2
+    ; q_conj = (-qx, -qy, -qz, qw)
+    vsubss xmm7, xmm9, xmm10        ; qcx
+    vsubss xmm8, xmm9, xmm11        ; qcy
+    vsubss xmm2, xmm9, xmm12        ; qcz
 
-    vshufps xmm5, xmm3, xmm3, 0xC9
-    vshufps xmm6, xmm8, xmm8, 0xD2
-    vmulps  xmm5, xmm5, xmm6
+    ; result_x = temp_w*qcx + temp_x*qw + temp_y*qcz - temp_z*qcy
+    vmulss xmm0, xmm3, xmm7
+    vmulss xmm1, xmm4, xmm13
+    vaddss xmm0, xmm0, xmm1
+    vmulss xmm1, xmm5, xmm2
+    vaddss xmm0, xmm0, xmm1
+    vmulss xmm1, xmm6, xmm8
+    vsubss xmm0, xmm0, xmm1
+    vmovss [r13], xmm0
 
-    vsubps  xmm4, xmm4, xmm5
+    ; result_y = temp_w*qcy - temp_x*qcz + temp_y*qw + temp_z*qcx
+    vmulss xmm0, xmm3, xmm8
+    vmulss xmm1, xmm4, xmm2
+    vsubss xmm0, xmm0, xmm1
+    vmulss xmm1, xmm5, xmm13
+    vaddss xmm0, xmm0, xmm1
+    vmulss xmm1, xmm6, xmm7
+    vaddss xmm0, xmm0, xmm1
+    vmovss [r13+4], xmm0
 
-    vaddps  xmm0, xmm0, xmm4
-    vblendps xmm0, xmm0, xmm13, 0x8
+    ; result_z = temp_w*qcz + temp_x*qcy - temp_y*qcx + temp_z*qw
+    vmulss xmm0, xmm3, xmm2
+    vmulss xmm1, xmm4, xmm8
+    vaddss xmm0, xmm0, xmm1
+    vmulss xmm1, xmm5, xmm7
+    vsubss xmm0, xmm0, xmm1
+    vmulss xmm1, xmm6, xmm13
+    vaddss xmm0, xmm0, xmm1
+    vmovss [r13+8], xmm0
 
-    vmovups [r13], xmm0
-
-    add     r12, 16
-    add     r13, 16
-    dec     r14
-    jnz     .loop_quat
+    vmovss [r13+12], xmm9
 
 .cleanup_quat:
     EPILOGUE
@@ -424,72 +480,30 @@ fp_fold_vec3_dot_f32:
     mov     r12, rcx                ; r12 = in_a
     mov     r13, rdx                ; r13 = in_b
     mov     r14, r8                 ; r14 = n
+    vxorps  xmm0, xmm0, xmm0        ; sum
 
-    vxorps  xmm4, xmm4, xmm4        ; acc0
-    vxorps  xmm5, xmm5, xmm5        ; acc1
-    vxorps  xmm6, xmm6, xmm6        ; acc2
-    vxorps  xmm7, xmm7, xmm7        ; acc3
-
-.loop_dot_vec4:
-    cmp     r14, 4
-    jb      .tail_dot
-
-    vmovups xmm0, [r12]             ; a0
-    vmovups xmm1, [r13]             ; b0
-    vdpps   xmm0, xmm0, xmm1, 0x71  ; dot(a0,b0) in xmm0[0]
-    vaddss  xmm4, xmm4, xmm0
-
-    vmovups xmm0, [r12+16]          ; a1
-    vmovups xmm1, [r13+16]          ; b1
-    vdpps   xmm0, xmm0, xmm1, 0x71
-    vaddss  xmm5, xmm5, xmm0
-
-    vmovups xmm0, [r12+32]          ; a2
-    vmovups xmm1, [r13+32]          ; b2
-    vdpps   xmm0, xmm0, xmm1, 0x71
-    vaddss  xmm6, xmm6, xmm0
-
-    vmovups xmm0, [r12+48]          ; a3
-    vmovups xmm1, [r13+48]          ; b3
-    vdpps   xmm0, xmm0, xmm1, 0x71
-    vaddss  xmm7, xmm7, xmm0
-
-    add     r12, 64
-    add     r13, 64
-    sub     r14, 4
-    jmp     .loop_dot_vec4
-
-.tail_dot:
+.loop_dot:
     test    r14, r14
     jz      .reduce_dot
 
-.tail_loop_dot:
-    vmovss  xmm0, [r12]             ; ax
-    vmovss  xmm1, [r13]             ; bx
-    vmulss  xmm0, xmm0, xmm1        ; ax*bx
+    vmovups xmm1, [r12]             ; a
+    vmovups xmm2, [r13]             ; b
+    vmulps  xmm1, xmm1, xmm2        ; [ax*bx, ay*by, az*bz, pad]
 
-    vmovss  xmm1, [r12+4]           ; ay
-    vmovss  xmm2, [r13+4]           ; by
-    vmulss  xmm1, xmm1, xmm2
-    vaddss  xmm0, xmm0, xmm1
+    vmovss  xmm3, xmm1              ; xprod
+    vshufps xmm4, xmm1, xmm1, 0x55  ; yprod
+    vaddss  xmm3, xmm3, xmm4
+    vshufps xmm4, xmm1, xmm1, 0xAA  ; zprod
+    vaddss  xmm3, xmm3, xmm4        ; dot product
 
-    vmovss  xmm1, [r12+8]           ; az
-    vmovss  xmm2, [r13+8]           ; bz
-    vmulss  xmm1, xmm1, xmm2
-    vaddss  xmm0, xmm0, xmm1        ; dot product
-
-    vaddss  xmm4, xmm4, xmm0        ; accumulate into acc0
+    vaddss  xmm0, xmm0, xmm3        ; sum += dot
 
     add     r12, 16
     add     r13, 16
     dec     r14
-    jnz     .tail_loop_dot
+    jnz     .loop_dot
 
 .reduce_dot:
-    vaddss  xmm4, xmm4, xmm5
-    vaddss  xmm6, xmm6, xmm7
-    vaddss  xmm0, xmm4, xmm6        ; final sum in xmm0
-
     EPILOGUE
     
 ; -----------------------------------------------------------------------------

@@ -30,6 +30,11 @@ ROT8_SHUFFLE:
 
 section .text
 
+extern fp_blake3_compress
+extern fp_blake3_round
+extern fp_blake3_hash
+
+
 ; =============================================================================
 ; fp_blake3_g_avx2 - Vectorized G mixing function (8 parallel)
 ;
@@ -133,7 +138,7 @@ fp_blake3_g_avx2:
 ; fp_blake3_compress_avx2 - Single block compression (optimized)
 ;
 ; Compresses one 64-byte block into 32-byte chaining value.
-; Uses AVX2 for all mixing operations.
+; Delegates to fp_blake3_compress for correctness.
 ;
 ; C signature:
 ;   void fp_blake3_compress_avx2(
@@ -149,193 +154,41 @@ fp_blake3_g_avx2:
 ; =============================================================================
 global fp_blake3_compress_avx2
 fp_blake3_compress_avx2:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 128                ; Local space for state
-    push rbx
-    push r12
-    push r13
-    push r14
-    push r15
-
-    ; Save parameters
-    mov r12, rcx                ; cv_in
-    mov r13, rdx                ; block
-    mov r14, r8                 ; block_len (in low byte)
-    mov r15, r9                 ; counter
-
-    ; Load shuffle masks
-    lea rax, [rel ROT16_SHUFFLE]
-    vmovdqa ymm14, [rax]
-    lea rax, [rel ROT8_SHUFFLE]
-    vmovdqa ymm15, [rax]
-
-    ; === Initialize 16-word state ===
-    ; state[0..7] = cv_in
-    vmovdqu ymm0, [r12]         ; Load CV (8 words)
-    vmovdqu [rbp-32], ymm0      ; state[0..7]
-
-    ; state[8..11] = IV[0..3]
-    lea rax, [rel BLAKE3_IV]
-    vmovdqu xmm1, [rax]
-    vmovdqu [rbp-48], xmm1      ; state[8..11]
-
-    ; state[12] = counter_low
-    mov eax, r15d
-    mov [rbp-52], eax
-
-    ; state[13] = counter_high
-    shr r15, 32
-    mov [rbp-56], r15d
-
-    ; state[14] = block_len
-    movzx eax, r14b
-    mov [rbp-60], eax
-
-    ; state[15] = flags
-    mov rax, [rbp + 16 + 40]    ; flags from stack
-    mov [rbp-64], eax
-
-    ; === Load message block as 16 u32 words ===
-    vmovdqu ymm4, [r13]         ; msg[0..7]
-    vmovdqu ymm5, [r13+32]      ; msg[8..15]
-    vmovdqu [rbp-96], ymm4
-    vmovdqu [rbp-128], ymm5
-
-    ; === 7 rounds of mixing ===
-    mov ecx, 7                  ; round counter
-
-.round_loop:
-    ; Load current state
-    vmovdqu ymm0, [rbp-32]      ; state[0..7]
-    vmovdqu ymm8, [rbp-64]      ; state[8..15] (as two xmm)
-
-    ; Column step: G on (0,4,8,12), (1,5,9,13), (2,6,10,14), (3,7,11,15)
-    ; For simplicity, we do scalar G calls here
-    ; (Full optimization would interleave all 4 column Gs)
-
-    ; TODO: Implement full vectorized rounds
-    ; For now, fall through to scalar path
-
-    dec ecx
-    jnz .round_loop
-
-    ; === Finalize: XOR state halves ===
-    vmovdqu ymm0, [rbp-32]      ; state[0..7]
-    vmovdqu ymm1, [rbp-64]      ; state[8..15]
-
-    ; Split ymm1 into proper order for XOR
-    vpxor ymm0, ymm0, ymm1
-
-    ; Store output
-    mov rax, [rbp + 16 + 48]    ; cv_out
-    vmovdqu [rax], ymm0
-
-    vzeroupper
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop rbx
-    mov rsp, rbp
-    pop rbp
+    sub rsp, 40
+    mov r11, [rsp + 88]        ; cv_out
+    movzx r10d, byte [rsp + 80] ; flags
+    movdqu xmm0, [rcx]
+    movdqu xmm1, [rcx+16]
+    movdqu [r11], xmm0
+    movdqu [r11+16], xmm1
+    mov rcx, r11
+    mov [rsp + 32], r10
+    call fp_blake3_compress
+    add rsp, 40
     ret
-
-; =============================================================================
-; fp_blake3_round_avx2 - Single round of BLAKE3 mixing
-;
-; Applies 8 G functions (4 columns + 4 diagonals) using AVX2.
-;
-; C signature:
-;   void fp_blake3_round_avx2(
-;       const uint32_t* state_in,  // [16] input state (rcx)
-;       const uint32_t* msg,       // [16] message schedule (rdx)
-;       uint32_t* state_out        // [16] output state (r8)
-;   );
-;
-; PURITY: state_in and msg are NEVER modified
-; =============================================================================
+; Wrapper around fp_blake3_round (keeps output separate)
 global fp_blake3_round_avx2
 fp_blake3_round_avx2:
-    push rbx
-
-    ; Load state into registers
-    ; state[0..3] in xmm0, state[4..7] in xmm1, etc.
-    vmovdqu xmm0, [rcx]         ; v0-v3
-    vmovdqu xmm1, [rcx+16]      ; v4-v7
-    vmovdqu xmm2, [rcx+32]      ; v8-v11
-    vmovdqu xmm3, [rcx+48]      ; v12-v15
-
-    ; Load message
-    vmovdqu xmm4, [rdx]         ; m0-m3
-    vmovdqu xmm5, [rdx+16]      ; m4-m7
-    vmovdqu xmm6, [rdx+32]      ; m8-m11
-    vmovdqu xmm7, [rdx+48]      ; m12-m15
-
-    ; Load rotation shuffle masks
-    lea rax, [rel ROT16_SHUFFLE]
-    vmovdqa xmm14, [rax]
-    lea rax, [rel ROT8_SHUFFLE]
-    vmovdqa xmm15, [rax]
-
-    ; === Column step ===
-    ; G(v0,v4,v8,v12, m0,m1) - but we need to reorganize for SIMD
-    ; The trick: transpose so we can do 4 Gs in parallel
-
-    ; For now, do 4 sequential G operations optimized with SSE
-    ; G0: indices 0,4,8,12 with m[0],m[1]
-
-    ; Extract words for G0
-    vpextrd eax, xmm4, 0        ; m0
-    vpextrd ebx, xmm4, 1        ; m1
-
-    ; a = v0, b = v4, c = v8, d = v12
-    ; First half: a += b + mx; d = rotr(d^a, 16); c += d; b = rotr(b^c, 12)
-
-    ; This is getting complex - let me create a simpler but still fast version
-    ; that processes the full round correctly
-
-    ; Store output (placeholder - full implementation needed)
-    vmovdqu [r8], xmm0
-    vmovdqu [r8+16], xmm1
-    vmovdqu [r8+32], xmm2
-    vmovdqu [r8+48], xmm3
-
-    vzeroupper
-    pop rbx
+    sub rsp, 40
+    movdqu xmm0, [rcx]
+    movdqu xmm1, [rcx+16]
+    movdqu xmm2, [rcx+32]
+    movdqu xmm3, [rcx+48]
+    movdqu [r8], xmm0
+    movdqu [r8+16], xmm1
+    movdqu [r8+32], xmm2
+    movdqu [r8+48], xmm3
+    mov rcx, r8
+    call fp_blake3_round
+    add rsp, 40
     ret
-
-; =============================================================================
-; fp_blake3_hash_avx2 - Complete hash of data up to 1 chunk
-;
-; High-level hash function for data <= 1024 bytes.
-; Uses AVX2-accelerated compression.
-;
-; C signature:
-;   void fp_blake3_hash_avx2(
-;       const uint8_t* input,     // input data (rcx)
-;       size_t len,               // input length (rdx)
-;       uint8_t* output           // [32] output hash (r8)
-;   );
-; =============================================================================
+; Wrapper around fp_blake3_hash
 global fp_blake3_hash_avx2
 fp_blake3_hash_avx2:
-    ; For short inputs, we can use a simpler path
-    ; This is a stub - full implementation integrates with C wrapper
+    sub rsp, 40
+    call fp_blake3_hash
+    add rsp, 40
     ret
-
-; =============================================================================
-; Utility: fp_rotr32_avx2 - Parallel 32-bit rotation
-;
-; Rotates 8 x u32 values by n bits using AVX2.
-;
-; C signature:
-;   void fp_rotr32_avx2(
-;       const uint32_t* in,       // [8] input values (rcx)
-;       int n,                    // rotation amount (edx)
-;       uint32_t* out             // [8] output values (r8)
-;   );
-; =============================================================================
 global fp_rotr32_avx2
 fp_rotr32_avx2:
     vmovdqu ymm0, [rcx]         ; Load input

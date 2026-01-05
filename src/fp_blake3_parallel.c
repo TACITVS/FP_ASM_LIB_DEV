@@ -135,6 +135,8 @@ static inline void round4(
  */
 static void compress4(
     const uint32_t cv0[8], const uint32_t cv1[8],
+
+
     const uint32_t cv2[8], const uint32_t cv3[8],
     const uint8_t* block0, const uint8_t* block1,
     const uint8_t* block2, const uint8_t* block3,
@@ -264,25 +266,89 @@ static void compress4(
     out0[7] = tmp[0]; out1[7] = tmp[1]; out2[7] = tmp[2]; out3[7] = tmp[3];
 }
 
+static void write_cv(const uint32_t cv[8], uint8_t* output) {
+    for (int i = 0; i < 8; i++) {
+        output[i*4] = (uint8_t)cv[i];
+        output[i*4+1] = (uint8_t)(cv[i] >> 8);
+        output[i*4+2] = (uint8_t)(cv[i] >> 16);
+        output[i*4+3] = (uint8_t)(cv[i] >> 24);
+    }
+}
+
+static void parent_cv(const uint32_t left[8], const uint32_t right[8],
+                      uint8_t flags, uint32_t out[8]) {
+    uint8_t block[FP_BLAKE3_BLOCK_LEN];
+    for (int i = 0; i < 8; i++) {
+        block[i*4] = (uint8_t)left[i];
+        block[i*4+1] = (uint8_t)(left[i] >> 8);
+        block[i*4+2] = (uint8_t)(left[i] >> 16);
+        block[i*4+3] = (uint8_t)(left[i] >> 24);
+    }
+    for (int i = 0; i < 8; i++) {
+        block[32+i*4] = (uint8_t)right[i];
+        block[32+i*4+1] = (uint8_t)(right[i] >> 8);
+        block[32+i*4+2] = (uint8_t)(right[i] >> 16);
+        block[32+i*4+3] = (uint8_t)(right[i] >> 24);
+    }
+
+    uint32_t cv[8];
+    memcpy(cv, IV, sizeof(IV));
+    fp_blake3_compress(cv, block, FP_BLAKE3_BLOCK_LEN, 0, flags);
+    memcpy(out, cv, sizeof(cv));
+}
+
+static void chunk_to_cv_local(const uint8_t* input, size_t len,
+                              uint64_t counter, uint8_t flags,
+                              uint32_t cv_out[8]) {
+    uint32_t cv[8];
+    memcpy(cv, IV, sizeof(IV));
+
+    size_t offset = 0;
+    int blocks = 0;
+
+    while (len - offset > FP_BLAKE3_BLOCK_LEN) {
+        uint8_t block_flags = flags;
+        if (blocks == 0) {
+            block_flags |= CHUNK_START;
+        }
+
+        fp_blake3_compress(cv, input + offset, FP_BLAKE3_BLOCK_LEN, counter, block_flags);
+        offset += FP_BLAKE3_BLOCK_LEN;
+        blocks++;
+    }
+
+    uint8_t last[FP_BLAKE3_BLOCK_LEN] = {0};
+    size_t remaining = len - offset;
+    memcpy(last, input + offset, remaining);
+
+    uint8_t block_flags = flags | CHUNK_END;
+    if (blocks == 0) {
+        block_flags |= CHUNK_START;
+    }
+
+    fp_blake3_compress(cv, last, (uint8_t)remaining, counter, block_flags);
+    memcpy(cv_out, cv, sizeof(cv));
+}
+
 /**
  * Hash large input using 4-way parallel compression
  */
-void fp_blake3_hash_parallel(const uint8_t* input, size_t len, uint8_t* output) {
-    if (len <= 1024) {
+void fp_blake3_hash_parallel(const uint8_t* input, size_t len, uint8_t* output)
+{
+    if (len <= FP_BLAKE3_CHUNK_LEN) {
         /* Small input: use fast scalar path */
         fp_blake3_hash_fast(input, len, output);
         return;
     }
 
-    /* For large inputs, process 4 chunks at a time */
-    uint32_t cv[8];
-    memcpy(cv, IV, sizeof(IV));
-
-    size_t chunks = (len + 1023) / 1024;
-    size_t offset = 0;
+    uint32_t stack[54][8];
+    int stack_depth = 0;
+    uint64_t chunk_counter = 0;
+    const uint8_t* ptr = input;
+    size_t remaining = len;
 
     /* Process 4 chunks at a time when possible */
-    while (chunks >= 4 && (len - offset) >= 4 * 1024) {
+    while (remaining >= 4 * FP_BLAKE3_CHUNK_LEN) {
         uint32_t cv0[8], cv1[8], cv2[8], cv3[8];
         memcpy(cv0, IV, 32); memcpy(cv1, IV, 32);
         memcpy(cv2, IV, 32); memcpy(cv3, IV, 32);
@@ -295,12 +361,12 @@ void fp_blake3_hash_parallel(const uint8_t* input, size_t len, uint8_t* output) 
             uint32_t out0[8], out1[8], out2[8], out3[8];
             compress4(
                 cv0, cv1, cv2, cv3,
-                input + offset + b*64,
-                input + offset + 1024 + b*64,
-                input + offset + 2048 + b*64,
-                input + offset + 3072 + b*64,
-                0, 1, 2, 3,  /* chunk counters */
-                64, 64, 64, 64,
+                ptr + b*FP_BLAKE3_BLOCK_LEN,
+                ptr + FP_BLAKE3_CHUNK_LEN + b*FP_BLAKE3_BLOCK_LEN,
+                ptr + 2*FP_BLAKE3_CHUNK_LEN + b*FP_BLAKE3_BLOCK_LEN,
+                ptr + 3*FP_BLAKE3_CHUNK_LEN + b*FP_BLAKE3_BLOCK_LEN,
+                chunk_counter, chunk_counter + 1, chunk_counter + 2, chunk_counter + 3,
+                FP_BLAKE3_BLOCK_LEN, FP_BLAKE3_BLOCK_LEN, FP_BLAKE3_BLOCK_LEN, FP_BLAKE3_BLOCK_LEN,
                 flags, flags, flags, flags,
                 out0, out1, out2, out3
             );
@@ -308,23 +374,84 @@ void fp_blake3_hash_parallel(const uint8_t* input, size_t len, uint8_t* output) 
             memcpy(cv2, out2, 32); memcpy(cv3, out3, 32);
         }
 
-        /* TODO: Merge CVs in tree structure */
-        /* For now, use cv0 as representative */
-        memcpy(cv, cv0, 32);
+        const uint32_t* cvs[4] = {cv0, cv1, cv2, cv3};
+        for (int i = 0; i < 4; i++) {
+            memcpy(stack[stack_depth], cvs[i], sizeof(cv0));
+            stack_depth++;
 
-        offset += 4 * 1024;
-        chunks -= 4;
-    }
-
-    /* Handle remaining chunks with scalar path */
-    if (offset < len) {
-        fp_blake3_hash_fast(input + offset, len - offset, output);
-    } else {
-        for (int i = 0; i < 8; i++) {
-            output[i*4] = (uint8_t)cv[i];
-            output[i*4+1] = (uint8_t)(cv[i] >> 8);
-            output[i*4+2] = (uint8_t)(cv[i] >> 16);
-            output[i*4+3] = (uint8_t)(cv[i] >> 24);
+            uint64_t total = chunk_counter + (uint64_t)i + 1;
+            while (stack_depth >= 2 && (total & 1) == 0) {
+                uint32_t merged[8];
+                parent_cv(stack[stack_depth - 2], stack[stack_depth - 1], PARENT, merged);
+                stack_depth--;
+                memcpy(stack[stack_depth - 1], merged, sizeof(merged));
+                total >>= 1;
+            }
         }
+
+        chunk_counter += 4;
+        ptr += 4 * FP_BLAKE3_CHUNK_LEN;
+        remaining -= 4 * FP_BLAKE3_CHUNK_LEN;
     }
+
+    while (remaining > FP_BLAKE3_CHUNK_LEN) {
+        uint32_t chunk_cv[8];
+        chunk_to_cv_local(ptr, FP_BLAKE3_CHUNK_LEN, chunk_counter, 0, chunk_cv);
+
+        memcpy(stack[stack_depth], chunk_cv, sizeof(chunk_cv));
+        stack_depth++;
+
+        uint64_t total = chunk_counter + 1;
+        while (stack_depth >= 2 && (total & 1) == 0) {
+            uint32_t merged[8];
+            parent_cv(stack[stack_depth - 2], stack[stack_depth - 1], PARENT, merged);
+            stack_depth--;
+            memcpy(stack[stack_depth - 1], merged, sizeof(merged));
+            total >>= 1;
+        }
+
+        ptr += FP_BLAKE3_CHUNK_LEN;
+        remaining -= FP_BLAKE3_CHUNK_LEN;
+        chunk_counter++;
+    }
+
+    if (remaining == 0) {
+        if (stack_depth == 0) {
+            fp_blake3_hash_fast(input, len, output);
+            return;
+        }
+
+        while (stack_depth > 1) {
+            uint8_t merge_flags = (stack_depth == 2) ? (PARENT | ROOT) : PARENT;
+            uint32_t merged[8];
+            parent_cv(stack[stack_depth - 2], stack[stack_depth - 1], merge_flags, merged);
+            stack_depth--;
+            memcpy(stack[stack_depth - 1], merged, sizeof(merged));
+        }
+
+        write_cv(stack[0], output);
+        return;
+    }
+
+    uint32_t final_cv[8];
+    uint8_t final_flags = (stack_depth == 0) ? ROOT : 0;
+    chunk_to_cv_local(ptr, remaining, chunk_counter, final_flags, final_cv);
+
+    if (stack_depth == 0) {
+        write_cv(final_cv, output);
+        return;
+    }
+
+    memcpy(stack[stack_depth], final_cv, sizeof(final_cv));
+    stack_depth++;
+
+    while (stack_depth > 1) {
+        uint8_t merge_flags = (stack_depth == 2) ? (PARENT | ROOT) : PARENT;
+        uint32_t merged[8];
+        parent_cv(stack[stack_depth - 2], stack[stack_depth - 1], merge_flags, merged);
+        stack_depth--;
+        memcpy(stack[stack_depth - 1], merged, sizeof(merged));
+    }
+
+    write_cv(stack[0], output);
 }

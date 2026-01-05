@@ -300,24 +300,6 @@ static void chunk_to_cv(
 /**
  * Merge two child CVs into parent CV - PURE
  */
-static void parent_cv(
-    const uint32_t* left_cv,
-    const uint32_t* right_cv,
-    const uint32_t* key,
-    uint8_t flags,
-    uint32_t* out_cv
-) {
-    uint8_t block[FP_BLAKE3_BLOCK_LEN];
-
-    /* Pack two CVs into block */
-    for (int i = 0; i < 8; i++) {
-        store32_le(block + i * 4, left_cv[i]);
-        store32_le(block + 32 + i * 4, right_cv[i]);
-    }
-
-    compress_pure(key, block, FP_BLAKE3_BLOCK_LEN, 0, flags | PARENT, out_cv);
-}
-
 /* ============================================================================
  * Public API - All Pure Functions
  * ============================================================================ */
