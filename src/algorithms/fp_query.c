@@ -2,6 +2,7 @@
 #include <math.h>
 #include <float.h>
 #include <string.h>
+#include <stdio.h>
 
 #ifdef __AVX2__
 #include <immintrin.h>
@@ -33,7 +34,11 @@ void fp_query_gemv_columnar_f64(
         for (size_t i = 0; i < vec_count; i += 4) {
             __m256d c = _mm256_loadu_pd(&col[i]);
             __m256d acc = _mm256_loadu_pd(&scores_out[i]);
+#if defined(__FMA__)
             acc = _mm256_fmadd_pd(c, q_vec, acc);
+#else
+            acc = _mm256_add_pd(acc, _mm256_mul_pd(c, q_vec));
+#endif
             _mm256_storeu_pd(&scores_out[i], acc);
         }
 
@@ -52,6 +57,72 @@ void fp_query_gemv_columnar_f64(
         }
     }
 #endif
+}
+
+/**
+ * Batch GEMV: process multiple queries in one pass.
+ * Optimized for cache locality by processing data blocks.
+ */
+void fp_query_gemv_columnar_batch_f64(
+    const double** columns,
+    const double* queries,
+    size_t batch_count,
+    double* scores_out,
+    size_t count,
+    size_t dim
+) {
+    printf("Kernel: batch=%llu, count=%llu, dim=%llu\n", (unsigned long long)batch_count, (unsigned long long)count, (unsigned long long)dim);
+    fflush(stdout);
+    // Zero all output buffers
+    memset(scores_out, 0, batch_count * count * sizeof(double));
+
+#ifdef __AVX2__
+    size_t vec_count = count & ~3ULL;
+    printf("Kernel: AVX mode, vec_count=%llu\n", (unsigned long long)vec_count);
+    fflush(stdout);
+
+    // Process in blocks of vectors to keep 'col' in L1 cache
+    // while looping over queries.
+    for (size_t d = 0; d < dim; d++) {
+        const double* col = columns[d];
+
+        for (size_t b = 0; b < batch_count; b++) {
+            double q = queries[b * dim + d];
+            __m256d q_vec = _mm256_set1_pd(q);
+            double* b_scores = &scores_out[b * count];
+
+            for (size_t i = 0; i < vec_count; i += 4) {
+                __m256d c = _mm256_loadu_pd(&col[i]);
+                __m256d acc = _mm256_loadu_pd(&b_scores[i]);
+#if defined(__FMA__)
+                acc = _mm256_fmadd_pd(c, q_vec, acc);
+#else
+                acc = _mm256_add_pd(acc, _mm256_mul_pd(c, q_vec));
+#endif
+                _mm256_storeu_pd(&b_scores[i], acc);
+            }
+
+            for (size_t i = vec_count; i < count; i++) {
+                b_scores[i] += col[i] * q;
+            }
+        }
+    }
+#else
+    printf("Kernel: Scalar mode\n");
+    fflush(stdout);
+    for (size_t d = 0; d < dim; d++) {
+        const double* col = columns[d];
+        for (size_t b = 0; b < batch_count; b++) {
+            double q = queries[b * dim + d];
+            double* b_scores = &scores_out[b * count];
+            for (size_t i = 0; i < count; i++) {
+                b_scores[i] += col[i] * q;
+            }
+        }
+    }
+#endif
+    printf("Kernel Finished.\n");
+    fflush(stdout);
 }
 
 /**
@@ -118,7 +189,11 @@ void fp_query_gemv_flat_f64(
         for (size_t i = 0; i < vec_count; i += 4) {
             __m256d c = _mm256_loadu_pd(&col[i]);
             __m256d acc = _mm256_loadu_pd(&scores_out[i]);
+#if defined(__FMA__)
             acc = _mm256_fmadd_pd(c, q_vec, acc);
+#else
+            acc = _mm256_add_pd(acc, _mm256_mul_pd(c, q_vec));
+#endif
             _mm256_storeu_pd(&scores_out[i], acc);
         }
 
@@ -323,7 +398,11 @@ void fp_query_gemv_quantized_f64_u8(
             
             // FMA
             __m256d acc = _mm256_loadu_pd(&scores_out[i]);
+#if defined(__FMA__)
             acc = _mm256_fmadd_pd(v_f64, q_vec, acc);
+#else
+            acc = _mm256_add_pd(acc, _mm256_mul_pd(v_f64, q_vec));
+#endif
             _mm256_storeu_pd(&scores_out[i], acc);
         }
 
@@ -367,4 +446,3 @@ double fp_sparse_dotp_f64(
 
     return dot;
 }
-

@@ -23,6 +23,27 @@ void fp_query_gemv_columnar_f64(
 );
 
 /**
+ * Batch version of columnar GEMV similarity search.
+ * Computes scores for multiple query vectors in a single pass over the data.
+ * This is much more efficient than multiple calls as it improves cache reuse.
+ *
+ * @param columns       Array of dim column pointers
+ * @param queries       Array of query vectors (batch_count * dim doubles)
+ * @param batch_count   Number of query vectors
+ * @param scores_out    Output buffer (batch_count * count doubles)
+ * @param count         Number of vectors in DB
+ * @param dim           Vector dimension
+ */
+void fp_query_gemv_columnar_batch_f64(
+    const double** columns,
+    const double* queries,
+    size_t batch_count,
+    double* scores_out,
+    size_t count,
+    size_t dim
+);
+
+/**
  * Same as above but with candidate mask for IVF search.
  * Only computes scores for indices where mask[i] != 0.
  * Other scores are set to -INFINITY.
