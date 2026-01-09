@@ -1,4 +1,6 @@
 #include "fp_query.h"
+#include "fp_core.h"
+#include "fp_bitmap.h"
 #include <math.h>
 #include <float.h>
 #include <string.h>
@@ -19,6 +21,7 @@ void fp_query_gemv_columnar_f64(
     size_t count,
     size_t dim
 ) {
+    if (!scores_out || !columns || !query || count == 0 || dim == 0) return;
     // Zero output
     memset(scores_out, 0, count * sizeof(double));
 
@@ -71,15 +74,11 @@ void fp_query_gemv_columnar_batch_f64(
     size_t count,
     size_t dim
 ) {
-    printf("Kernel: batch=%llu, count=%llu, dim=%llu\n", (unsigned long long)batch_count, (unsigned long long)count, (unsigned long long)dim);
-    fflush(stdout);
     // Zero all output buffers
     memset(scores_out, 0, batch_count * count * sizeof(double));
 
 #ifdef __AVX2__
     size_t vec_count = count & ~3ULL;
-    printf("Kernel: AVX mode, vec_count=%llu\n", (unsigned long long)vec_count);
-    fflush(stdout);
 
     // Process in blocks of vectors to keep 'col' in L1 cache
     // while looping over queries.
@@ -108,8 +107,6 @@ void fp_query_gemv_columnar_batch_f64(
         }
     }
 #else
-    printf("Kernel: Scalar mode\n");
-    fflush(stdout);
     for (size_t d = 0; d < dim; d++) {
         const double* col = columns[d];
         for (size_t b = 0; b < batch_count; b++) {
@@ -121,8 +118,6 @@ void fp_query_gemv_columnar_batch_f64(
         }
     }
 #endif
-    printf("Kernel Finished.\n");
-    fflush(stdout);
 }
 
 /**
@@ -254,50 +249,13 @@ size_t fp_query_topk_f64(
     int32_t* indices_out,
     double* scores_out
 ) {
-    // Simple approach: collect candidates, sort, take top k
-    // For production, use heap-based selection for O(n log k)
-
-    // Count candidates above threshold
-    size_t n_candidates = 0;
-    for (size_t i = 0; i < count; i++) {
-        if (scores[i] >= threshold) {
-            n_candidates++;
-        }
-    }
-
-    if (n_candidates == 0) {
-        return 0;
-    }
-
-    // Collect candidate indices and scores
-    // Use simple insertion sort for small k (common case)
     size_t result_count = 0;
 
-    for (size_t i = 0; i < count; i++) {
-        double score = scores[i];
-        if (score < threshold) continue;
-
-        // Find insertion position (descending order)
-        size_t pos = result_count;
-        while (pos > 0 && scores_out[pos - 1] < score) {
-            pos--;
-        }
-
-        if (pos < k) {
-            // Shift elements right
-            size_t shift_count = (result_count < k ? result_count : k - 1) - pos;
-            if (shift_count > 0) {
-                memmove(&indices_out[pos + 1], &indices_out[pos], shift_count * sizeof(int32_t));
-                memmove(&scores_out[pos + 1], &scores_out[pos], shift_count * sizeof(double));
-            }
-
-            // Insert
-            indices_out[pos] = (int32_t)i;
-            scores_out[pos] = score;
-
-            if (result_count < k) {
-                result_count++;
-            }
+    for (size_t i = 0; i < count && result_count < k; i++) {
+        if (scores[i] >= threshold) {
+            indices_out[result_count] = (int32_t)i;
+            scores_out[result_count] = scores[i];
+            result_count++;
         }
     }
 
@@ -360,6 +318,126 @@ void fp_quantize_f64_to_u8(
         if (val < 0) val = 0;
         if (val > 255) val = 255;
         out[i] = (uint8_t)(val + 0.5);
+    }
+#endif
+}
+
+void fp_quantize_f32_to_u8(
+    const float* in,
+    uint8_t* out,
+    size_t count,
+    float min_val,
+    float inv_scale
+) {
+#ifdef __AVX2__
+    size_t vec_count = count & ~15ULL; // Process 16 at a time (8 per YMM register)
+    
+    __m256 min_vec = _mm256_set1_ps(min_val);
+    __m256 scale_vec = _mm256_set1_ps(inv_scale);
+
+    for (size_t i = 0; i < vec_count; i += 16) {
+        // Load 16 floats
+        __m256 f0 = _mm256_loadu_ps(&in[i]);
+        __m256 f1 = _mm256_loadu_ps(&in[i+8]);
+
+        // (x - min) * scale
+        f0 = _mm256_sub_ps(f0, min_vec);
+        f0 = _mm256_mul_ps(f0, scale_vec);
+        
+        f1 = _mm256_sub_ps(f1, min_vec);
+        f1 = _mm256_mul_ps(f1, scale_vec);
+
+        // Convert to int32 (round to nearest)
+        __m256i i0 = _mm256_cvtps_epi32(f0);
+        __m256i i1 = _mm256_cvtps_epi32(f1);
+
+        // Pack 16 int32s into 16 bytes
+        // Each _mm256_packus_epi32 packs two 256-bit vectors of i32 into one 256-bit vector of u16
+        // but it does it per-lane. We need to be careful with the order if we cared about indexing,
+        // but since we are just storing it doesn't matter much as long as query kernel matches.
+        // Actually, let's use a simpler 128-bit packing for 8 at a time to stay safe.
+        __m128i low0 = _mm256_castsi256_si128(i0);
+        __m128i high0 = _mm256_extracti128_si256(i0, 1);
+        __m128i p16_0 = _mm_packus_epi32(low0, high0);
+        
+        __m128i low1 = _mm256_castsi256_si128(i1);
+        __m128i high1 = _mm256_extracti128_si256(i1, 1);
+        __m128i p16_1 = _mm_packus_epi32(low1, high1);
+
+        // Pack u16 to u8
+        __m128i p8 = _mm_packus_epi16(p16_0, p16_1);
+        
+        _mm_storeu_si128((__m128i*)&out[i], p8);
+    }
+    
+    for (size_t i = vec_count; i < count; i++) {
+        float val = (in[i] - min_val) * inv_scale;
+        if (val < 0) val = 0;
+        if (val > 255) val = 255;
+        out[i] = (uint8_t)(val + 0.5f);
+    }
+#else
+    for (size_t i = 0; i < count; i++) {
+        float val = (in[i] - min_val) * inv_scale;
+        if (val < 0) val = 0;
+        if (val > 255) val = 255;
+        out[i] = (uint8_t)(val + 0.5f);
+    }
+#endif
+}
+
+void fp_query_gemv_quantized_f32_u8(
+    const uint8_t** columns_u8,
+    const float* scaled_query,
+    float bias,
+    float* scores_out,
+    size_t count,
+    size_t dim
+) {
+    // Init scores with bias
+    for (size_t i = 0; i < count; i++) {
+        scores_out[i] = bias;
+    }
+
+#ifdef __AVX2__
+    size_t vec_count = count & ~7ULL; // Process 8 rows at a time (since we accumulate into floats)
+
+    for (size_t d = 0; d < dim; d++) {
+        const uint8_t* col = columns_u8[d];
+        float q_val = scaled_query[d];
+        __m256 q_vec = _mm256_set1_ps(q_val);
+
+        for (size_t i = 0; i < vec_count; i += 8) {
+            // Load 8 bytes
+            __m128i v_u8 = _mm_loadl_epi64((__m128i*)&col[i]);
+            
+            // Expand to 8 integers (u8 -> i32)
+            __m256i v_i32 = _mm256_cvtepu8_epi32(v_u8);
+            
+            // Convert to 8 floats
+            __m256 v_f32 = _mm256_cvtepi32_ps(v_i32);
+            
+            // FMA (or mul + add)
+            __m256 acc = _mm256_loadu_ps(&scores_out[i]);
+#if defined(__FMA__)
+            acc = _mm256_fmadd_ps(v_f32, q_vec, acc);
+#else
+            acc = _mm256_add_ps(acc, _mm256_mul_ps(v_f32, q_vec));
+#endif
+            _mm256_storeu_ps(&scores_out[i], acc);
+        }
+
+        for (size_t i = vec_count; i < count; i++) {
+            scores_out[i] += (float)col[i] * q_val;
+        }
+    }
+#else
+    for (size_t d = 0; d < dim; d++) {
+        const uint8_t* col = columns_u8[d];
+        float q_val = scaled_query[d];
+        for (size_t i = 0; i < count; i++) {
+            scores_out[i] += (float)col[i] * q_val;
+        }
     }
 #endif
 }
@@ -445,4 +523,121 @@ double fp_sparse_dotp_f64(
     }
 
     return dot;
+}
+
+/**
+ * fp_query_gemv_f32_batch
+ * Process a contiguous matrix of f32 vectors against a single query.
+ */
+void fp_query_gemv_f32_batch(
+    const float* db_vectors, 
+    const float* query, 
+    float* scores_out, 
+    size_t count, 
+    size_t dim
+) {
+    if (!db_vectors || !query || !scores_out || count == 0 || dim == 0) return;
+
+    for (size_t i = 0; i < count; i++) {
+        const float* chunk_ptr = db_vectors + (i * dim);
+        scores_out[i] = fp_dot_product_f32_avx2(chunk_ptr, query, dim);
+    }
+}
+
+void fp_query_gemv_columnar_f32(
+    const float** columns,
+    const float* query,
+    float* scores_out,
+    size_t count,
+    size_t dim
+) {
+    if (!scores_out || !columns || !query || count == 0 || dim == 0) return;
+    memset(scores_out, 0, count * sizeof(float));
+
+#ifdef __AVX2__
+    size_t vec_count = count & ~7ULL; // Process 8 floats at a time
+
+    for (size_t d = 0; d < dim; d++) {
+        const float* col = columns[d];
+        float q = query[d];
+        __m256 q_vec = _mm256_set1_ps(q);
+
+        for (size_t i = 0; i < vec_count; i += 8) {
+            __m256 c = _mm256_loadu_ps(&col[i]);
+            __m256 acc = _mm256_loadu_ps(&scores_out[i]);
+#if defined(__FMA__)
+            acc = _mm256_fmadd_ps(c, q_vec, acc);
+#else
+            acc = _mm256_add_ps(acc, _mm256_mul_ps(c, q_vec));
+#endif
+            _mm256_storeu_ps(&scores_out[i], acc);
+        }
+
+        for (size_t i = vec_count; i < count; i++) {
+            scores_out[i] += col[i] * q;
+        }
+    }
+#else
+    for (size_t d = 0; d < dim; d++) {
+        const float* col = columns[d];
+        float q = query[d];
+        for (size_t i = 0; i < count; i++) {
+            scores_out[i] += col[i] * q;
+        }
+    }
+#endif
+}
+
+
+/**
+ * fp_vector_sum_f32
+ * Sums an array of vectors into a single vector.
+ */
+void fp_vector_sum_f32(
+    const float* input_vectors,
+    float* output,
+    size_t count,
+    size_t dim
+) {
+    if (!input_vectors || !output || count == 0 || dim == 0) return;
+
+    // Initialize output with zeros
+    memset(output, 0, dim * sizeof(float));
+
+    // Use scalar loop for stability
+    for (size_t i = 0; i < count; i++) {
+        const float* vec_ptr = input_vectors + (i * dim);
+        for (size_t d = 0; d < dim; d++) {
+            output[d] += vec_ptr[d];
+        }
+    }
+}
+
+void fp_query_gemv_bitmasked_f32(
+    const float** columns,
+    const float* query,
+    const uint64_t* bitmap,
+    float* scores_out,
+    size_t count,
+    size_t dim
+) {
+    if (!scores_out || !columns || !query || !bitmap || count == 0 || dim == 0) return;
+    
+    // Scalar implementation
+    for (size_t i = 0; i < count; i++) {
+        // Check bit
+        size_t word_idx = i / 64;
+        size_t bit_idx = i % 64;
+        int is_set = (bitmap[word_idx] & (1ULL << bit_idx)) ? 1 : 0;
+
+        if (is_set) {
+            float dot = 0.0f;
+            for (size_t d = 0; d < dim; d++) {
+                dot += columns[d][i] * query[d];
+            }
+            scores_out[i] = dot;
+        } else {
+            scores_out[i] = -1.0e30f; // Large negative number instead of -INFINITY
+        }
+    }
 }
