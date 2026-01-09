@@ -176,4 +176,95 @@ double fp_sparse_dotp_f64(
     size_t len_b
 );
 
+// ========== Float32 (f32) Versions ==========
+
+/**
+ * Columnar matrix-vector multiply for f32 vectors.
+ */
+void fp_query_gemv_columnar_f32(
+    const float** columns,
+    const float* query,
+    float* scores_out,
+    size_t count,
+    size_t dim
+);
+
+/**
+ * Batch GEMV for f32 vectors.
+ *
+ * @param vectors_flat  Flat array of vectors (count * dim floats, row-major)
+ * @param queries       Array of query vectors (batch_count * dim floats)
+ * @param batch_count   Number of query vectors
+ * @param scores_out    Output scores (batch_count * count floats)
+ * @param count         Number of database vectors
+ * @param dim           Vector dimension
+ */
+void fp_query_gemv_f32_batch(
+    const float* vectors_flat,
+    const float* queries,
+    size_t batch_count,
+    float* scores_out,
+    size_t count,
+    size_t dim
+);
+
+/**
+ * Vector sum for f32.
+ * Computes element-wise sum of vectors.
+ *
+ * @param vectors   Array of vectors (count * dim floats)
+ * @param result    Output sum vector (dim floats)
+ * @param count     Number of vectors
+ * @param dim       Vector dimension
+ */
+void fp_vector_sum_f32(
+    const float* vectors,
+    float* result,
+    size_t count,
+    size_t dim
+);
+
+/**
+ * Quantize f32 array to uint8.
+ */
+void fp_quantize_f32_to_u8(
+    const float* in,
+    uint8_t* out,
+    size_t count,
+    float min_val,
+    float inv_scale
+);
+
+/**
+ * Quantized columnar GEMV for f32.
+ */
+void fp_query_gemv_quantized_f32_u8(
+    const uint8_t** columns_u8,
+    const float* scaled_query,
+    float bias,
+    float* scores_out,
+    size_t count,
+    size_t dim
+);
+
+/**
+ * Bitmasked columnar GEMV for f32.
+ * Similar to masked version but uses bitmap instead of byte array.
+ *
+ * @param columns       Array of dim column pointers
+ * @param query         Query vector (dim floats)
+ * @param bitmap        Bit array where 1 = compute, 0 = skip
+ * @param scores_out    Output scores (count floats)
+ * @param count         Number of vectors
+ * @param dim           Vector dimension
+ */
+void fp_query_gemv_bitmasked_f32(
+    const float** columns,
+    const float* query,
+    const uint64_t* bitmap,
+    float* scores_out,
+    size_t count,
+    size_t dim
+);
+
 #endif /* FP_QUERY_H */
