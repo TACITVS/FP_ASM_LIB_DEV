@@ -530,17 +530,17 @@ double fp_sparse_dotp_f64(
  * Process a contiguous matrix of f32 vectors against a single query.
  */
 void fp_query_gemv_f32_batch(
-    const float* db_vectors, 
-    const float* query, 
-    float* scores_out, 
-    size_t count, 
+    const float* db_vectors,
+    const float* query,
+    float* scores_out,
+    size_t count,
     size_t dim
 ) {
     if (!db_vectors || !query || !scores_out || count == 0 || dim == 0) return;
 
     for (size_t i = 0; i < count; i++) {
         const float* chunk_ptr = db_vectors + (i * dim);
-        scores_out[i] = fp_dot_product_f32_avx2(chunk_ptr, query, dim);
+        scores_out[i] = fp_fold_dotp_f32(chunk_ptr, query, dim);
     }
 }
 
