@@ -190,19 +190,18 @@ void fp_query_gemv_columnar_f32(
 );
 
 /**
- * Batch GEMV for f32 vectors.
+ * GEMV for f32 vectors with flat row-major layout.
+ * Computes dot products between a single query and all database vectors.
  *
  * @param vectors_flat  Flat array of vectors (count * dim floats, row-major)
- * @param queries       Array of query vectors (batch_count * dim floats)
- * @param batch_count   Number of query vectors
- * @param scores_out    Output scores (batch_count * count floats)
+ * @param query         Single query vector (dim floats)
+ * @param scores_out    Output scores (count floats)
  * @param count         Number of database vectors
  * @param dim           Vector dimension
  */
 void fp_query_gemv_f32_batch(
     const float* vectors_flat,
-    const float* queries,
-    size_t batch_count,
+    const float* query,
     float* scores_out,
     size_t count,
     size_t dim
