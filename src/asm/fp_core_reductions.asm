@@ -1,0 +1,675 @@
+; =============================================================================
+; FP-ASM Core Library: Reductions Module (Module 1)
+;
+; *** STABLE v10 ***
+; - `fp_reduce_max_i64` v10 uses 4-way unroll with broken dependencies.
+;   This matches/beats the compiler.
+; =============================================================================
+default rel
+
+%include "macros.inc"
+
+section .rdata
+    ALIGN 32
+    NEG_INF_F64:
+        dq 0xFFF0000000000000, 0xFFF0000000000000, 0xFFF0000000000000, 0xFFF0000000000000
+    POS_INF_F64:
+        dq 0x7FF0000000000000, 0x7FF0000000000000, 0x7FF0000000000000, 0x7FF0000000000000
+    MAX_I64:
+        dq 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF
+
+section .text
+    global fp_reduce_add_i64
+    global fp_reduce_add_f64
+    global fp_reduce_add_f64_where
+    global fp_reduce_max_i64
+    global fp_reduce_max_f64
+    global fp_reduce_min_i64
+    global fp_reduce_min_f64
+
+; =============================================================================
+; int64_t fp_reduce_add_i64(const int64_t* in, size_t n)
+; (Unchanged - Performed great)
+;
+; OVERFLOW BEHAVIOR:
+;   - Integer addition wraps on overflow (modular arithmetic)
+;   - Caller responsible for ensuring sum fits in int64_t range
+;   - No overflow detection provided
+; =============================================================================
+fp_reduce_add_i64:
+    PROLOGUE
+    mov  r12, rcx
+    mov  r13, rdx
+    xor  rax, rax
+    vpxor  ymm6, ymm6, ymm6
+    vpxor  ymm7, ymm7, ymm7
+    vpxor  ymm8, ymm8, ymm8
+    vpxor  ymm9, ymm9, ymm9
+.loop32:
+    cmp  r13, 32
+    jb   .loop16
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+    vmovdqu ymm10,[r12+128]
+    vmovdqu ymm11,[r12+160]
+    vmovdqu ymm12,[r12+192]
+    vmovdqu ymm13,[r12+224]
+    vpaddq  ymm6, ymm6, ymm0
+    vpaddq  ymm7, ymm7, ymm1
+    vpaddq  ymm8, ymm8, ymm2
+    vpaddq  ymm9, ymm9, ymm3
+    vpaddq  ymm6, ymm6, ymm10
+    vpaddq  ymm7, ymm7, ymm11
+    vpaddq  ymm8, ymm8, ymm12
+    vpaddq  ymm9, ymm9, ymm13
+    add  r12, 256
+    sub  r13, 32
+    jmp  .loop32
+.loop16:
+    cmp  r13, 16
+    jb   .tail
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+    vpaddq  ymm6, ymm6, ymm0
+    vpaddq  ymm7, ymm7, ymm1
+    vpaddq  ymm8, ymm8, ymm2
+    vpaddq  ymm9, ymm9, ymm3
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+.tail:
+    cmp r13, 8
+    jb .tail4
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vpaddq ymm6, ymm6, ymm0
+    vpaddq ymm7, ymm7, ymm1
+    add r12, 64
+    sub r13, 8
+.tail4:
+    cmp r13, 4
+    jb .tail1
+    vmovdqu ymm0, [r12]
+    vpaddq ymm6, ymm6, ymm0
+    add r12, 32
+    sub r13, 4
+.tail1:
+    test r13, r13
+    jz   .accum
+.tail_loop:
+    add  rax, [r12]
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
+.accum:
+    vpaddq ymm6, ymm6, ymm7
+    vpaddq ymm8, ymm8, ymm9
+    vpaddq ymm6, ymm6, ymm8
+    vextractf128 xmm1, ymm6, 1
+    vpaddq       xmm0, xmm6, xmm1
+    vpermilpd    xmm1, xmm0, 1
+    vpaddq       xmm0, xmm0, xmm1
+    vmovq r10, xmm0
+    add   rax, r10
+.done:
+    EPILOGUE
+
+; =============================================================================
+; double fp_reduce_add_f64(const double* in, size_t n)
+; (Unchanged - Performed great)
+; =============================================================================
+fp_reduce_add_f64:
+    PROLOGUE
+    mov  r12, rcx
+    mov  r13, rdx
+    vpxor  xmm0, xmm0, xmm0
+    vpxor  ymm6, ymm6, ymm6
+    vpxor  ymm7, ymm7, ymm7
+    vpxor  ymm8, ymm8, ymm8
+    vpxor  ymm9, ymm9, ymm9
+.loop16:
+    cmp  r13, 16
+    jb   .tail
+    vmovupd ymm1, [r12]
+    vmovupd ymm2, [r12+32]
+    vmovupd ymm3, [r12+64]
+    vmovupd ymm4, [r12+96]
+    vaddpd  ymm6, ymm6, ymm1
+    vaddpd  ymm7, ymm7, ymm2
+    vaddpd  ymm8, ymm8, ymm3
+    vaddpd  ymm9, ymm9, ymm4
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+.tail:
+    cmp r13, 8
+    jb .tail4
+    vmovupd ymm1, [r12]
+    vmovupd ymm2, [r12+32]
+    vaddpd  ymm6, ymm6, ymm1
+    vaddpd  ymm7, ymm7, ymm2
+    add r12, 64
+    sub r13, 8
+.tail4:
+    cmp r13, 4
+    jb .tail1
+    vmovupd ymm1, [r12]
+    vaddpd  ymm6, ymm6, ymm1
+    add r12, 32
+    sub r13, 4
+.tail1:
+    test r13, r13
+    jz   .accum
+.tail_loop:
+    vaddsd xmm0, xmm0, [r12]
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
+.accum:
+    vaddpd ymm6, ymm6, ymm7
+    vaddpd ymm8, ymm8, ymm9
+    vaddpd ymm6, ymm6, ymm8
+    vextractf128 xmm1, ymm6, 1
+    vaddpd       xmm2, xmm6, xmm1
+    vhaddpd      xmm2, xmm2, xmm2    ; Horizontal add [a+b, a+b]
+    vaddsd xmm0, xmm0, xmm2
+.done:
+    EPILOGUE
+
+; =============================================================================
+; int64_t fp_reduce_max_i64(const int64_t* in, size_t n)
+; *** STABLE V10 ***
+; Strategy: Scalar. 4-way unroll with 4 accumulators, broken dependencies.
+; This matches/beats the compiler.
+; =============================================================================
+fp_reduce_max_i64:
+    PROLOGUE
+    mov  r12, rcx     ; in
+    mov  r13, rdx     ; n
+
+    test r13, r13     ; Check for n=0
+    jz   .done_zero
+
+    ; Initialize accumulators with first element broadcast
+    vpbroadcastq ymm6, [r12]
+    vmovdqa ymm7, ymm6
+    vmovdqa ymm8, ymm6
+    vmovdqa ymm9, ymm6
+
+    add  r12, 8       ; advance past first element (already in accumulators)
+    dec  r13          ; adjust remaining count
+
+.loop16:
+    cmp  r13, 16
+    jb   .tail8
+
+    ; Load 16 x i64 (4 YMM registers)
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+
+    ; SIMD MAX using compare-and-blend (AVX2 has no vpmaxsq)
+    vpcmpgtq ymm10, ymm6, ymm0    ; ymm10 = mask (ymm6 > ymm0)
+    vpblendvb ymm6, ymm0, ymm6, ymm10  ; ymm6 = max(ymm6, ymm0)
+
+    vpcmpgtq ymm10, ymm7, ymm1
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    vpcmpgtq ymm10, ymm8, ymm2
+    vpblendvb ymm8, ymm2, ymm8, ymm10
+
+    vpcmpgtq ymm10, ymm9, ymm3
+    vpblendvb ymm9, ymm3, ymm9, ymm10
+
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+
+.tail8:
+    cmp  r13, 8
+    jb   .tail4
+
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vpcmpgtq ymm10, ymm6, ymm0
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+    vpcmpgtq ymm10, ymm7, ymm1
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    add  r12, 64
+    sub  r13, 8
+
+.tail4:
+    cmp  r13, 4
+    jb   .tail_scalar
+
+    vmovdqu ymm0, [r12]
+    vpcmpgtq ymm10, ymm6, ymm0
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+
+    add  r12, 32
+    sub  r13, 4
+
+.tail_scalar:
+    ; Horizontal reduction of SIMD accumulators
+    vpcmpgtq ymm10, ymm6, ymm7
+    vpblendvb ymm6, ymm7, ymm6, ymm10
+    vpcmpgtq ymm10, ymm8, ymm9
+    vpblendvb ymm8, ymm9, ymm8, ymm10
+    vpcmpgtq ymm10, ymm6, ymm8
+    vpblendvb ymm6, ymm8, ymm6, ymm10
+
+    vextractf128 xmm0, ymm6, 1
+    vpcmpgtq xmm1, xmm6, xmm0
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vpshufd xmm0, xmm6, 0x4E
+    vpcmpgtq xmm1, xmm6, xmm0
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vmovq rax, xmm6    ; Extract final max
+
+    ; Handle remaining 1-3 elements
+    test r13, r13
+    jz   .done
+.tail_loop:
+    mov  r10, [r12]
+    cmp  rax, r10
+    cmovl rax, r10
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
+
+.done:
+    EPILOGUE
+
+.done_zero:
+    xor  rax, rax
+    jmp .done
+
+
+; =============================================================================
+; double fp_reduce_max_f64(const double* in, size_t n)
+; (Unchanged - Performed great)
+; =============================================================================
+fp_reduce_max_f64:
+    PROLOGUE
+    mov  r12, rcx
+    mov  r13, rdx
+    test r13, r13
+    jz   .done_zero_vec
+    
+    vmovdqa ymm6, [rel NEG_INF_F64]
+    vmovdqa ymm7, [rel NEG_INF_F64]
+    vmovdqa ymm8, [rel NEG_INF_F64]
+    vmovdqa ymm9, [rel NEG_INF_F64]
+    vmovdqa xmm0, [rel NEG_INF_F64]
+.loop16:
+    cmp  r13, 16
+    jb   .tail
+    vmovupd ymm1, [r12]
+    vmovupd ymm2, [r12+32]
+    vmovupd ymm3, [r12+64]
+    vmovupd ymm4, [r12+96]
+    vmaxpd  ymm6, ymm6, ymm1
+    vmaxpd  ymm7, ymm7, ymm2
+    vmaxpd  ymm8, ymm8, ymm3
+    vmaxpd  ymm9, ymm9, ymm4
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+.tail:
+    test r13, r13
+    jz   .accum
+.tail_loop:
+    vmaxsd xmm0, xmm0, [r12]
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
+.accum:
+    vmaxpd ymm6, ymm6, ymm7
+    vmaxpd ymm8, ymm8, ymm9
+    vmaxpd ymm6, ymm6, ymm8
+    vextractf128 xmm1, ymm6, 1
+    vmaxpd       xmm2, xmm6, xmm1
+    vpermilpd    xmm1, xmm2, 1
+    vmaxpd       xmm2, xmm2, xmm1
+    vmaxsd xmm0, xmm0, xmm2
+.done:
+    EPILOGUE
+.done_zero_vec:
+    vpxor  xmm0, xmm0, xmm0
+    jmp .done
+
+; =============================================================================
+; double fp_reduce_min_f64(const double* in, size_t n)
+; Find minimum value in array using SIMD
+; =============================================================================
+fp_reduce_min_f64:
+    PROLOGUE
+    mov  r12, rcx
+    mov  r13, rdx
+    test r13, r13
+    jz   .done_zero_vec
+
+    vmovdqa ymm6, [rel POS_INF_F64]
+    vmovdqa ymm7, [rel POS_INF_F64]
+    vmovdqa ymm8, [rel POS_INF_F64]
+    vmovdqa ymm9, [rel POS_INF_F64]
+    vmovdqa xmm0, [rel POS_INF_F64]
+.loop16:
+    cmp  r13, 16
+    jb   .tail
+    vmovupd ymm1, [r12]
+    vmovupd ymm2, [r12+32]
+    vmovupd ymm3, [r12+64]
+    vmovupd ymm4, [r12+96]
+    vminpd  ymm6, ymm6, ymm1
+    vminpd  ymm7, ymm7, ymm2
+    vminpd  ymm8, ymm8, ymm3
+    vminpd  ymm9, ymm9, ymm4
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+.tail:
+    test r13, r13
+    jz   .accum
+.tail_loop:
+    vminsd xmm0, xmm0, [r12]
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
+.accum:
+    vminpd ymm6, ymm6, ymm7
+    vminpd ymm8, ymm8, ymm9
+    vminpd ymm6, ymm6, ymm8
+    vextractf128 xmm1, ymm6, 1
+    vminpd       xmm2, xmm6, xmm1
+    vpermilpd    xmm1, xmm2, 1
+    vminpd       xmm2, xmm2, xmm1
+    vminsd xmm0, xmm0, xmm2
+.done:
+    EPILOGUE
+.done_zero_vec:
+    vpxor  xmm0, xmm0, xmm0
+    jmp .done
+
+; =============================================================================
+; int64_t fp_reduce_min_i64(const int64_t* in, size_t n)
+; Find minimum value in array (scalar, AVX2 lacks vpminsq)
+; =============================================================================
+fp_reduce_min_i64:
+    PROLOGUE
+    mov  r12, rcx
+    mov  r13, rdx
+
+    test r13, r13
+    jz   .done_zero
+
+    ; Initialize accumulators with first element broadcast
+    vpbroadcastq ymm6, [r12]
+    vmovdqa ymm7, ymm6
+    vmovdqa ymm8, ymm6
+    vmovdqa ymm9, ymm6
+
+    add  r12, 8       ; advance past first element (already in accumulators)
+    dec  r13          ; adjust remaining count
+
+.loop16:
+    cmp  r13, 16
+    jb   .tail8
+
+    ; Load 16 x i64 (4 YMM registers)
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vmovdqu ymm2, [r12+64]
+    vmovdqu ymm3, [r12+96]
+
+    ; SIMD MIN using compare-and-blend (AVX2 has no vpminsq)
+    vpcmpgtq ymm10, ymm0, ymm6    ; ymm10 = mask (ymm0 > ymm6)
+    vpblendvb ymm6, ymm0, ymm6, ymm10  ; ymm6 = min(ymm6, ymm0)
+
+    vpcmpgtq ymm10, ymm1, ymm7
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    vpcmpgtq ymm10, ymm2, ymm8
+    vpblendvb ymm8, ymm2, ymm8, ymm10
+
+    vpcmpgtq ymm10, ymm3, ymm9
+    vpblendvb ymm9, ymm3, ymm9, ymm10
+
+    add  r12, 128
+    sub  r13, 16
+    jmp  .loop16
+
+.tail8:
+    cmp  r13, 8
+    jb   .tail4
+
+    vmovdqu ymm0, [r12]
+    vmovdqu ymm1, [r12+32]
+    vpcmpgtq ymm10, ymm0, ymm6
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+    vpcmpgtq ymm10, ymm1, ymm7
+    vpblendvb ymm7, ymm1, ymm7, ymm10
+
+    add  r12, 64
+    sub  r13, 8
+
+.tail4:
+    cmp  r13, 4
+    jb   .tail_scalar
+
+    vmovdqu ymm0, [r12]
+    vpcmpgtq ymm10, ymm0, ymm6
+    vpblendvb ymm6, ymm0, ymm6, ymm10
+
+    add  r12, 32
+    sub  r13, 4
+
+.tail_scalar:
+    ; Horizontal reduction of SIMD accumulators
+    vpcmpgtq ymm10, ymm7, ymm6
+    vpblendvb ymm6, ymm7, ymm6, ymm10
+    vpcmpgtq ymm10, ymm9, ymm8
+    vpblendvb ymm8, ymm9, ymm8, ymm10
+    vpcmpgtq ymm10, ymm8, ymm6
+    vpblendvb ymm6, ymm8, ymm6, ymm10
+
+    vextractf128 xmm0, ymm6, 1
+    vpcmpgtq xmm1, xmm0, xmm6
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vpshufd xmm0, xmm6, 0x4E
+    vpcmpgtq xmm1, xmm0, xmm6
+    vpblendvb xmm6, xmm0, xmm6, xmm1
+
+    vmovq rax, xmm6    ; Extract final min
+
+    ; Handle remaining 1-3 elements
+    test r13, r13
+    jz   .done
+.tail_loop:
+    mov  r10, [r12]
+    cmp  r10, rax
+    cmovl rax, r10
+    add  r12, 8
+    dec  r13
+    jnz  .tail_loop
+
+.done:
+    EPILOGUE
+
+.done_zero:
+    xor rax, rax
+    jmp .done
+
+; =============================================================================
+; double fp_reduce_add_f64_where(const double* x, const int* mask, size_t n)
+;
+; Conditional reduction: sum x[i] where mask[i] != 0
+; Used for masked statistics (e.g., summing subset of data)
+;
+; AVX2 optimized implementation using masked blend operations.
+; Processes 4 doubles per iteration with branchless SIMD masking.
+;
+; Strategy:
+;   - Load 4 x 32-bit masks, sign-extend to 64-bit for vblendvpd
+;   - Load 4 x f64 values
+;   - Blend: keep value where mask != 0, zero otherwise
+;   - Accumulate into SIMD accumulators
+;   - Horizontal reduction at end
+;
+; Arguments (Windows x64 ABI):
+;   RCX = x (const double*)
+;   RDX = mask (const int*)  - 32-bit integers
+;   R8  = n (size_t)
+;
+; Returns:
+;   XMM0 = sum of x[i] where mask[i] != 0
+;   Returns 0.0 if x is NULL, mask is NULL, or n is 0
+; =============================================================================
+fp_reduce_add_f64_where:
+    PROLOGUE
+
+    ; Initialize sum to 0.0 (return value for NULL/empty cases)
+    vxorpd xmm0, xmm0, xmm0
+
+    ; Null pointer checks
+    test rcx, rcx           ; Check x != NULL
+    jz   .done_where
+    test rdx, rdx           ; Check mask != NULL
+    jz   .done_where
+
+    mov  r12, rcx           ; r12 = x
+    mov  r14, rdx           ; r14 = mask
+    mov  r13, r8            ; r13 = n
+
+    test r13, r13
+    jz   .done_where
+
+    ; Initialize 4 accumulators for better pipelining
+    vxorpd ymm6, ymm6, ymm6 ; acc0
+    vxorpd ymm7, ymm7, ymm7 ; acc1
+    vxorpd ymm8, ymm8, ymm8 ; acc2
+    vxorpd ymm9, ymm9, ymm9 ; acc3
+
+; -----------------------------------------------------------------------------
+; Main loop: Process 16 doubles per iteration (4 x 4-wide)
+; -----------------------------------------------------------------------------
+.loop16_where:
+    cmp  r13, 16
+    jb   .loop4_where
+
+    ; --- Block 0: 4 doubles ---
+    vmovdqu xmm1, [r14]           ; Load 4 x 32-bit masks
+    vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit
+    vxorpd  ymm4, ymm4, ymm4      ; zero vector for compare
+    vpcmpeqq ymm4, ymm1, ymm4     ; zero_mask = (mask == 0)
+    vpcmpeqq ymm5, ymm5, ymm5     ; all ones
+    vpxor   ymm1, ymm4, ymm5      ; mask_nz = ~zero_mask (any non-zero -> all ones)
+    vmovupd ymm2, [r12]           ; Load 4 x f64 values
+    vxorpd  ymm3, ymm3, ymm3      ; Zero vector
+    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Select: val where mask != 0, 0 otherwise
+    vaddpd ymm6, ymm6, ymm2       ; Accumulate
+
+    ; --- Block 1: Next 4 doubles ---
+    vmovdqu xmm1, [r14+16]
+    vpmovsxdq ymm1, xmm1
+    vxorpd  ymm4, ymm4, ymm4
+    vpcmpeqq ymm4, ymm1, ymm4
+    vpcmpeqq ymm5, ymm5, ymm5
+    vpxor   ymm1, ymm4, ymm5
+    vmovupd ymm2, [r12+32]
+    vblendvpd ymm2, ymm3, ymm2, ymm1
+    vaddpd ymm7, ymm7, ymm2
+
+    ; --- Block 2: Next 4 doubles ---
+    vmovdqu xmm1, [r14+32]
+    vpmovsxdq ymm1, xmm1
+    vxorpd  ymm4, ymm4, ymm4
+    vpcmpeqq ymm4, ymm1, ymm4
+    vpcmpeqq ymm5, ymm5, ymm5
+    vpxor   ymm1, ymm4, ymm5
+    vmovupd ymm2, [r12+64]
+    vblendvpd ymm2, ymm3, ymm2, ymm1
+    vaddpd ymm8, ymm8, ymm2
+
+    ; --- Block 3: Next 4 doubles ---
+    vmovdqu xmm1, [r14+48]
+    vpmovsxdq ymm1, xmm1
+    vxorpd  ymm4, ymm4, ymm4
+    vpcmpeqq ymm4, ymm1, ymm4
+    vpcmpeqq ymm5, ymm5, ymm5
+    vpxor   ymm1, ymm4, ymm5
+    vmovupd ymm2, [r12+96]
+    vblendvpd ymm2, ymm3, ymm2, ymm1
+    vaddpd ymm9, ymm9, ymm2
+
+    add  r12, 128           ; x += 16 doubles (128 bytes)
+    add  r14, 64            ; mask += 16 ints (64 bytes)
+    sub  r13, 16
+    jmp  .loop16_where
+
+; -----------------------------------------------------------------------------
+; Process 4 doubles per iteration
+; -----------------------------------------------------------------------------
+.loop4_where:
+    cmp  r13, 4
+    jb   .tail_where
+
+    vmovdqu xmm1, [r14]           ; Load 4 x 32-bit masks
+    vpmovsxdq ymm1, xmm1          ; Sign-extend to 4 x 64-bit
+    vxorpd  ymm4, ymm4, ymm4      ; zero vector for compare
+    vpcmpeqq ymm4, ymm1, ymm4     ; zero_mask = (mask == 0)
+    vpcmpeqq ymm5, ymm5, ymm5     ; all ones
+    vpxor   ymm1, ymm4, ymm5      ; mask_nz = ~zero_mask
+    vmovupd ymm2, [r12]           ; Load 4 x f64 values
+    vxorpd  ymm3, ymm3, ymm3      ; Zero vector
+    vblendvpd ymm2, ymm3, ymm2, ymm1  ; Conditional select where mask != 0
+    vaddpd ymm6, ymm6, ymm2       ; Accumulate
+
+    add  r12, 32            ; x += 4 doubles
+    add  r14, 16            ; mask += 4 ints
+    sub  r13, 4
+    jmp  .loop4_where
+
+; -----------------------------------------------------------------------------
+; Scalar tail: Process remaining 1-3 elements
+; -----------------------------------------------------------------------------
+.tail_where:
+    ; Horizontal reduction of SIMD accumulators
+    vaddpd ymm6, ymm6, ymm7
+    vaddpd ymm8, ymm8, ymm9
+    vaddpd ymm6, ymm6, ymm8
+
+    ; Reduce ymm6 to scalar
+    vextractf128 xmm1, ymm6, 1
+    vaddpd xmm2, xmm6, xmm1       ; xmm2 = [a+c, b+d]
+    vhaddpd xmm0, xmm2, xmm2      ; xmm0 = [a+b+c+d, a+b+c+d]
+
+    ; Process remaining elements (0-3)
+    test r13, r13
+    jz   .done_where
+
+.scalar_loop_where:
+    mov  eax, [r14]
+    test eax, eax
+    jz   .skip_scalar_where
+
+    vaddsd xmm0, xmm0, [r12]
+
+.skip_scalar_where:
+    add  r12, 8             ; x++
+    add  r14, 4             ; mask++
+    dec  r13
+    jnz  .scalar_loop_where
+
+.done_where:
+    EPILOGUE
+

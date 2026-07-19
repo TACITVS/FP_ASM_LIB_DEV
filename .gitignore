@@ -1,0 +1,28 @@
+# Build output
+/build/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.exp
+*.pdb
+*.ilk
+
+# Assembler/compiler intermediates
+*.lst
+*.map
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local scratch
+/scratch/
