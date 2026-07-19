@@ -15,8 +15,11 @@ are.
 
 ## ✅ Covered today
 
-**Higher-order core** — `map`, `filter`, `foldl`, `foldr`, `zipWith`
-**Scans** — `scanl`, `scanr`, prefix-sum kernels (`fp_scan_add_*`)
+**Higher-order core** — `map`, `filter`, `foldl`, `foldr`, `foldl1`, `foldr1`,
+`zipWith`, `zipWith3`, `mapAccumL`
+**Scans** — `scanl`, `scanr`, `scanl1`, prefix-sum kernels (`fp_scan_add_*`)
+**Ordering & grouping** — `sortBy` (stable), `groupBy`, `nubBy`, `intersperse`,
+`transpose`
 **Reductions / Foldable** — `sum`, `product`, `min`, `max`, `all`, `any`,
 `countIf`, `find` (→ `Maybe`), `elem`/`contains`
 **Slicing & ordering** — `take`, `drop`, `takeWhile`, `dropWhile`, `span`,
@@ -33,10 +36,8 @@ are.
 
 ## 🔜 Planned — remaining operations toward full coverage
 
-- `foldl1` / `foldr1`, `scanl1` / `scanr1`
-- `zip` / `zip3` / `unzip`, `mapAccumL` / `mapAccumR`
-- `groupBy` / `sortBy` / `sortOn` (general comparators), `intercalate` /
-  `intersperse` / `transpose`, `subsequences` / `permutations`
+- `scanr1`, `mapAccumR`; `zip` / `zip3` / `unzip` (pair types)
+- `sortOn`, `intercalate`, `subsequences` / `permutations`
 - `foldMap` over a `Monoid`; `Foldable`/`Functor`/`Applicative`/`Traversable`
   as explicit dictionaries (the C stand-in for type classes)
 - `traverse` / `sequenceA` and `mapM` / `forM` over arbitrary applicatives

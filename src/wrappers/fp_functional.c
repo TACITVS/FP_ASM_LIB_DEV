@@ -3,6 +3,67 @@
  * See include/fp_functional.h for the API and rationale.
  */
 #include "../../include/fp_functional.h"
+#include <stdlib.h>   /* malloc/free for the sort temp buffer */
+
+/* ============== Milestone B: ordering & grouping ================== */
+#define SORT_BY(T, SUF) \
+void fp_sort_by_##SUF(T* a, size_t n, int (*cmp)(T, T, void*), void* ctx) { \
+    if (!a || !cmp || n < 2) return; \
+    T* tmp = (T*)malloc(n * sizeof(T)); \
+    if (!tmp) return; \
+    for (size_t w = 1; w < n; w *= 2) { \
+        for (size_t i = 0; i < n; i += 2*w) { \
+            size_t lo = i, mid = (i+w < n) ? i+w : n, hi = (i+2*w < n) ? i+2*w : n; \
+            size_t l = lo, r = mid, k = lo; \
+            while (l < mid && r < hi) tmp[k++] = (cmp(a[r], a[l], ctx) < 0) ? a[r++] : a[l++]; /* stable: left on tie */ \
+            while (l < mid) tmp[k++] = a[l++]; \
+            while (r < hi)  tmp[k++] = a[r++]; \
+            for (size_t j = lo; j < hi; j++) a[j] = tmp[j]; \
+        } \
+    } \
+    free(tmp); }
+SORT_BY(int64_t, i64)
+SORT_BY(double,  f64)
+
+#define GROUP_BY(T, SUF) \
+size_t fp_group_by_##SUF(const T* in, size_t n, T* out_flat, size_t* out_lens, bool (*eq)(T, T, void*), void* ctx) { \
+    if (!in || !out_flat || !out_lens || !eq || n == 0) return 0; \
+    for (size_t i = 0; i < n; i++) out_flat[i] = in[i]; \
+    size_t g = 0, run = 1; \
+    for (size_t i = 1; i < n; i++) { if (eq(in[i-1], in[i], ctx)) run++; else { out_lens[g++] = run; run = 1; } } \
+    out_lens[g++] = run; \
+    return g; }
+GROUP_BY(int64_t, i64)
+GROUP_BY(double,  f64)
+
+#define NUB_BY(T, SUF) \
+size_t fp_nub_by_##SUF(const T* in, size_t n, T* out, bool (*eq)(T, T, void*), void* ctx) { \
+    if (!in || !out || !eq) return 0; \
+    size_t m = 0; \
+    for (size_t i = 0; i < n; i++) { int dup = 0; \
+        for (size_t j = 0; j < m; j++) if (eq(out[j], in[i], ctx)) { dup = 1; break; } \
+        if (!dup) out[m++] = in[i]; } \
+    return m; }
+NUB_BY(int64_t, i64)
+NUB_BY(double,  f64)
+
+#define INTERSPERSE(T, SUF) \
+size_t fp_intersperse_##SUF(const T* in, size_t n, T sep, T* out) { \
+    if (!in || !out || n == 0) return 0; \
+    size_t k = 0; \
+    for (size_t i = 0; i < n; i++) { if (i > 0) out[k++] = sep; out[k++] = in[i]; } \
+    return k; }
+INTERSPERSE(int64_t, i64)
+INTERSPERSE(double,  f64)
+
+#define TRANSPOSE(T, SUF) \
+size_t fp_transpose_##SUF(const T* in, size_t rows, size_t cols, T* out) { \
+    if (!in || !out) return 0; \
+    for (size_t r = 0; r < rows; r++) for (size_t c = 0; c < cols; c++) out[c*rows + r] = in[r*cols + c]; \
+    return rows * cols; }
+TRANSPOSE(int64_t, i64)
+TRANSPOSE(double,  f64)
+
 
 /* =================== folds/scans without a seed ==================== */
 int64_t fp_foldl1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {

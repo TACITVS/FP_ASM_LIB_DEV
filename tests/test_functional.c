@@ -33,6 +33,10 @@ static int64_t max2(int64_t a, int64_t b, void* c){ (void)c; return a > b ? a : 
 static int64_t sub_xa2(int64_t x, int64_t acc, void* c){ (void)c; return x - acc; }
 static int64_t runsum(int64_t acc, int64_t x, int64_t* out, void* c){ (void)c; *out = acc + x; return acc + x; }
 static int64_t sum3(int64_t a, int64_t b, int64_t d, void* c){ (void)c; return a + b + d; }
+/* milestone B */
+static int cmp_asc(int64_t a, int64_t b, void* c){ (void)c; return (a<b)?-1:((a>b)?1:0); }
+static int cmp_mod10(int64_t a, int64_t b, void* c){ (void)c; return (int)((a%10)-(b%10)); }
+static bool beq(int64_t a, int64_t b, void* c){ (void)c; return a==b; }
 
 int main(void){
     int64_t a[] = {1,2,3,4};
@@ -101,6 +105,21 @@ int main(void){
     ok("mapAccumL running-sum out+acc", eqa(out,(int64_t[]){1,3,6,10},4) && facc==10);
     fp_zipWith3_i64((int64_t[]){1,2,3},(int64_t[]){10,20,30},(int64_t[]){100,200,300},out,3,sum3,NULL);
     ok("zipWith3 (+) -> [111,222,333]", eqa(out,(int64_t[]){111,222,333},3));
+
+    /* ---- Milestone B: sortBy, groupBy, nubBy, intersperse, transpose ---- */
+    { int64_t s[] = {3,1,4,1,5,9,2,6}; fp_sort_by_i64(s,8,cmp_asc,NULL);
+      ok("sortBy asc", eqa(s,(int64_t[]){1,1,2,3,4,5,6,9},8)); }
+    { int64_t s[] = {21,13,11,23}; fp_sort_by_i64(s,4,cmp_mod10,NULL);  /* keys 1,3,1,3 */
+      ok("sortBy stable (ties keep order)", eqa(s,(int64_t[]){21,11,13,23},4)); }
+    { int64_t g[] = {1,1,2,3,3,3,4}; int64_t of[8]; size_t lens[8];
+      size_t ng = fp_group_by_i64(g,7,of,lens,beq,NULL);
+      ok("groupBy consecutive -> 4 groups", ng==4 && lens[0]==2 && lens[1]==1 && lens[2]==3 && lens[3]==1); }
+    { int64_t nb[] = {1,2,1,3,2,4}; int64_t o2[6]; size_t m2 = fp_nub_by_i64(nb,6,o2,beq,NULL);
+      ok("nubBy -> [1,2,3,4]", m2==4 && eqa(o2,(int64_t[]){1,2,3,4},4)); }
+    { int64_t o3[8]; size_t m3 = fp_intersperse_i64((int64_t[]){1,2,3},3,0,o3);
+      ok("intersperse 0 -> [1,0,2,0,3]", m3==5 && eqa(o3,(int64_t[]){1,0,2,0,3},5)); }
+    { int64_t o4[6]; fp_transpose_i64((int64_t[]){1,2,3,4,5,6},2,3,o4);   /* 2x3 -> 3x2 */
+      ok("transpose 2x3 -> [1,4,2,5,3,6]", eqa(o4,(int64_t[]){1,4,2,5,3,6},6)); }
 
     printf("\n%s (%d failure%s)\n", fails?"FAILED":"ALL PASS", fails, fails==1?"":"s");
     return fails?1:0;

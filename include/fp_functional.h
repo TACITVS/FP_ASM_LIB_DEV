@@ -113,6 +113,33 @@ size_t fp_unfoldr_i64(int64_t* out, size_t max, int64_t seed,
 size_t fp_unfoldr_f64(double* out, size_t max, double seed,
                       bool (*fn)(double* state, double* out_val, void* ctx), void* ctx);
 
+/* ================= Milestone B: ordering & grouping ================
+ * sortBy is a STABLE sort (like Haskell's) with a context-aware comparator
+ * returning <0 / 0 / >0. It sorts in place and allocates an O(n) temp buffer. */
+void fp_sort_by_i64(int64_t* arr, size_t n, int (*cmp)(int64_t a, int64_t b, void* ctx), void* ctx);
+void fp_sort_by_f64(double*  arr, size_t n, int (*cmp)(double  a, double  b, void* ctx), void* ctx);
+
+/* groupBy: split into maximal runs of CONSECUTIVE elements for which eq holds.
+ * Copies `in` to `out_flat` (same order) and writes each run's length to
+ * `out_lens` (capacity >= n). Returns the number of groups. */
+size_t fp_group_by_i64(const int64_t* in, size_t n, int64_t* out_flat, size_t* out_lens,
+                       bool (*eq)(int64_t, int64_t, void*), void* ctx);
+size_t fp_group_by_f64(const double* in, size_t n, double* out_flat, size_t* out_lens,
+                       bool (*eq)(double, double, void*), void* ctx);
+
+/* nubBy: remove duplicates by an equality predicate, keeping first occurrences
+ * and input order. O(n^2), like Haskell's nub. Returns the deduplicated count. */
+size_t fp_nub_by_i64(const int64_t* in, size_t n, int64_t* out, bool (*eq)(int64_t, int64_t, void*), void* ctx);
+size_t fp_nub_by_f64(const double* in, size_t n, double* out, bool (*eq)(double, double, void*), void* ctx);
+
+/* intersperse: place `sep` between adjacent elements. Writes 2n-1 elements. */
+size_t fp_intersperse_i64(const int64_t* in, size_t n, int64_t sep, int64_t* out);
+size_t fp_intersperse_f64(const double* in, size_t n, double sep, double* out);
+
+/* transpose a row-major rows x cols matrix into a cols x rows matrix. */
+size_t fp_transpose_i64(const int64_t* in, size_t rows, size_t cols, int64_t* out);
+size_t fp_transpose_f64(const double* in, size_t rows, size_t cols, double* out);
+
 /* mapMaybe (map then keep only the Justs) already lives in fp_monads.h:
  *   size_t fp_map_maybe_i64(const int64_t* in, size_t n, Maybe (*fn)(int64_t), int64_t* out);
  * Included here via fp_monads.h so callers get the whole toolkit from one header. */
