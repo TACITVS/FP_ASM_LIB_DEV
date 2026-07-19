@@ -29,13 +29,27 @@ section .text
 
 global fp_map_axpy_f32
 fp_map_axpy_f32:
+    ABI_ARGS_INT
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     ; Load scalar c from stack and broadcast
-    vmovss xmm15, [rbp + 48]        ; Load c from 5th argument (stack)
+%ifdef FP_WIN64
+    vmovss xmm15, [rbp + 88]        ; Win64: c (5th arg) on stack (6 pushes)
+%else
+    vmovaps xmm15, xmm0             ; SysV: float c is 1st float arg (xmm0)
+%endif
     vbroadcastss ymm15, xmm15       ; ymm15 = [c, c, c, c, c, c, c, c]
 
     mov r12, rcx                    ; r12 = x
@@ -108,8 +122,18 @@ fp_map_axpy_f32:
     jnz .tail_loop
 
 .done:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
     vzeroupper
     mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret
 
@@ -125,6 +149,7 @@ fp_map_axpy_f32:
 
 global fp_map_scale_f32
 fp_map_scale_f32:
+    ABI_ARGS_INT3_F1
     push rbp
     push r12                        ; Preserve non-volatile R12
     push r14                        ; Preserve non-volatile R14
@@ -213,10 +238,20 @@ fp_map_scale_f32:
 
 global fp_map_offset_f32
 fp_map_offset_f32:
+    ABI_ARGS_INT3_F1
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     ; Broadcast scalar c
     vbroadcastss ymm15, xmm3
@@ -277,8 +312,18 @@ fp_map_offset_f32:
     jnz .tail_loop
 
 .done:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
     vzeroupper
     mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret
 
@@ -294,10 +339,20 @@ fp_map_offset_f32:
 
 global fp_zip_add_f32
 fp_zip_add_f32:
+    ABI_ARGS_INT
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     mov r12, rcx
     mov r13, rdx
@@ -366,7 +421,17 @@ fp_zip_add_f32:
     jnz .tail_loop
 
 .done:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
     vzeroupper
     mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret

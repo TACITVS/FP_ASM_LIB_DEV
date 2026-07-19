@@ -17,7 +17,7 @@ if called on Linux — do not use them on Linux yet.
 |---|---|
 | `fp_core_reductions*` (10 widths) | `fp_reduce_{add,min,max,mul,product}_*`, `fp_reduce_add_f64_where` |
 | `fp_core_fused_folds*` (10 widths) | `fp_fold_{dotp,sumsq,sad}_*` |
-| `fp_core_fused_maps` (i64/f64) | `fp_map_{scale,offset,axpy}_{i64,f64}`, `fp_zip_add_{i64,f64}` |
+| `fp_core_fused_maps*` (all widths) | `fp_map_{scale,offset,axpy}_*`, `fp_zip_add_*` (i8/i16/i32/i64, u8/u16/u32/u64, f32/f64) |
 | `fp_core_predicates` | `fp_pred_all_eq_const_i64`, `fp_pred_any_gt_const_i64`, `fp_pred_all_gt_zip_i64` |
 | `fp_core_tier3` | `fp_count_i64`, `fp_range_i64`, `fp_iterate_{add,mul}_i64`, `fp_group_i64`, `fp_run_length_encode_i64`, `fp_zip_with_index_i64`, `fp_reduce_{and,or}_bool`, `fp_replicate_f64` |
 | `3d_math_kernels` | `fp_map_transform_vec3_f32`, `fp_zipWith_vec3_add_f32`, `fp_map_quat_rotate_vec3_f32`, `fp_reduce_vec3_add_f32`, `fp_fold_vec3_dot_f32`, `fp_quat_normalize_asm`, `fp_quat_to_mat4` |
@@ -31,7 +31,6 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 
 | Module | Notes |
 |---|---|
-| `fp_core_fused_maps_{i8,i16,i32,u8,u16,u32,u64,f32}` | Also carry a pre-existing callee-saved-register preservation bug (see below); port + fix together |
 | `fp_core_simple_maps` | clamp/min-max maps with float args |
 | `fp_core_scans` | prefix sums |
 | `fp_core_descriptive_stats` | |
@@ -51,9 +50,8 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 - **`fp_reverse_i64`** used an in-place pair-swap loop while writing to a
   separate output buffer, interleaving the two ends instead of reversing.
   Rewritten as `out[i] = in[n-1-i]`.
-
-## Known open bug
-
-- Narrow-width `fp_core_fused_maps_*` clobber callee-saved `r12/r13/r14/r15`
-  (and `xmm6–15` on Windows) without preserving them, corrupting the caller on
-  every platform. Must be fixed together with their Linux ABI port.
+- **Narrow-width `fp_core_fused_maps_*`** clobbered callee-saved `r12/r13/r14`
+  (+ `r15` in some axpy, `rbx` in `axpy_u64`, and `xmm6/7/15` on Windows)
+  without preserving them — corrupting the caller on every platform (segfaults
+  on Linux under `-O2`). Every narrow map function now uses a uniform frame that
+  preserves `rbx`/`r12`–`r15` (and, on Win64 only, `xmm6/xmm7/xmm15`).
