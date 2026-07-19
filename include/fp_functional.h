@@ -30,9 +30,29 @@
 extern "C" {
 #endif
 
+/* ---- Milestone E: windowing & container ops ----
+ * chunksOf: split into contiguous chunks of size k (last may be shorter).
+ * Copies `in` to out_flat and writes each chunk length to out_lens. Returns
+ * the number of chunks. */
+size_t fp_chunks_of_i64(const int64_t* in, size_t n, size_t k, int64_t* out_flat, size_t* out_lens);
+size_t fp_chunks_of_f64(const double* in, size_t n, size_t k, double* out_flat, size_t* out_lens);
+/* windows: all contiguous overlapping windows of size k, materialized back to
+ * back into out_flat (capacity (n-k+1)*k). Returns the window count (0 if k>n). */
+size_t fp_windows_i64(const int64_t* in, size_t n, size_t k, int64_t* out_flat);
+size_t fp_windows_f64(const double* in, size_t n, size_t k, double* out_flat);
+/* splitAt: left = in[0..at), right = in[at..n). Returns the left length. */
+size_t fp_split_at_i64(const int64_t* in, size_t n, size_t at, int64_t* left, int64_t* right);
+size_t fp_split_at_f64(const double* in, size_t n, size_t at, double* left, double* right);
+/* catMaybes ([Maybe a] -> [a]) already lives in fp_monads.h (included above):
+ *   size_t fp_cat_maybes_i64(const Maybe* maybes, size_t n, int64_t* out); */
+
 /* ---- pair type for zip / unzip ---- */
 typedef struct { int64_t fst, snd; } fp_pair_i64;
 typedef struct { double  fst, snd; } fp_pair_f64;
+
+/* enumerate: pair each element with its index -> (i, x). (Milestone E) */
+size_t fp_enumerate_i64(const int64_t* in, size_t n, fp_pair_i64* out);
+size_t fp_enumerate_f64(const double* in, size_t n, fp_pair_f64* out);
 
 /* ---- Milestone D: right-to-left scans/accums, zip/unzip, sortOn ---- */
 size_t fp_scanr1_i64(const int64_t* in, int64_t* out, size_t n, int64_t (*fn)(int64_t x, int64_t acc, void*), void* ctx);

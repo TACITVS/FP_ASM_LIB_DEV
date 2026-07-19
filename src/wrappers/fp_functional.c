@@ -65,6 +65,48 @@ TRANSPOSE(int64_t, i64)
 TRANSPOSE(double,  f64)
 
 
+/* ============ Milestone E: windowing & container ops ============== */
+#define CHUNKS_OF(T, SUF) \
+size_t fp_chunks_of_##SUF(const T* in, size_t n, size_t k, T* out_flat, size_t* out_lens) { \
+    if (!in || !out_flat || !out_lens || k == 0 || n == 0) return 0; \
+    for (size_t i = 0; i < n; i++) out_flat[i] = in[i]; \
+    size_t g = 0; \
+    for (size_t off = 0; off < n; off += k) out_lens[g++] = (off + k <= n) ? k : (n - off); \
+    return g; }
+CHUNKS_OF(int64_t, i64)
+CHUNKS_OF(double,  f64)
+
+#define WINDOWS(T, SUF) \
+size_t fp_windows_##SUF(const T* in, size_t n, size_t k, T* out_flat) { \
+    if (!in || !out_flat || k == 0 || k > n) return 0; \
+    size_t w = n - k + 1, o = 0; \
+    for (size_t s = 0; s < w; s++) for (size_t j = 0; j < k; j++) out_flat[o++] = in[s + j]; \
+    return w; }
+WINDOWS(int64_t, i64)
+WINDOWS(double,  f64)
+
+#define SPLIT_AT(T, SUF) \
+size_t fp_split_at_##SUF(const T* in, size_t n, size_t at, T* left, T* right) { \
+    if (!in || !left || !right) return 0; \
+    if (at > n) at = n; \
+    for (size_t i = 0; i < at; i++) left[i] = in[i]; \
+    for (size_t i = at; i < n; i++) right[i - at] = in[i]; \
+    return at; }
+SPLIT_AT(int64_t, i64)
+SPLIT_AT(double,  f64)
+
+/* catMaybes is provided by fp_monads.c (fp_cat_maybes_i64 / fp_cat_maybes_f64). */
+size_t fp_enumerate_i64(const int64_t* in, size_t n, fp_pair_i64* out) {
+    if (!in || !out) return 0;
+    for (size_t i = 0; i < n; i++) { out[i].fst = (int64_t)i; out[i].snd = in[i]; }
+    return n;
+}
+size_t fp_enumerate_f64(const double* in, size_t n, fp_pair_f64* out) {
+    if (!in || !out) return 0;
+    for (size_t i = 0; i < n; i++) { out[i].fst = (double)i; out[i].snd = in[i]; }
+    return n;
+}
+
 /* ============ Milestone D: right scans/accums, zip, sortOn ========= */
 size_t fp_scanr1_i64(const int64_t* in, int64_t* out, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
     if (!in || !out || !fn || n == 0) return 0;

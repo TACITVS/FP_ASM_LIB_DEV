@@ -158,6 +158,20 @@ int main(void){
     { int64_t s[] = {21,13,11,23}; fp_sort_on_i64(s,4,keymod10,NULL);   /* keys 1,3,1,3 */
       ok("sortOn stable (ties keep order)", eqa(s,(int64_t[]){21,11,13,23},4)); }
 
+    /* ---- Milestone E: chunksOf, windows, enumerate, splitAt, catMaybes ---- */
+    { int64_t src[] = {1,2,3,4,5,6,7}; int64_t of[7]; size_t lens[4];
+      size_t nc = fp_chunks_of_i64(src,7,3,of,lens);
+      ok("chunksOf 3 -> lens [3,3,1]", nc==3 && lens[0]==3 && lens[1]==3 && lens[2]==1); }
+    { int64_t of[6]; size_t nw = fp_windows_i64((int64_t[]){1,2,3,4},4,2,of);
+      ok("windows 2 -> [1,2,2,3,3,4]", nw==3 && eqa(of,(int64_t[]){1,2,2,3,3,4},6)); }
+    { fp_pair_i64 e[3]; fp_enumerate_i64((int64_t[]){10,20,30},3,e);
+      ok("enumerate -> (i,x)", e[0].fst==0 && e[0].snd==10 && e[2].fst==2 && e[2].snd==30); }
+    { int64_t L[5], R[5]; size_t la = fp_split_at_i64((int64_t[]){1,2,3,4,5},5,2,L,R);
+      ok("splitAt 2 -> ([1,2],[3,4,5])", la==2 && eqa(L,(int64_t[]){1,2},2) && eqa(R,(int64_t[]){3,4,5},3)); }
+    { Maybe ms[3] = { fp_just_i64(1), fp_nothing(), fp_just_i64(3) }; int64_t o5[3];
+      size_t cm = fp_cat_maybes_i64(ms,3,o5);
+      ok("catMaybes -> [1,3]", cm==2 && eqa(o5,(int64_t[]){1,3},2)); }
+
     printf("\n%s (%d failure%s)\n", fails?"FAILED":"ALL PASS", fails, fails==1?"":"s");
     return fails?1:0;
 }

@@ -23,14 +23,14 @@ are.
 **Reductions / Foldable** — `sum`, `product`, `min`, `max`, `all`, `any`,
 `countIf`, `find` (→ `Maybe`), `elem`/`contains`
 **Slicing & ordering** — `take`, `drop`, `takeWhile`, `dropWhile`, `span`,
-`slice`, `reverse`, `concat`, `replicate`
+`splitAt`, `slice`, `reverse`, `concat`, `replicate`, `chunksOf`, `windows`, `enumerate`
 **Selection** — `partition` (predicate and SIMD `>`-threshold), `unique` (`nub`),
 `union`, `intersect`
 **List-monad bind** — `concatMap` / `flatMap`
 **Generators (anamorphisms)** — `iterate`, `unfoldr`, `range`
 **Composition** — `compose`, `pipe`, `flip`, `curry`/partial application, `const`
 **Optional / error** — `Maybe` and `Either` with `fmap`, `bind`, `ap`,
-`sequence`, `traverse` (Maybe & Either, short-circuiting), `mapMaybe`,
+`sequence`, `traverse` (Maybe & Either, short-circuiting), `mapMaybe`, `catMaybes`,
 `safeDivide`, `safeAt`, `safeHead`
 **Monoidal** — `foldMap` (fold with an explicit empty + combine)
 **Lazy** — lazy sequences (`map`/`filter`/`take`/`range`/`iterate`)
