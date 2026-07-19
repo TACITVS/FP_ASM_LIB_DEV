@@ -27,6 +27,12 @@ static bool countdown(int64_t* st, int64_t* out, void* c){ (void)c; if(*st>0){ *
 static Maybe even_half(int64_t x){ return (x%2==0) ? fp_just_i64(x/2) : fp_nothing(); }
 static double add_ax_f(double acc, double x, void* c){ (void)c; return acc + x; }
 static bool   lt3_f(double x, void* c){ (void)c; return x < 3.0; }
+/* milestone A */
+static int64_t add2(int64_t a, int64_t b, void* c){ (void)c; return a + b; }
+static int64_t max2(int64_t a, int64_t b, void* c){ (void)c; return a > b ? a : b; }
+static int64_t sub_xa2(int64_t x, int64_t acc, void* c){ (void)c; return x - acc; }
+static int64_t runsum(int64_t acc, int64_t x, int64_t* out, void* c){ (void)c; *out = acc + x; return acc + x; }
+static int64_t sum3(int64_t a, int64_t b, int64_t d, void* c){ (void)c; return a + b + d; }
 
 int main(void){
     int64_t a[] = {1,2,3,4};
@@ -82,6 +88,19 @@ int main(void){
     ok("scanl_f64 (+) 0 -> [1,3,6,10]", dout[0]==1 && dout[1]==3 && dout[2]==6 && dout[3]==10);
     size_t dk = fp_take_while_f64(df,dout,4,lt3_f,NULL);
     ok("takeWhile_f64 (<3) -> [1,2]", dk==2 && dout[0]==1 && dout[1]==2);
+
+    /* ---- Milestone A: foldl1/foldr1, scanl1, mapAccumL, zipWith3 ---- */
+    ok("foldl1 (+) [1,2,3,4] = 10", fp_foldl1_i64(a,4,add2,NULL) == 10);
+    ok("foldl1 max [3,1,4,1,5] = 5", fp_foldl1_i64((int64_t[]){3,1,4,1,5},5,max2,NULL) == 5);
+    ok("foldr1 (-) [1,2,3,4] = -2", fp_foldr1_i64(a,4,sub_xa2,NULL) == -2);
+    fp_scanl1_i64(a,out,4,add2,NULL);
+    ok("scanl1 (+) -> [1,3,6,10]", eqa(out,(int64_t[]){1,3,6,10},4));
+    fp_scanl1_i64((int64_t[]){3,1,4,1,5},out,5,max2,NULL);
+    ok("scanl1 max -> [3,3,4,4,5]", eqa(out,(int64_t[]){3,3,4,4,5},5));
+    int64_t facc = fp_mapAccumL_i64(a,out,4,0,runsum,NULL);
+    ok("mapAccumL running-sum out+acc", eqa(out,(int64_t[]){1,3,6,10},4) && facc==10);
+    fp_zipWith3_i64((int64_t[]){1,2,3},(int64_t[]){10,20,30},(int64_t[]){100,200,300},out,3,sum3,NULL);
+    ok("zipWith3 (+) -> [111,222,333]", eqa(out,(int64_t[]){111,222,333},3));
 
     printf("\n%s (%d failure%s)\n", fails?"FAILED":"ALL PASS", fails, fails==1?"":"s");
     return fails?1:0;

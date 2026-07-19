@@ -66,7 +66,7 @@ TEST_SRCS := $(wildcard tests/test_*.c)
 TEST_BINS := $(patsubst tests/%.c,$(BUILD)/%,$(TEST_SRCS))
 
 # --- Targets -----------------------------------------------------------------
-.PHONY: all static shared test bench clean install dirs
+.PHONY: all static shared test bench showcase clean install dirs
 all: static shared
 
 static: $(STATIC)
@@ -108,6 +108,18 @@ bench: $(STATIC) $(BENCH_BINS)
 	@for b in $(BENCH_BINS); do echo "== $$b =="; $$b >/dev/null; done
 
 $(BUILD)/bench_%: benchmarks/bench_%.c $(STATIC) | dirs
+	$(CC) -I$(INCLUDE) -O3 -march=native $< $(STATIC) -o $@ $(LDLIBS)
+
+# Showcases: real algorithms written imperatively vs. composed from the library,
+# verified equal and timed. Compiled -O3 -march=native so the imperative
+# baseline is as fast as the compiler can make it.
+SHOWCASE_SRCS := $(wildcard showcases/showcase_*.c)
+SHOWCASE_BINS := $(patsubst showcases/%.c,$(BUILD)/%,$(SHOWCASE_SRCS))
+showcase: $(STATIC) $(SHOWCASE_BINS)
+	@fail=0; for s in $(SHOWCASE_BINS); do echo "== $$s =="; $$s || fail=1; echo; done; \
+	if [ $$fail -eq 0 ]; then echo "== ALL SHOWCASES VERIFIED =="; else echo "== SHOWCASE MISMATCH =="; exit 1; fi
+
+$(BUILD)/showcase_%: showcases/showcase_%.c $(STATIC) | dirs
 	$(CC) -I$(INCLUDE) -O3 -march=native $< $(STATIC) -o $@ $(LDLIBS)
 
 dirs:

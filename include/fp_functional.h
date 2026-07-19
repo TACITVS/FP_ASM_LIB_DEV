@@ -30,6 +30,30 @@
 extern "C" {
 #endif
 
+/* ---- folds without an explicit seed (use the first/last element) ----
+ * foldl1/foldr1 are undefined on an empty list; here they return 0. */
+int64_t fp_foldl1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t acc, int64_t x, void*), void* ctx);
+double  fp_foldl1_f64(const double* in, size_t n, double (*fn)(double acc, double x, void*), void* ctx);
+int64_t fp_foldr1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t x, int64_t acc, void*), void* ctx);
+double  fp_foldr1_f64(const double* in, size_t n, double (*fn)(double x, double acc, void*), void* ctx);
+
+/* ---- scanl1: scan seeded by the first element (out[0] = in[0]) ---- */
+size_t fp_scanl1_i64(const int64_t* in, int64_t* out, size_t n, int64_t (*fn)(int64_t acc, int64_t x, void*), void* ctx);
+size_t fp_scanl1_f64(const double* in, double* out, size_t n, double (*fn)(double acc, double x, void*), void* ctx);
+
+/* ---- mapAccumL: map carrying a left-to-right accumulator; returns final acc.
+ * fn(acc, x, &out_elem) computes the emitted element and the next acc. ---- */
+int64_t fp_mapAccumL_i64(const int64_t* in, int64_t* out, size_t n, int64_t acc0,
+                         int64_t (*fn)(int64_t acc, int64_t x, int64_t* out_elem, void*), void* ctx);
+double  fp_mapAccumL_f64(const double* in, double* out, size_t n, double acc0,
+                         double (*fn)(double acc, double x, double* out_elem, void*), void* ctx);
+
+/* ---- zipWith3: combine three inputs elementwise ---- */
+size_t fp_zipWith3_i64(const int64_t* a, const int64_t* b, const int64_t* c, int64_t* out, size_t n,
+                       int64_t (*fn)(int64_t, int64_t, int64_t, void*), void* ctx);
+size_t fp_zipWith3_f64(const double* a, const double* b, const double* c, double* out, size_t n,
+                       double (*fn)(double, double, double, void*), void* ctx);
+
 /* ---- right fold: foldr f z [x0..xn] = f x0 (f x1 (... (f xn z))) ---- */
 int64_t fp_foldr_i64(const int64_t* in, size_t n, int64_t init,
                      int64_t (*fn)(int64_t x, int64_t acc, void* ctx), void* ctx);

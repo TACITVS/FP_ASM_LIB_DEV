@@ -4,6 +4,70 @@
  */
 #include "../../include/fp_functional.h"
 
+/* =================== folds/scans without a seed ==================== */
+int64_t fp_foldl1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
+    if (!in || !fn || n == 0) return 0;
+    int64_t acc = in[0];
+    for (size_t i = 1; i < n; i++) acc = fn(acc, in[i], ctx);
+    return acc;
+}
+double fp_foldl1_f64(const double* in, size_t n, double (*fn)(double, double, void*), void* ctx) {
+    if (!in || !fn || n == 0) return 0.0;
+    double acc = in[0];
+    for (size_t i = 1; i < n; i++) acc = fn(acc, in[i], ctx);
+    return acc;
+}
+int64_t fp_foldr1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
+    if (!in || !fn || n == 0) return 0;
+    int64_t acc = in[n - 1];
+    for (size_t i = n - 1; i-- > 0; ) acc = fn(in[i], acc, ctx);
+    return acc;
+}
+double fp_foldr1_f64(const double* in, size_t n, double (*fn)(double, double, void*), void* ctx) {
+    if (!in || !fn || n == 0) return 0.0;
+    double acc = in[n - 1];
+    for (size_t i = n - 1; i-- > 0; ) acc = fn(in[i], acc, ctx);
+    return acc;
+}
+size_t fp_scanl1_i64(const int64_t* in, int64_t* out, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
+    if (!in || !out || !fn || n == 0) return 0;
+    int64_t acc = in[0]; out[0] = acc;
+    for (size_t i = 1; i < n; i++) { acc = fn(acc, in[i], ctx); out[i] = acc; }
+    return n;
+}
+size_t fp_scanl1_f64(const double* in, double* out, size_t n, double (*fn)(double, double, void*), void* ctx) {
+    if (!in || !out || !fn || n == 0) return 0;
+    double acc = in[0]; out[0] = acc;
+    for (size_t i = 1; i < n; i++) { acc = fn(acc, in[i], ctx); out[i] = acc; }
+    return n;
+}
+int64_t fp_mapAccumL_i64(const int64_t* in, int64_t* out, size_t n, int64_t acc0,
+                         int64_t (*fn)(int64_t, int64_t, int64_t*, void*), void* ctx) {
+    if (!in || !out || !fn) return acc0;
+    int64_t acc = acc0;
+    for (size_t i = 0; i < n; i++) acc = fn(acc, in[i], &out[i], ctx);
+    return acc;
+}
+double fp_mapAccumL_f64(const double* in, double* out, size_t n, double acc0,
+                        double (*fn)(double, double, double*, void*), void* ctx) {
+    if (!in || !out || !fn) return acc0;
+    double acc = acc0;
+    for (size_t i = 0; i < n; i++) acc = fn(acc, in[i], &out[i], ctx);
+    return acc;
+}
+size_t fp_zipWith3_i64(const int64_t* a, const int64_t* b, const int64_t* c, int64_t* out, size_t n,
+                       int64_t (*fn)(int64_t, int64_t, int64_t, void*), void* ctx) {
+    if (!a || !b || !c || !out || !fn) return 0;
+    for (size_t i = 0; i < n; i++) out[i] = fn(a[i], b[i], c[i], ctx);
+    return n;
+}
+size_t fp_zipWith3_f64(const double* a, const double* b, const double* c, double* out, size_t n,
+                       double (*fn)(double, double, double, void*), void* ctx) {
+    if (!a || !b || !c || !out || !fn) return 0;
+    for (size_t i = 0; i < n; i++) out[i] = fn(a[i], b[i], c[i], ctx);
+    return n;
+}
+
 /* ============================ right fold ============================ */
 int64_t fp_foldr_i64(const int64_t* in, size_t n, int64_t init,
                      int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
