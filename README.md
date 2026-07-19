@@ -48,11 +48,18 @@ wins on reductions/dot/batched math, parity on the memory-bound kernels.*
 | Layer | What | Where |
 |---|---|---|
 | **L0 — assembly** | AVX2 SIMD kernels: reductions, fused folds (dot/sumsq/sad), maps (scale/offset/axpy), prefix scans, set ops, and vec3/mat4/quaternion math over 10 numeric types | `src/asm/` |
-| **L1 — C wrappers** | higher-order map/filter/fold, function composition & pipelines, `Maybe`/`Either` monads | `src/wrappers/` |
+| **L1 — C wrappers** | the functional operation set — map/filter/foldl/foldr, scans, zipWith, takeWhile/dropWhile/span, partition, all/any/find, concatMap, iterate/unfoldr, composition & pipelines, `Maybe`/`Either` monads, lazy sequences, transducers | `src/wrappers/` |
 | **L2 — math/algorithms** | batched vertex transforms, matrix ops, FFT, radix sort, statistics — composed from L0 | `src/algorithms/` |
 
-360 exported functions. No imperative loops in the inner kernels; no runtime
-allocation in the kernels; non-executable stack on ELF.
+No imperative loops in the inner kernels; no runtime allocation in the kernels;
+non-executable stack on ELF.
+
+**FP coverage.** The aim is full coverage of the standard functional *operation*
+set (Haskell `Prelude`/`Data.List`, Lisp, ML) — not re-implementing those
+languages, which a linked C library can't do (no lazy-by-default evaluation,
+type inference, pattern matching, or enforced purity). See
+[FP_COVERAGE.md](FP_COVERAGE.md) for exactly what's covered today and what's
+still planned.
 
 ## Build
 
