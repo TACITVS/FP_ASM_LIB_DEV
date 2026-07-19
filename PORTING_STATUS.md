@@ -33,11 +33,12 @@ if called on Linux — do not use them on Linux yet.
 Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 `test_game_math.c`, `test_essentials.c` (run `make test`).
 
-## ⏳ Not yet ported to Linux (Windows-only for now)
+## ✅ Migration complete
 
-| Module | Notes |
-|---|---|
-| `fp_blake3_avx2` | BLAKE3 hashing (candidate for removal — not core FP/game math) |
+**Every** in-scope assembly module is now ported to the cross-platform ABI and
+test-verified on Linux (`make test` runs 12 suites). BLAKE3 hashing
+(`fp_blake3_avx2.asm`) was **removed** — it is cryptographic code from the
+upstream vector database, out of scope for an FP + game-math library.
 
 ## Bugs fixed so far
 
