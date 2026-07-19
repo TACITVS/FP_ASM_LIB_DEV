@@ -22,9 +22,10 @@ if called on Linux — do not use them on Linux yet.
 | `fp_core_tier3` | `fp_count_i64`, `fp_range_i64`, `fp_iterate_{add,mul}_i64`, `fp_group_i64`, `fp_run_length_encode_i64`, `fp_zip_with_index_i64`, `fp_reduce_{and,or}_bool`, `fp_replicate_f64` |
 | `3d_math_kernels` | `fp_map_transform_vec3_f32`, `fp_zipWith_vec3_add_f32`, `fp_map_quat_rotate_vec3_f32`, `fp_reduce_vec3_add_f32`, `fp_fold_vec3_dot_f32`, `fp_quat_normalize_asm`, `fp_quat_to_mat4` |
 | `fp_core_matrix` | `fp_mat4_identity`, `fp_mat4_mul`, `fp_mat4_mul_vec3`, `fp_mat4_transpose`, `fp_mat4_mul_vec3_batch` |
+| `fp_core_essentials` | `fp_contains_i64`, `fp_find_index_i64`, `fp_take_n_i64`, `fp_drop_n_i64`, `fp_slice_i64`, `fp_reverse_i64`, `fp_concat_i64`, `fp_reduce_product_{i64,f64}`, `fp_replicate_i64` |
 
 Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
-`test_game_math.c` (run `make test`).
+`test_game_math.c`, `test_essentials.c` (run `make test`).
 
 ## ⏳ Not yet ported to Linux (Windows-only for now)
 
@@ -36,7 +37,6 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 | `fp_core_descriptive_stats` | |
 | `fp_core_percentiles` | 5th arg on stack |
 | `fp_core_compaction` | 5-arg (stack) functions |
-| `fp_core_essentials` | 5-arg (stack) functions |
 | `fp_core_tier2` | 5-arg (stack) functions |
 | `fp_blake3_avx2` | BLAKE3 hashing (candidate for removal — not core FP/game math) |
 
@@ -48,6 +48,9 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
   (tail accumulator was zeroed before use).
 - **`fp_mat4_transpose`** produced a wrong permutation (not a valid transpose);
   replaced with a correct 4×4 transpose.
+- **`fp_reverse_i64`** used an in-place pair-swap loop while writing to a
+  separate output buffer, interleaving the two ends instead of reversing.
+  Rewritten as `out[i] = in[n-1-i]`.
 
 ## Known open bug
 
