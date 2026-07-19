@@ -142,6 +142,17 @@ section{padding:56px 0; border-top:1px solid var(--hair)}
   display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--ink)}
 .serial .arrow{color:var(--ink-faint)}
 
+/* fp comparison rows */
+.cmp{display:flex; flex-direction:column; gap:8px; margin-top:14px}
+.cmprow{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:12px;
+  padding:9px 12px; border:1px solid var(--hair); border-radius:8px; background:var(--panel-2)}
+.cmprow .nm{font-size:13.5px; color:var(--ink)}
+.cmprow .rt{font-family:var(--mono); font-weight:700; font-size:13px; padding:2px 9px; border-radius:999px}
+.cmprow .rt.base{color:var(--ink-muted); border:1px solid var(--hair-strong)}
+.cmprow .rt.hot{color:var(--accent); border:1px solid var(--accent-line); background:var(--accent-soft)}
+.cmprow .rt.ok{color:var(--ink); border:1px solid var(--hair-strong)}
+.cmprow .ns{font-family:var(--mono); font-size:12.5px; color:var(--ink-muted); min-width:64px; text-align:right}
+
 /* architecture */
 .layers{display:flex; flex-direction:column; gap:12px; margin-top:26px}
 .layer{display:grid; grid-template-columns:88px 1fr; gap:18px; align-items:start;
@@ -187,6 +198,7 @@ footer{border-top:1px solid var(--hair); padding:40px 0 60px; color:var(--ink-mu
       <a href="#bench" class="hidesm">Benchmarks</a>
       <a href="#how" class="hidesm">Why it's fast</a>
       <a href="#arch" class="hidesm">Architecture</a>
+      <a href="#fp" class="hidesm">Functional</a>
       <a href="https://github.com/TACITVS/FP_ASM_LIB_DEV">GitHub</a>
       <button class="tgl" id="tgl" aria-label="Toggle color theme">theme</button>
     </nav>
@@ -313,6 +325,52 @@ footer{border-top:1px solid var(--hair); padding:40px 0 60px; color:var(--ink-mu
     <span class="c-fn">fp_mat4_mul_vec3_batch</span>(world, mvp, local, n);   <span class="c-com">// AVX2, one pass over n vertices</span>
     <span class="c-key">float</span> energy = <span class="c-fn">fp_fold_dotp_f32</span>((<span class="c-key">float</span>*)world, (<span class="c-key">float</span>*)world, n*3); <span class="c-com">// 5× a scalar dot</span>
 }</pre>
+  </div>
+</section>
+
+<section id="fp">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Functional, and honest about it</span>
+      <h2>Real closures. A real State monad. Real numbers.</h2>
+      <p>Beyond the fast kernels sits a full functional toolkit — <span class="mono">map</span> /
+        <span class="mono">filter</span> / <span class="mono">foldl</span> / <span class="mono">foldr</span>,
+        <span class="mono">scanl</span> / <span class="mono">scanr</span> / <span class="mono">mapAccumL</span>,
+        <span class="mono">sortBy</span> / <span class="mono">groupBy</span> / <span class="mono">traverse</span> /
+        <span class="mono">foldMap</span>, <span class="mono">Maybe</span> / <span class="mono">Either</span>,
+        lazy sequences, transducers — and something most C libraries won't claim: first-class
+        <em>escaping</em> closures and a genuine <span class="mono">State</span> monad, in portable C11.
+        No nested functions, no executable stack, AddressSanitizer-clean.</p>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>Yes, C can do monads <span class="tag">— door #1, not wizardry</span></h3>
+        <p>A closure is just a code pointer plus a heap-allocated environment plus a destructor —
+          the exact thing GHC, Rust and Swift generate for you. Written by hand, it escapes its
+          scope, composes, and frees cleanly. The <span class="mono">State</span> monad
+          (<span class="mono">get</span> / <span class="mono">put</span> / <span class="mono">bind</span> /
+          <span class="mono">runState</span>) is built on top of it.</p>
+      </div>
+      <div class="panel">
+        <h3>…and here is exactly what it costs <span class="tag">— same RNG, three ways</span></h3>
+        <div class="cmp">
+          <div class="cmprow"><span class="nm">imperative LCG loop</span><span class="rt base">1.0×</span><span class="tnum ns">0.36 ms</span></div>
+          <div class="cmprow"><span class="nm mono">State monad</span><span class="rt hot">≈75×</span><span class="tnum ns">27 ms</span></div>
+          <div class="cmprow"><span class="nm mono">mapAccumL</span><span class="rt ok">≈1.6×</span><span class="tnum ns">0.57 ms</span></div>
+        </div>
+        <p style="margin-top:12px">All three emit the <em>identical</em> draw sequence. The monad is real
+          but allocates on every <span class="mono">bind</span>; <span class="mono">mapAccumL</span> is the same
+          stateful computation with zero allocation — its fast path. Run <span class="mono">make showcase</span>.</p>
+      </div>
+    </div>
+
+<pre><span class="c-com">// a pure, reproducible RNG in the State monad — seed IS the state</span>
+<span class="c-key">static</span> ST <span class="c-fn">roll_k</span>(<span class="c-key">int64_t</span> s){ <span class="c-key">int64_t</span> s2 = <span class="c-fn">lcg</span>(s);
+    <span class="c-key">return</span> <span class="c-fn">st_then</span>(<span class="c-fn">st_put</span>(s2), <span class="c-fn">st_pure</span>(<span class="c-fn">die_of</span>(s2))); }   <span class="c-com">// put new seed, yield the die</span>
+<span class="c-key">static</span> ST <span class="c-fn">roll</span>(<span class="c-key">void</span>){ <span class="c-key">return</span> <span class="c-fn">st_bind</span>(<span class="c-fn">st_get</span>(), roll_k); }        <span class="c-com">// do { s <- get; roll_k s }</span>
+
+SR r = <span class="c-fn">st_run</span>(<span class="c-fn">roll</span>(), seed);   <span class="c-com">// (die, new_seed) — pure, leak-free, gcc & clang</span></pre>
   </div>
 </section>
 
