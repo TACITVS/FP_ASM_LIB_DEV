@@ -38,6 +38,7 @@ section .text
 ; ===========================================================================
 global fp_map_axpy_f64
 fp_map_axpy_f64:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     and rsp, -32            ; Align stack pointer down to 32-byte boundary
@@ -47,7 +48,11 @@ fp_map_axpy_f64:
     test r9, r9
     jz .done
     
-    vbroadcastsd ymm0, qword [rbp+48] ; Load c using RBP relative offset
+%ifdef FP_WIN64
+    vbroadcastsd ymm0, qword [rbp+48] ; Win64: c on stack
+%else
+    vbroadcastsd ymm0, xmm0           ; SysV: c is 1st float arg (xmm0)
+%endif
     mov rax, r9
     shr rax, 2
     jz .remainder
@@ -99,12 +104,18 @@ fp_map_axpy_f64:
 ; ===========================================================================
 global fp_map_axpy_i64
 fp_map_axpy_i64:
+%ifdef FP_SYSV
+    mov r10, r8            ; capture int c (5th int arg) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     sub rsp, 32             ; Shadow space
     
     test r9, r9
     jz .done
     
-    mov r10, [rsp+72]       ; Load c (32 shadow + 40 original offset)
+%ifdef FP_WIN64
+    mov r10, [rsp+72]       ; Win64: 5th arg on stack (32 shadow + 40)
+%endif
     mov rax, r9
     shr rax, 2
     jz .remainder
@@ -167,6 +178,7 @@ fp_map_axpy_i64:
 ; ===========================================================================
 global fp_map_scale_f64
 fp_map_scale_f64:
+    ABI_ARGS_INT3_F1
     push rbp
     mov rbp, rsp
     and rsp, -32            ; Align
@@ -223,6 +235,7 @@ fp_map_scale_f64:
 ; ===========================================================================
 global fp_map_scale_i64
 fp_map_scale_i64:
+    ABI_ARGS_INT
     sub rsp, 32
     
     test r8, r8
@@ -282,6 +295,7 @@ fp_map_scale_i64:
 ; ===========================================================================
 global fp_map_offset_f64
 fp_map_offset_f64:
+    ABI_ARGS_INT3_F1
     push rbp                ; Save original RBP
     mov rbp, rsp            ; Establish frame pointer
     and rsp, -32            ; Align stack pointer down to 32-byte boundary
@@ -338,6 +352,7 @@ fp_map_offset_f64:
 ; ===========================================================================
 global fp_map_offset_i64
 fp_map_offset_i64:
+    ABI_ARGS_INT
     sub rsp, 32             ; Shadow space
     
     test r8, r8             ; n (in R8)
@@ -392,6 +407,7 @@ fp_map_offset_i64:
 ; ===========================================================================
 global fp_zip_add_f64
 fp_zip_add_f64:
+    ABI_ARGS_INT
     push rbp                ; Save RBP (maintains 16-byte alignment)
     mov rbp, rsp            ; Establish frame pointer
     sub rsp, 32             ; Shadow space (maintains 16-byte alignment)
@@ -448,6 +464,7 @@ fp_zip_add_f64:
 ; ===========================================================================
 global fp_zip_add_i64
 fp_zip_add_i64:
+    ABI_ARGS_INT
     push rbp                ; Save RBP (maintains 16-byte alignment)
     mov rbp, rsp            ; Establish frame pointer
     sub rsp, 32             ; Shadow space (maintains 16-byte alignment)
