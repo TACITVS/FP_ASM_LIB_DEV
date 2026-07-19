@@ -68,6 +68,7 @@ section .text
 ; ============================================================================
 global fp_filter_gt_i64_simd
 fp_filter_gt_i64_simd:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov r12, rcx                ; r12 = input
@@ -152,6 +153,7 @@ fp_filter_gt_i64_simd:
 ; ============================================================================
 global fp_filter_gt_i64_simple
 fp_filter_gt_i64_simple:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov r12, rcx                ; r12 = input
@@ -253,7 +255,15 @@ fp_filter_gt_i64_simple:
 ; ============================================================================
 global fp_partition_gt_i64
 fp_partition_gt_i64:
+%ifdef FP_SYSV
+    mov r10, r8             ; capture threshold (SysV a5) before ABI shuffle
+    mov r11, r9             ; capture out_pass_count (SysV a6) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     PROLOGUE
+%ifdef FP_SYSV
+    mov [rsp+256], r11      ; park out_pass_count in PROLOGUE pad (no calls -> stable)
+%endif
 
     mov r12, rcx                ; r12 = input
     mov r13, rdx                ; r13 = output_pass (current write ptr)
@@ -261,7 +271,11 @@ fp_partition_gt_i64:
     mov r14, r8                 ; r14 = output_fail (current write ptr)
     mov r15, r8                 ; r15 = output_fail (original)
     mov rcx, r9                 ; rcx = n
-    mov r9, [rbp + 48]          ; r9 = threshold
+%ifdef FP_WIN64
+    mov r9, [rbp + 48]          ; Win64: threshold (arg5) on stack
+%else
+    mov r9, r10                 ; SysV: threshold captured at entry
+%endif
 
     ; Broadcast threshold
     vmovq xmm0, r9
@@ -360,10 +374,18 @@ fp_partition_gt_i64:
     shr r10, 3                  ; fail_count = (r14 - r15) / 8
 
     ; Store counts to output pointers
-    mov r11, [rbp + 56]         ; out_pass_count pointer
+%ifdef FP_WIN64
+    mov r11, [rbp + 56]         ; Win64: out_pass_count (arg6) on stack
+%else
+    mov r11, [rsp + 256]        ; SysV: out_pass_count parked in PROLOGUE pad
+%endif
     mov [r11], rax
 
-    mov r11, [rbp + 64]         ; out_fail_count pointer
+%ifdef FP_WIN64
+    mov r11, [rbp + 64]         ; Win64: out_fail_count (arg7) on stack
+%else
+    mov r11, [rbp + 16]         ; SysV: out_fail_count is arg7 (stable stack slot)
+%endif
     mov [r11], r10
 
     EPILOGUE
@@ -386,6 +408,7 @@ fp_partition_gt_i64:
 ; ============================================================================
 global fp_take_while_gt_i64
 fp_take_while_gt_i64:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov r10, rcx                ; r10 = input
@@ -427,6 +450,7 @@ fp_take_while_gt_i64:
 ; ============================================================================
 global fp_drop_while_gt_i64
 fp_drop_while_gt_i64:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov r10, rcx                ; r10 = input (current)

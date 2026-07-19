@@ -8,6 +8,7 @@
 
 bits 64
 default rel
+%include "abi.inc"
 
 section .rdata
     ALIGN 32
@@ -26,6 +27,7 @@ section .text
 ; ===========================================================================
 global fp_map_abs_i64
 fp_map_abs_i64:
+    ABI_ARGS_INT
     push r11 ; Temp save RSP
     push r12 ; Save non-volatile
     push r13 ; Save non-volatile
@@ -109,6 +111,7 @@ fp_map_abs_i64:
 ; ===========================================================================
 global fp_map_abs_f64
 fp_map_abs_f64:
+    ABI_ARGS_INT
     push r11
     push r12
     push r13
@@ -174,6 +177,7 @@ fp_map_abs_f64:
 ; ===========================================================================
 global fp_map_sqrt_f64
 fp_map_sqrt_f64:
+    ABI_ARGS_INT
     push r11
     push r12
     push r13
@@ -237,6 +241,10 @@ fp_map_sqrt_f64:
 ; ===========================================================================
 global fp_map_clamp_i64
 fp_map_clamp_i64:
+%ifdef FP_SYSV
+    mov r10, r8             ; capture max_val (5th int arg) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     push r12
     push r13
     push r14
@@ -246,7 +254,9 @@ fp_map_clamp_i64:
     mov  r13, rdx            ; r13 = out
     mov  r14, r8             ; r14 = n
     mov  r15, r9             ; r15 = min_val
-    mov  r10, [rsp+104]      ; r10 = max_val
+%ifdef FP_WIN64
+    mov  r10, [rsp+104]      ; Win64: max_val (5th arg) on stack
+%endif
     test r14, r14
     jz   .done_clamp_i64
 .loop4_clamp_i64:
@@ -307,6 +317,7 @@ fp_map_clamp_i64:
 ; ===========================================================================
 global fp_map_clamp_f64
 fp_map_clamp_f64:
+    ABI_ARGS_INT3_F1
     push rbp
     mov  rbp, rsp
     ; Save non-volatile registers used (R12, R13)
@@ -330,7 +341,11 @@ fp_map_clamp_f64:
 
     ; Broadcast min_val and max_val to YMM registers
     vbroadcastsd ymm5, xmm3               ; ymm5 = min_val
-    vbroadcastsd ymm4, qword [rbp+48]     ; ymm4 = max_val
+%ifdef FP_WIN64
+    vbroadcastsd ymm4, qword [rbp+48]     ; Win64: max_val on stack
+%else
+    vbroadcastsd ymm4, xmm1               ; SysV: max_val is 2nd float arg (xmm1)
+%endif
 
 .loop16_clamp_f64:
     cmp  rax, 16

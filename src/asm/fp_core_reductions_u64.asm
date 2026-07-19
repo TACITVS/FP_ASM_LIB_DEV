@@ -27,6 +27,7 @@ section .text
 
 global fp_reduce_add_u64
 fp_reduce_add_u64:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -116,6 +117,7 @@ fp_reduce_add_u64:
 
 global fp_reduce_mul_u64
 fp_reduce_mul_u64:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -185,6 +187,7 @@ fp_reduce_mul_u64:
 
 global fp_reduce_min_u64
 fp_reduce_min_u64:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -274,6 +277,7 @@ fp_reduce_min_u64:
 
 global fp_reduce_max_u64
 fp_reduce_max_u64:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null

@@ -29,6 +29,7 @@ section .text
 
 global fp_fold_sumsq_i32
 fp_fold_sumsq_i32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: EAX = sum of squares
 
@@ -126,6 +127,7 @@ fp_fold_sumsq_i32:
 
 global fp_fold_dotp_i32
 fp_fold_dotp_i32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: EAX = dot product
 
@@ -235,6 +237,7 @@ fp_fold_dotp_i32:
 
 global fp_fold_sad_i32
 fp_fold_sad_i32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: EAX = sum of absolute differences
 

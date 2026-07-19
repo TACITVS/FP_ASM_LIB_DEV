@@ -14,6 +14,7 @@
 ;   - fp_reduce_min_u8:  Minimum of u8 array (SIMD - 32-wide!)
 ;   - fp_reduce_max_u8:  Maximum of u8 array (SIMD - 32-wide!)
 
+%include "abi.inc"
 bits 64
 default rel
 
@@ -28,6 +29,7 @@ section .text
 
 global fp_reduce_add_u8
 fp_reduce_add_u8:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -135,6 +137,7 @@ fp_reduce_add_u8:
 
 global fp_reduce_mul_u8
 fp_reduce_mul_u8:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -174,6 +177,7 @@ fp_reduce_mul_u8:
 
 global fp_reduce_min_u8
 fp_reduce_min_u8:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -289,6 +293,7 @@ fp_reduce_min_u8:
 
 global fp_reduce_max_u8
 fp_reduce_max_u8:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null

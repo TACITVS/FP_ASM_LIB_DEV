@@ -10,6 +10,7 @@
 ;   - fp_fold_sad_i64    (SIMD Match - Correct AVX2 abs)
 ; =============================================================================
 default rel
+%include "abi.inc"
 section .data
     ; Removed unused masks
 
@@ -24,6 +25,7 @@ section .text
 ; (Unchanged v4 - Passed tests)
 ; =============================================================================
 fp_fold_sumsq_i64:
+    ABI_ARGS_INT
     push rbx
     push r12
     push r13
@@ -101,6 +103,7 @@ fp_fold_sumsq_i64:
 ; (Unchanged v4 - Passed tests)
 ; =============================================================================
 fp_fold_dotp_i64:
+    ABI_ARGS_INT
     push rbx
     push r12
     push r13
@@ -174,6 +177,7 @@ fp_fold_dotp_i64:
 ; (Unchanged v3 - Passed tests)
 ; =============================================================================
 fp_fold_dotp_f64:
+    ABI_ARGS_INT
     push r11
     push r12
     push r13
@@ -248,6 +252,7 @@ fp_fold_dotp_f64:
 ; Strategy: SIMD Match. AVX2, 4 accumulators, 16 elements/loop.
 ; =============================================================================
 fp_fold_sad_i64:
+    ABI_ARGS_INT
     push r11
     push r12
     push r13

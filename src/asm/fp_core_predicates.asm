@@ -9,6 +9,7 @@
 
 bits 64
 default rel
+%include "abi.inc"
 
 section .text
     global fp_pred_all_eq_const_i64
@@ -28,6 +29,7 @@ section .text
 ; Returns: 1 if all elements equal value, 0 otherwise
 ; ===========================================================================
 fp_pred_all_eq_const_i64:
+    ABI_ARGS_INT
     ; Early exit for empty array
     test rdx, rdx
     jz   .return_true        ; Empty array = vacuously true
@@ -91,6 +93,7 @@ fp_pred_all_eq_const_i64:
 ; Returns: 1 if any element > value, 0 otherwise
 ; ===========================================================================
 fp_pred_any_gt_const_i64:
+    ABI_ARGS_INT
     ; Early exit for empty array
     test rdx, rdx
     jz   .return_false       ; Empty array = no elements > value
@@ -154,6 +157,7 @@ fp_pred_any_gt_const_i64:
 ; Returns: 1 if all a[i] > b[i], 0 otherwise
 ; ===========================================================================
 fp_pred_all_gt_zip_i64:
+    ABI_ARGS_INT
     ; Early exit for empty array
     test r8, r8
     jz   .return_true        ; Empty array = vacuously true
