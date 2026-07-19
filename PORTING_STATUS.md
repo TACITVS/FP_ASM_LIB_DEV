@@ -26,6 +26,7 @@ if called on Linux — do not use them on Linux yet.
 | `fp_core_simple_maps` | `fp_map_abs_{i64,f64}`, `fp_map_sqrt_f64`, `fp_map_clamp_{i64,f64}` |
 | `fp_core_scans` | `fp_scan_add_{i64,f64}` (prefix sum) |
 | `fp_core_descriptive_stats` | `fp_moments_f64`, `fp_descriptive_stats_f64` |
+| `fp_core_percentiles` | `fp_percentile_sorted_f64`, `fp_percentiles_sorted_f64`, `fp_quartiles_sorted_f64` |
 
 Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 `test_game_math.c`, `test_essentials.c` (run `make test`).
@@ -34,7 +35,6 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 
 | Module | Notes |
 |---|---|
-| `fp_core_percentiles` | 5th arg on stack |
 | `fp_core_compaction` | 5-arg (stack) functions |
 | `fp_core_tier2` | 5-arg (stack) functions |
 | `fp_blake3_avx2` | BLAKE3 hashing (candidate for removal — not core FP/game math) |
