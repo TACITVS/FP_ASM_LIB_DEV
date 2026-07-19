@@ -1,117 +1,28 @@
-# Compiled Object files
+# Build output
+/build/
 *.o
 *.obj
-*.slo
-*.lo
-*.ko
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Static and dynamic libraries
-*.dll
+*.a
+*.lib
 *.so
 *.so.*
 *.dylib
-*.lib
-*.a
-*.la
+*.dll
+*.exe
+*.exp
+*.pdb
+*.ilk
 
-# Precompiled Headers
-*.gch
-*.pch
+# Assembler/compiler intermediates
+*.lst
+*.map
 
-# Compiled assembly
-*.s
-*.asm.bak
-
-# Build directories
-build/bin/
-build/obj/
-build/tmp/
-.build/
-
-# IDE and editor files
+# Editor / OS
 .vscode/
-.vs/
+.idea/
 *.swp
-*.swo
 *~
 .DS_Store
 
-# Claude Code temporary files
-.claude/
-benchmarks/logs/
-research_notes.md
-
-# Keep .github for workflows
-# !.github/
-
-# Windows specific
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Backup files
-*.bak
-*.backup
-*~
-
-# Test outputs
-test_*.exe
-bench_*.exe
-demo_*.exe
-*.log
-
-# Compilation logs and error dumps
-compile_*.txt
-*_errors.txt
-*_compile_*.txt
-*_syntax_check.txt
-
-# Temporary files
-*.tmp
-*.temp
-
-# Assembly listing files
-*.lst
-
-# NASM specific
-*.list
-
-# Core dumps
-core
-core.*
-
-# Node modules (if using any JS tooling)
-node_modules/
-
-# Python cache (if using any Python tooling)
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Keep important build artifacts
-!build/obj/.gitkeep
-!build/bin/.gitkeep
-# ...other ignored files...
-nul# Untracked build-related files and logs
-build_test_decision_tree.bat
-build_test_kmeans.bat
-build_test_linear_regression.bat
-build_test_monte_carlo.bat
-build_test_naive_bayes.bat
-build_test_pca.bat
-dt_error.txt
-kmeans_output.txt
-linear_regression_output.txt
-nn_error_manual.txt
-pca_error.txt
+# Local scratch
+/scratch/

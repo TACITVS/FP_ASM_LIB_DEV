@@ -32,6 +32,7 @@ section .text
 ; Processes 2 vectors (32 bytes) at a time.
 ; -----------------------------------------------------------------------------
 fp_map_transform_vec3_f32:
+    ABI_ARGS_INT
     PROLOGUE
     
     ; --- Load Arguments ---
@@ -111,6 +112,7 @@ fp_map_transform_vec3_f32:
 ; Processes 8 vectors (128 bytes) at a time.
 ; -----------------------------------------------------------------------------
 fp_zipWith_vec3_add_f32:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov     r12, rcx                ; r12 = in_a
@@ -209,6 +211,7 @@ fp_zipWith_vec3_add_f32:
 ; Quaternion rotation optimized with SIMD math
 ; -----------------------------------------------------------------------------
 fp_map_quat_rotate_vec3_f32:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov     r12, rcx                ; r12 = in_vecs
@@ -355,6 +358,7 @@ fp_map_quat_rotate_vec3_f32:
 ; );
 ; -----------------------------------------------------------------------------
 fp_reduce_vec3_add_f32:
+    ABI_ARGS_INT
     PROLOGUE
     
     mov     r12, rcx                ; r12 = in_vecs
@@ -391,8 +395,10 @@ fp_reduce_vec3_add_f32:
     dec     r13
     jnz     .tail_loop_sum
 
-    vxorps  ymm0, ymm0, ymm0
-    vinsertf128 ymm0, ymm0, xmm0, 0 ; move tail sum into lower lane
+    ; The VEX-encoded `vaddps xmm0` in the tail loop writes xmm0 and zero-
+    ; extends ymm0[255:128], so ymm0 already holds [tail_sum | 0]. The previous
+    ; code zeroed all of ymm0 here and then re-inserted the just-zeroed xmm0,
+    ; discarding the tail sum whenever n < 8 (a correctness bug). Fold directly.
     vaddps  ymm4, ymm4, ymm0        ; fold tail into main accumulator
 
 .reduce_sum:
@@ -419,6 +425,7 @@ fp_reduce_vec3_add_f32:
 ; Returns sum of dot products in XMM0
 ; -----------------------------------------------------------------------------
 fp_fold_vec3_dot_f32:
+    ABI_ARGS_INT
     PROLOGUE
 
     mov     r12, rcx                ; r12 = in_a
@@ -509,6 +516,7 @@ fp_fold_vec3_dot_f32:
 ; so that Phase 3 L0 verification tests pass.
 ; -----------------------------------------------------------------------------
 fp_quat_normalize_asm:
+    ABI_ARGS_INT
     ; Leaf function: uses only volatile XMM registers, no stack frame needed.
     ; Load quaternion q = [x, y, z, w]
     vmovups xmm0, [rdx]
@@ -570,6 +578,7 @@ fp_quat_normalize_asm:
 ; standard 15-multiplication optimized formula.
 ; -----------------------------------------------------------------------------
 fp_quat_to_mat4:
+    ABI_ARGS_INT
     ; Load quaternion components: x, y, z
     vmovss xmm0, [rdx]        ; x
     vmovss xmm1, [rdx+4]      ; y

@@ -6,6 +6,7 @@
 ;
 ; Windows x64 calling convention
 
+%include "abi.inc"
 section .text
 
 ; ============================================================================
@@ -26,7 +27,14 @@ section .text
 ; ============================================================================
 global fp_percentile_sorted_f64
 fp_percentile_sorted_f64:
+%ifdef FP_SYSV
+    mov rcx, rdi           ; Win a1 (data) <- SysV a1
+    mov rdx, rsi           ; Win a2 (n)    <- SysV a2
+    vmovaps xmm2, xmm0     ; Win float a3 (p) <- SysV float a1
+%endif
+fp_percentile_sorted_f64_impl:
     push rbp
+    push rbx                ; preserve rbx (was clobbered without saving)
     mov rbp, rsp
     sub rsp, 32
 
@@ -68,6 +76,7 @@ fp_percentile_sorted_f64:
     vaddsd xmm0, xmm4, xmm6          ; xmm0 = lower + frac * (upper - lower)
     vzeroupper
     mov rsp, rbp
+    pop rbx
     pop rbp
     ret
 
@@ -76,6 +85,7 @@ fp_percentile_sorted_f64:
     ; rbx = n - 1 (already calculated above)
     vmovsd xmm0, [rcx + rbx*8]
     mov rsp, rbp
+    pop rbx
     pop rbp
     ret
 
@@ -83,6 +93,7 @@ fp_percentile_sorted_f64:
     ; Only one element, return it
     vmovsd xmm0, [rcx]
     mov rsp, rbp
+    pop rbx
     pop rbp
     ret
 
@@ -90,6 +101,7 @@ fp_percentile_sorted_f64:
     ; Return NaN for empty array
     vmovsd xmm0, [rel const_nan]
     mov rsp, rbp
+    pop rbx
     pop rbp
     ret
 
@@ -113,6 +125,10 @@ fp_percentile_sorted_f64:
 ; ============================================================================
 global fp_percentiles_sorted_f64
 fp_percentiles_sorted_f64:
+%ifdef FP_SYSV
+    mov r10, r8             ; capture results (5th int arg) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 64
@@ -129,7 +145,9 @@ fp_percentiles_sorted_f64:
     mov [rbp - 16], rdx         ; n
     mov [rbp - 24], r8          ; p_values
     mov [rbp - 32], r9          ; n_percentiles
-    mov r10, [rbp + 48]         ; results pointer
+%ifdef FP_WIN64
+    mov r10, [rbp + 48]         ; Win64: results (5th arg) on stack
+%endif
     mov [rbp - 40], r10
 
     ; Handle empty array
@@ -150,7 +168,7 @@ fp_percentiles_sorted_f64:
     ; Call fp_percentile_sorted_f64
     mov rcx, [rbp - 8]          ; sorted_data
     mov rdx, [rbp - 16]         ; n
-    call fp_percentile_sorted_f64
+    call fp_percentile_sorted_f64_impl
 
     ; Store result
     mov r10, [rbp - 40]
@@ -179,7 +197,7 @@ fp_percentiles_sorted_f64:
 .fill_nan_loop:
     cmp r14, r9
     jge .done
-    mov r10, [rbp + 48]
+    mov r10, [rbp - 40]        ; results (saved local)
     vmovsd [r10 + r14*8], xmm0
     inc r14
     jmp .fill_nan_loop
@@ -201,6 +219,7 @@ fp_percentiles_sorted_f64:
 ; ============================================================================
 global fp_quartiles_sorted_f64
 fp_quartiles_sorted_f64:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 96
@@ -221,21 +240,21 @@ fp_quartiles_sorted_f64:
 
     ; Calculate Q1 (p = 0.25)
     vmovsd xmm2, [rel const_025]
-    call fp_percentile_sorted_f64
+    call fp_percentile_sorted_f64_impl
     vmovsd [rbp - 32], xmm0     ; Save Q1
 
     ; Calculate median (p = 0.50)
     mov rcx, [rbp - 8]
     mov rdx, [rbp - 16]
     vmovsd xmm2, [rel const_050]
-    call fp_percentile_sorted_f64
+    call fp_percentile_sorted_f64_impl
     vmovsd [rbp - 40], xmm0     ; Save median
 
     ; Calculate Q3 (p = 0.75)
     mov rcx, [rbp - 8]
     mov rdx, [rbp - 16]
     vmovsd xmm2, [rel const_075]
-    call fp_percentile_sorted_f64
+    call fp_percentile_sorted_f64_impl
     vmovsd [rbp - 48], xmm0     ; Save Q3
 
     ; Calculate IQR = Q3 - Q1

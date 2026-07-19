@@ -53,6 +53,7 @@ section .text
 
 global fp_mat4_identity
 fp_mat4_identity:
+    ABI_ARGS_INT
     PROLOGUE
     ; Load identity matrix from aligned .data section
     vmovaps ymm0, [identity_matrix]      ; Load columns 0-1 (8 floats)
@@ -94,6 +95,7 @@ fp_mat4_identity:
 
 global fp_mat4_mul
 fp_mat4_mul:
+    ABI_ARGS_INT
     PROLOGUE
 
     ; Load A columns (cache-friendly sequential access)
@@ -191,6 +193,7 @@ fp_mat4_mul:
 
 global fp_mat4_mul_vec3
 fp_mat4_mul_vec3:
+    ABI_ARGS_INT
     PROLOGUE
 
     ; Load vector (x, y, z, pad) - UNALIGNED (user memory)
@@ -246,27 +249,27 @@ fp_mat4_mul_vec3:
 
 global fp_mat4_transpose
 fp_mat4_transpose:
+    ABI_ARGS_INT
     PROLOGUE
 
-    ; Load the matrix as two YMM registers
-    vmovups ymm0, [rdx]      ; [m0, m1, m2, m3, m4, m5, m6, m7]
-    vmovups ymm1, [rdx+32]   ; [m8, m9, m10, m11, m12, m13, m14, m15]
-
-    ; Step 1: Interleave elements within 128-bit lanes
-    vunpcklps ymm2, ymm0, ymm1
-    vunpckhps ymm3, ymm0, ymm1
-
-    ; Step 2: Shuffle elements within 128-bit lanes
-    vshufps ymm0, ymm2, ymm3, 0x44
-    vshufps ymm1, ymm2, ymm3, 0xEE
-
-    ; Step 3: Permute 128-bit lanes to get final columns
-    vperm2f128 ymm2, ymm0, ymm1, 0x20   ; Use vperm2f128 for float data
-    vperm2f128 ymm3, ymm0, ymm1, 0x31   ; Use vperm2f128 for float data
-
-    ; Store the transposed matrix
-    vmovups [rcx], ymm2
-    vmovups [rcx+32], ymm3
+    ; Correct 4x4 transpose (classic _MM_TRANSPOSE4_PS). The previous 2-YMM
+    ; unpack/shuffle/permute sequence produced a wrong permutation.
+    vmovups xmm0, [rdx]        ; row0 = [m0  m1  m2  m3 ]
+    vmovups xmm1, [rdx+16]     ; row1 = [m4  m5  m6  m7 ]
+    vmovups xmm2, [rdx+32]     ; row2 = [m8  m9  m10 m11]
+    vmovups xmm3, [rdx+48]     ; row3 = [m12 m13 m14 m15]
+    vunpcklps xmm4, xmm0, xmm1 ; [m0  m4  m1  m5 ]
+    vunpckhps xmm5, xmm0, xmm1 ; [m2  m6  m3  m7 ]
+    vunpcklps xmm6, xmm2, xmm3 ; [m8  m12 m9  m13]
+    vunpckhps xmm7, xmm2, xmm3 ; [m10 m14 m11 m15]
+    vmovlhps  xmm0, xmm4, xmm6 ; col0 = [m0 m4 m8  m12]
+    vmovhlps  xmm1, xmm6, xmm4 ; col1 = [m1 m5 m9  m13]
+    vmovlhps  xmm2, xmm5, xmm7 ; col2 = [m2 m6 m10 m14]
+    vmovhlps  xmm3, xmm7, xmm5 ; col3 = [m3 m7 m11 m15]
+    vmovups [rcx],    xmm0
+    vmovups [rcx+16], xmm1
+    vmovups [rcx+32], xmm2
+    vmovups [rcx+48], xmm3
 
     EPILOGUE
 
@@ -297,6 +300,7 @@ fp_mat4_transpose:
 
 global fp_mat4_mul_vec3_batch
 fp_mat4_mul_vec3_batch:
+    ABI_ARGS_INT
     PROLOGUE
 
     ; Early exit if count <= 0

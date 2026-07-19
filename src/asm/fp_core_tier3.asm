@@ -10,6 +10,7 @@
 
 bits 64
 default rel
+%include "abi.inc"
 
 section .text
 
@@ -32,6 +33,7 @@ section .text
 ; ----------------------------------------------------------------------------
 global fp_group_i64
 fp_group_i64:
+    ABI_ARGS_INT
     test r9, r9
     jz .empty
 
@@ -97,6 +99,7 @@ fp_group_i64:
 ; ----------------------------------------------------------------------------
 global fp_run_length_encode_i64
 fp_run_length_encode_i64:
+    ABI_ARGS_INT
     test r8, r8
     jz .empty
 
@@ -160,6 +163,7 @@ fp_run_length_encode_i64:
 ; ----------------------------------------------------------------------------
 global fp_iterate_add_i64
 fp_iterate_add_i64:
+    ABI_ARGS_INT
     test rdx, rdx
     jz .done
 
@@ -188,6 +192,7 @@ fp_iterate_add_i64:
 ; ----------------------------------------------------------------------------
 global fp_iterate_mul_i64
 fp_iterate_mul_i64:
+    ABI_ARGS_INT
     test rdx, rdx
     jz .done
 
@@ -217,6 +222,7 @@ fp_iterate_mul_i64:
 ; ----------------------------------------------------------------------------
 global fp_range_i64
 fp_range_i64:
+    ABI_ARGS_INT
     cmp rdx, r8
     jge .empty
 
@@ -255,6 +261,7 @@ fp_range_i64:
 ; ----------------------------------------------------------------------------
 global fp_reduce_and_bool
 fp_reduce_and_bool:
+    ABI_ARGS_INT
     test rdx, rdx
     jz .all_true                ; Empty array → vacuously true
 
@@ -316,6 +323,7 @@ fp_reduce_and_bool:
 ; ----------------------------------------------------------------------------
 global fp_reduce_or_bool
 fp_reduce_or_bool:
+    ABI_ARGS_INT
     test rdx, rdx
     jz .all_false               ; Empty array → false
 
@@ -380,6 +388,7 @@ fp_reduce_or_bool:
 ; ----------------------------------------------------------------------------
 global fp_zip_with_index_i64
 fp_zip_with_index_i64:
+    ABI_ARGS_INT
     test r8, r8
     jz .empty
 
@@ -421,6 +430,7 @@ fp_zip_with_index_i64:
 ; ----------------------------------------------------------------------------
 global fp_replicate_f64
 fp_replicate_f64:
+    ABI_ARGS_INT
     test rdx, rdx
     jz .done
 
@@ -459,13 +469,15 @@ fp_replicate_f64:
 ; ----------------------------------------------------------------------------
 global fp_count_i64
 fp_count_i64:
+    ABI_ARGS_INT
     test rdx, rdx
     jz .zero
 
     mov r10, rcx                ; r10 = input
     xor rax, rax                ; rax = count
     xor r11, r11                ; r11 = index
-    vpbroadcastq ymm7, r8       ; ymm7 = target
+    vmovq xmm7, r8
+    vpbroadcastq ymm7, xmm7       ; ymm7 = target  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     mov r9, rdx

@@ -1,178 +1,130 @@
-# FP-ASM Library - Master Makefile
-# Professional build system for the reorganized project
-# Supports both Windows and Linux for testing
+# =============================================================================
+# FP-ASM — portable build system
+#
+# Produces a linkable library (static + shared) from the x64 AVX2 assembly
+# kernels and their C wrappers, for consumption by games / graphics projects.
+#
+#   make            # build static + shared libraries into build/
+#   make static     # build build/libfpasm.a
+#   make shared     # build build/libfpasm.so (.dll on Windows)
+#   make test       # build and run the test suite
+#   make install    # install headers + libs under PREFIX (default /usr/local)
+#   make clean
+#
+# Requirements: NASM (>=2.13) and a C11 compiler (gcc/clang). The kernels
+# require a CPU with AVX2 + FMA.
+# =============================================================================
 
-# Directories
-SRC_ASM = src/asm
-SRC_WRAPPERS = src/wrappers
-INCLUDE = include
-BUILD_OBJ = build/obj
-BUILD_BIN = build/bin
-TESTS = tests
-BENCHMARKS = benchmarks
+LIB        := fpasm
+SRC_ASM    := src/asm
+SRC_DIRS   := src/wrappers src/algorithms
+INCLUDE    := include
+BUILD      := build
+OBJ        := $(BUILD)/obj
+PREFIX     ?= /usr/local
 
-# Platform detection and compiler/assembler configuration
-# Windows-only library but supports Linux for CI testing
-ifeq ($(OS),Windows_NT)
-    # Windows configuration (primary target)
-    ASM = C:/Users/baian/AppData/Local/bin/NASM/nasm.exe
-    CC = C:/msys64/mingw64/bin/gcc.exe
-    ASMFLAGS = -f win64 -I$(SRC_ASM)/
-    CFLAGS = -I$(INCLUDE) -O3 -march=native
-    LDFLAGS = -lOpenCL
-    RM = del /F
-    RMDIR = rmdir /S /Q
-    EXE_EXT = .exe
+# --- Platform / toolchain detection ------------------------------------------
+UNAME_S := $(shell uname -s 2>/dev/null || echo Unknown)
+ASM      ?= nasm
+CC       ?= cc
+AR       ?= ar
+# CPU features: the ASM needs AVX2; override ARCH= to retarget the C code.
+ARCH     ?= native
+CFLAGS   ?= -O3 -std=c11 -Wall -Wextra
+CFLAGS   += -I$(INCLUDE) -march=$(ARCH) -fPIC
+ASMINC   := -I$(SRC_ASM)/
+
+ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S))$(findstring CYGWIN,$(UNAME_S)))
+    ASMFMT     := win64
+    SHLIB_EXT  := dll
+    LDLIBS     :=
+else ifeq ($(UNAME_S),Darwin)
+    ASMFMT     := macho64
+    SHLIB_EXT  := dylib
+    LDLIBS     := -lm
 else
-    # Linux configuration (for CI testing only)
-    ASM = nasm
-    CC = gcc
-    ASMFLAGS = -f elf64 -I$(SRC_ASM)/
-    CFLAGS = -I$(INCLUDE) -O3 -march=native -fPIC
-    LDFLAGS = -lm
-    RM = rm -f
-    RMDIR = rm -rf
-    EXE_EXT =
+    ASMFMT     := elf64
+    SHLIB_EXT  := so
+    LDLIBS     := -lm
 endif
 
-# Assembly source files
-ASM_SOURCES = $(wildcard $(SRC_ASM)/*.asm)
-ASM_OBJECTS = $(patsubst $(SRC_ASM)/%.asm,$(BUILD_OBJ)/%.o,$(ASM_SOURCES))
+STATIC := $(BUILD)/lib$(LIB).a
+SHARED := $(BUILD)/lib$(LIB).$(SHLIB_EXT)
 
-# Wrapper source files
-WRAPPER_SOURCES = $(wildcard $(SRC_WRAPPERS)/*.c)
-WRAPPER_OBJECTS = $(patsubst $(SRC_WRAPPERS)/%.c,$(BUILD_OBJ)/%.o,$(WRAPPER_SOURCES))
+# --- Sources / objects -------------------------------------------------------
+ASM_SRCS := $(wildcard $(SRC_ASM)/*.asm)
+C_SRCS   := $(foreach d,$(SRC_DIRS),$(wildcard $(d)/*.c))
+ASM_OBJS := $(patsubst %.asm,$(OBJ)/%.o,$(notdir $(ASM_SRCS)))
+C_OBJS   := $(patsubst %.c,$(OBJ)/%.o,$(notdir $(C_SRCS)))
+OBJS     := $(ASM_OBJS) $(C_OBJS)
 
-# Algorithm source files
-ALGORITHM_SOURCES = $(wildcard src/algorithms/*.c)
-ALGORITHM_OBJECTS = $(patsubst src/algorithms/%.c,$(BUILD_OBJ)/%.o,$(ALGORITHM_SOURCES))
+# Let make find sources in their subdirectories.
+vpath %.asm $(SRC_ASM)
+vpath %.c $(SRC_DIRS)
 
-# Test source files
-TEST_SOURCES = $(wildcard $(TESTS)/*.c)
-TEST_BINARIES = $(patsubst $(TESTS)/%.c,$(BUILD_BIN)/%.exe,$(TEST_SOURCES))
+TEST_SRCS := $(wildcard tests/test_*.c)
+TEST_BINS := $(patsubst tests/%.c,$(BUILD)/%,$(TEST_SRCS))
 
-# Benchmark source files
-BENCH_SOURCES = $(wildcard $(BENCHMARKS)/demo_*.c)
-BENCH_BINARIES = $(patsubst $(BENCHMARKS)/%.c,$(BUILD_BIN)/%.exe,$(BENCH_SOURCES))
+# --- Targets -----------------------------------------------------------------
+.PHONY: all static shared test bench clean install dirs
+all: static shared
 
-# Default target
-.PHONY: all
-all: asm wrappers algorithms
+static: $(STATIC)
+shared: $(SHARED)
 
-# Build all assembly modules
-.PHONY: asm
-asm: $(ASM_OBJECTS)
+$(STATIC): $(OBJS) | dirs
+	$(AR) rcs $@ $(OBJS)
+	@echo "  AR   $@"
 
-# Build all wrappers
-.PHONY: wrappers
-wrappers: $(WRAPPER_OBJECTS)
+$(SHARED): $(OBJS) | dirs
+	$(CC) -shared -o $@ $(OBJS) $(LDLIBS)
+	@echo "  LD   $@"
 
-# Build all algorithms
-.PHONY: algorithms
-algorithms: $(ALGORITHM_OBJECTS)
+$(OBJ)/%.o: %.asm | dirs
+	$(ASM) -f $(ASMFMT) $(ASMINC) $< -o $@
+	@echo "  ASM  $<"
 
-# Build all tests
-.PHONY: tests
-tests: $(TEST_BINARIES)
-
-# Build all benchmarks
-.PHONY: benchmarks
-benchmarks: $(BENCH_BINARIES)
-
-# Build everything
-.PHONY: complete
-complete: asm wrappers tests benchmarks
-
-# Assembly compilation rule
-$(BUILD_OBJ)/%.o: $(SRC_ASM)/%.asm
-	@echo "Assembling $<..."
-	$(ASM) $(ASMFLAGS) $< -o $@
-
-# Wrapper compilation rule
-$(BUILD_OBJ)/%.o: $(SRC_WRAPPERS)/%.c
-	@echo "Compiling $<..."
+$(OBJ)/%.o: %.c | dirs
 	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "  CC   $<"
 
-# Algorithm compilation rule
-$(BUILD_OBJ)/%.o: src/algorithms/%.c
-	@echo "Compiling $<..."
-	$(CC) $(CFLAGS) -c $< -o $@
+# --- Tests: link each tests/test_*.c against the static library --------------
+test: $(STATIC) $(TEST_BINS)
+	@echo "== running tests =="; \
+	fail=0; for t in $(TEST_BINS); do \
+	    echo "-- $$t --"; $$t || fail=1; \
+	done; \
+	if [ $$fail -eq 0 ]; then echo "== ALL TEST BINARIES PASSED =="; else echo "== SOME TESTS FAILED =="; exit 1; fi
 
+$(BUILD)/%: tests/%.c $(STATIC) | dirs
+	$(CC) $(CFLAGS) $< $(STATIC) -o $@ $(LDLIBS)
 
+BENCH_SRCS := $(wildcard benchmarks/bench_*.c)
+BENCH_BINS := $(patsubst benchmarks/%.c,$(BUILD)/%,$(BENCH_SRCS))
 
-# Test compilation rule
-$(BUILD_BIN)/test_%.exe: $(TESTS)/test_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS)
-	@echo "Building test $@..."
-	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) -o $@ $(LDFLAGS)
+# Benchmarks are compiled at -O3 -march=native so the scalar reference is
+# autovectorized too (a fair comparison against the hand-written kernels).
+bench: $(STATIC) $(BENCH_BINS)
+	@for b in $(BENCH_BINS); do echo "== $$b =="; $$b >/dev/null; done
 
-# Benchmark compilation rule (demo_*.c files)
-$(BUILD_BIN)/demo_%.exe: $(BENCHMARKS)/demo_%.c $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS)
-	@echo "Building benchmark $@..."
-	$(CC) $(CFLAGS) $< $(ASM_OBJECTS) $(WRAPPER_OBJECTS) $(ALGORITHM_OBJECTS) -o $@ $(LDFLAGS)
+$(BUILD)/bench_%: benchmarks/bench_%.c $(STATIC) | dirs
+	$(CC) -I$(INCLUDE) -O3 -march=native $< $(STATIC) -o $@ $(LDLIBS)
 
-# Clean build artifacts
-.PHONY: clean
-clean:
-	@echo "Cleaning build artifacts..."
-ifeq ($(OS),Windows_NT)
-	-del /F $(BUILD_OBJ)\*.o 2>NUL
-	-del /F $(BUILD_BIN)\*.exe 2>NUL
-else
-	-$(RM) $(BUILD_OBJ)/*.o
-	-$(RM) $(BUILD_BIN)/*
-endif
-
-# Clean everything including directories
-.PHONY: distclean
-distclean: clean
-	@echo "Removing build directories..."
-ifeq ($(OS),Windows_NT)
-	-rmdir /S /Q $(BUILD_OBJ) 2>NUL
-	-rmdir /S /Q $(BUILD_BIN) 2>NUL
-else
-	-$(RMDIR) $(BUILD_OBJ)
-	-$(RMDIR) $(BUILD_BIN)
-endif
-
-# Recreate build directories
-.PHONY: dirs
 dirs:
-	@echo "Creating build directories..."
-	mkdir -p $(BUILD_OBJ) $(BUILD_BIN)
+	@mkdir -p $(OBJ)
 
-# Show build variables (for debugging)
-.PHONY: show
-show:
-	@echo "ASM_SOURCES: $(ASM_SOURCES)"
-	@echo "ASM_OBJECTS: $(ASM_OBJECTS)"
-	@echo "WRAPPER_SOURCES: $(WRAPPER_SOURCES)"
-	@echo "WRAPPER_OBJECTS: $(WRAPPER_OBJECTS)"
-	@echo "TEST_SOURCES: $(TEST_SOURCES)"
-	@echo "TEST_BINARIES: $(TEST_BINARIES)"
-	@echo "BENCH_SOURCES: $(BENCH_SOURCES)"
-	@echo "BENCH_BINARIES: $(BENCH_BINARIES)"
+install: all
+	@mkdir -p $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/$(LIB)
+	cp $(STATIC) $(SHARED) $(DESTDIR)$(PREFIX)/lib/
+	cp $(INCLUDE)/*.h $(DESTDIR)$(PREFIX)/include/$(LIB)/
+	@echo "installed to $(DESTDIR)$(PREFIX)"
 
-# Help target
-.PHONY: help
-help:
-	@echo "FP-ASM Library Build System"
-	@echo "============================"
-	@echo ""
-	@echo "Available targets:"
-	@echo "  all        - Build assembly modules and wrappers (default)"
-	@echo "  asm        - Build all assembly modules"
-	@echo "  wrappers   - Build all C wrappers"
-	@echo "  tests      - Build all test executables"
-	@echo "  benchmarks - Build all benchmark executables"
-	@echo "  complete   - Build everything (asm + wrappers + tests + benchmarks)"
-	@echo "  clean      - Remove object files and executables"
-	@echo "  distclean  - Remove all build artifacts and directories"
-	@echo "  dirs       - Create build directories"
-	@echo "  show       - Show build variables"
-	@echo "  help       - Show this help message"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make              # Build core library"
-	@echo "  make complete     # Build everything"
-	@echo "  make tests        # Build only tests"
-	@echo "  make clean        # Clean build artifacts"
+clean:
+	rm -rf $(BUILD)
+
+# Diagnostics
+.PHONY: info
+info:
+	@echo "platform : $(UNAME_S)  asm-format: $(ASMFMT)  shlib: .$(SHLIB_EXT)"
+	@echo "asm srcs : $(words $(ASM_SRCS))   c srcs: $(words $(C_SRCS))"
+	@echo "tests    : $(TEST_SRCS)"

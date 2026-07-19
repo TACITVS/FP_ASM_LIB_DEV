@@ -26,6 +26,7 @@ section .text
 
 global fp_fold_sumsq_f32
 fp_fold_sumsq_f32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: XMM0 = sum of squares
 
@@ -117,6 +118,7 @@ fp_fold_sumsq_f32:
 
 global fp_fold_dotp_f32
 fp_fold_dotp_f32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: XMM0 = dot product
 
@@ -212,6 +214,7 @@ fp_fold_dotp_f32:
 
 global fp_fold_sad_f32
 fp_fold_sad_f32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: XMM0 = sum of absolute differences
 
