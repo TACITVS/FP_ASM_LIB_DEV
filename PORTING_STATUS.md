@@ -24,6 +24,8 @@ if called on Linux — do not use them on Linux yet.
 | `fp_core_matrix` | `fp_mat4_identity`, `fp_mat4_mul`, `fp_mat4_mul_vec3`, `fp_mat4_transpose`, `fp_mat4_mul_vec3_batch` |
 | `fp_core_essentials` | `fp_contains_i64`, `fp_find_index_i64`, `fp_take_n_i64`, `fp_drop_n_i64`, `fp_slice_i64`, `fp_reverse_i64`, `fp_concat_i64`, `fp_reduce_product_{i64,f64}`, `fp_replicate_i64` |
 | `fp_core_simple_maps` | `fp_map_abs_{i64,f64}`, `fp_map_sqrt_f64`, `fp_map_clamp_{i64,f64}` |
+| `fp_core_scans` | `fp_scan_add_{i64,f64}` (prefix sum) |
+| `fp_core_descriptive_stats` | `fp_moments_f64`, `fp_descriptive_stats_f64` |
 
 Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 `test_game_math.c`, `test_essentials.c` (run `make test`).
@@ -32,8 +34,6 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 
 | Module | Notes |
 |---|---|
-| `fp_core_scans` | prefix sums |
-| `fp_core_descriptive_stats` | |
 | `fp_core_percentiles` | 5th arg on stack |
 | `fp_core_compaction` | 5-arg (stack) functions |
 | `fp_core_tier2` | 5-arg (stack) functions |

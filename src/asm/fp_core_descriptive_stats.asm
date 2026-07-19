@@ -24,6 +24,8 @@ section .text
 ; ============================================================================
 global fp_moments_f64
 fp_moments_f64:
+    ABI_ARGS_INT
+fp_moments_f64_impl:
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -165,6 +167,7 @@ fp_moments_f64:
 ; ============================================================================
 global fp_descriptive_stats_f64
 fp_descriptive_stats_f64:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 272                ; Space for callee-saved XMM + locals
@@ -193,7 +196,7 @@ fp_descriptive_stats_f64:
 
     ; Calculate moments
     lea r8, [rsp + 160]        ; moments output
-    call fp_moments_f64
+    call fp_moments_f64_impl
 
     ; Load n as double
     mov rax, [rbp - 16]

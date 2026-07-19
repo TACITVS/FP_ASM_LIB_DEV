@@ -31,6 +31,7 @@ section .text
 ; Example: [1, 2, 3, 4] -> [1, 3, 6, 10]
 ; ===========================================================================
 fp_scan_add_i64:
+    ABI_ARGS_INT
     ; Prologue - save non-volatile registers
     push r12
     push r13
@@ -110,6 +111,7 @@ fp_scan_add_i64:
 ; Example: [1.0, 2.0, 3.0, 4.0] -> [1.0, 3.0, 6.0, 10.0]
 ; ===========================================================================
 fp_scan_add_f64:
+    ABI_ARGS_INT
     ; Prologue - save non-volatile registers
     push r12
     push r13
