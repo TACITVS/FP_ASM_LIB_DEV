@@ -8,12 +8,6 @@
 
 %include "abi.inc"
 
-; On ELF targets, emit a non-executable-stack note so the linker does not mark
-; the whole program's stack executable when linking these objects.
-%ifdef FP_SYSV
-section .note.GNU-stack noalloc noexec nowrite progbits
-%endif
-
 ; --- Helper Macros ---
 %macro PROLOGUE 0
     push    rbp

@@ -13,6 +13,7 @@
 ;   - fp_fold_dotp_i8:   Dot product (scalar - no SIMD multiply)
 ;   - fp_fold_sad_i8:    Sum of absolute differences (SIMD - 32-wide!)
 
+%include "abi.inc"
 bits 64
 default rel
 
@@ -27,6 +28,7 @@ section .text
 
 global fp_fold_sumsq_i8
 fp_fold_sumsq_i8:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
 
@@ -60,6 +62,7 @@ fp_fold_sumsq_i8:
 
 global fp_fold_dotp_i8
 fp_fold_dotp_i8:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
 
@@ -97,6 +100,7 @@ fp_fold_dotp_i8:
 
 global fp_fold_sad_i8
 fp_fold_sad_i8:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 32

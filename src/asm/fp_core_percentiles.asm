@@ -6,6 +6,7 @@
 ;
 ; Windows x64 calling convention
 
+%include "abi.inc"
 section .text
 
 ; ============================================================================

@@ -10,6 +10,7 @@
 ; Performance target: 3-5x faster than SHA-256
 ; =============================================================================
 
+%include "abi.inc"
 section .data
     align 32
 

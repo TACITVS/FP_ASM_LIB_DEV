@@ -324,7 +324,8 @@ fp_find_index_i64:
 
     mov r10, rcx                ; R10 = input
     xor rax, rax                ; RAX = current index
-    vpbroadcastq ymm7, r8       ; YMM7 = target (broadcast)
+    vmovq xmm7, r8
+    vpbroadcastq ymm7, xmm7       ; YMM7 = target (broadcast)  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     mov rcx, rdx
@@ -388,7 +389,8 @@ fp_contains_i64:
 
     mov r10, rcx                ; R10 = input
     mov rcx, rdx                ; RCX = count
-    vpbroadcastq ymm7, r8       ; YMM7 = target
+    vmovq xmm7, r8
+    vpbroadcastq ymm7, xmm7       ; YMM7 = target  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     cmp rcx, 4
@@ -558,7 +560,8 @@ fp_replicate_i64:
 
     mov r10, rcx                ; R10 = output
     mov rcx, rdx                ; RCX = count
-    vpbroadcastq ymm0, r8       ; YMM0 = value broadcast
+    vmovq xmm0, r8
+    vpbroadcastq ymm0, xmm0       ; YMM0 = value broadcast  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     cmp rcx, 4

@@ -14,6 +14,7 @@
 ;   - fp_map_offset_i8:  out = x + c (SIMD add - 32-wide!)
 ;   - fp_zip_add_i8:     out = x + y (SIMD add - 32-wide!)
 
+%include "abi.inc"
 bits 64
 default rel
 

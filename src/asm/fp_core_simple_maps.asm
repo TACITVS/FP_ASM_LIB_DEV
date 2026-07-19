@@ -8,6 +8,7 @@
 
 bits 64
 default rel
+%include "abi.inc"
 
 section .rdata
     ALIGN 32

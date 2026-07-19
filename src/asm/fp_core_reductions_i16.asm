@@ -27,6 +27,7 @@ section .text
 
 global fp_reduce_add_i16
 fp_reduce_add_i16:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -115,6 +116,7 @@ fp_reduce_add_i16:
 
 global fp_reduce_mul_i16
 fp_reduce_mul_i16:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -224,6 +226,7 @@ fp_reduce_mul_i16:
 
 global fp_reduce_min_i16
 fp_reduce_min_i16:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -324,6 +327,7 @@ fp_reduce_min_i16:
 
 global fp_reduce_max_i16
 fp_reduce_max_i16:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null

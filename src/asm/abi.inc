@@ -29,6 +29,14 @@
     %define FP_SYSV 1
 %endif
 
+; On ELF targets, emit a non-executable-stack note so the linker does not mark
+; the whole program's stack executable when linking these objects. Emitted once
+; per translation unit (guarded by FP_ABI_INC above). The file's own `section`
+; directives that follow restore the active section.
+%ifdef FP_SYSV
+section .note.GNU-stack noalloc noexec nowrite progbits
+%endif
+
 ; -----------------------------------------------------------------------------
 ; ABI_ARGS_INT — up to 4 integer/pointer args.
 ; Covers the majority of functions (reductions, folds, maps, zips, set-ops).

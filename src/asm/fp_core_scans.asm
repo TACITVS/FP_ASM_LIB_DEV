@@ -10,6 +10,7 @@
 
 bits 64
 default rel
+%include "abi.inc"
 
 section .text
     global fp_scan_add_i64
