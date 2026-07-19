@@ -1,0 +1,99 @@
+/**
+ * fp_functional.h
+ *
+ * Extended functional-programming operations (callback-based, plain C).
+ *
+ * These complement the array/SIMD primitives and the four base HOFs in
+ * fp_general_hof.c (foldl / map / filter / zipWith) with the operations that
+ * FP programmers routinely reach for: right folds, scans, predicate-based
+ * slicing and partitioning, the Foldable queries, a list-monad bind
+ * (concatMap), and the anamorphic generators (iterate / unfoldr).
+ *
+ * Convention (matches fp_general_hof.c):
+ *   - i64 and f64 variants; user functions take a trailing `void* ctx`.
+ *   - Functions that produce arrays write into a caller-provided `output`
+ *     buffer and return the number of elements written.
+ *
+ * These are deliberately plain C: arbitrary function-pointer callbacks can't be
+ * inlined into the SIMD kernels. Use the specialized kernels (fp_reduce_*,
+ * fp_map_*, ...) on hot paths; use these for general, composable logic.
+ */
+#ifndef FP_FUNCTIONAL_H
+#define FP_FUNCTIONAL_H
+
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "fp_monads.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ---- right fold: foldr f z [x0..xn] = f x0 (f x1 (... (f xn z))) ---- */
+int64_t fp_foldr_i64(const int64_t* in, size_t n, int64_t init,
+                     int64_t (*fn)(int64_t x, int64_t acc, void* ctx), void* ctx);
+double  fp_foldr_f64(const double* in, size_t n, double init,
+                     double (*fn)(double x, double acc, void* ctx), void* ctx);
+
+/* ---- scans (inclusive): out[i] = fold of in[0..i] ---- */
+size_t fp_scanl_i64(const int64_t* in, int64_t* out, size_t n, int64_t init,
+                    int64_t (*fn)(int64_t acc, int64_t x, void* ctx), void* ctx);
+size_t fp_scanl_f64(const double* in, double* out, size_t n, double init,
+                    double (*fn)(double acc, double x, void* ctx), void* ctx);
+size_t fp_scanr_i64(const int64_t* in, int64_t* out, size_t n, int64_t init,
+                    int64_t (*fn)(int64_t x, int64_t acc, void* ctx), void* ctx);
+size_t fp_scanr_f64(const double* in, double* out, size_t n, double init,
+                    double (*fn)(double x, double acc, void* ctx), void* ctx);
+
+/* ---- predicate-based slicing (general predicate) ---- */
+size_t fp_take_while_i64(const int64_t* in, int64_t* out, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+size_t fp_take_while_f64(const double* in, double* out, size_t n, bool (*pred)(double, void*), void* ctx);
+size_t fp_drop_while_i64(const int64_t* in, int64_t* out, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+size_t fp_drop_while_f64(const double* in, double* out, size_t n, bool (*pred)(double, void*), void* ctx);
+/* span: prefix satisfying pred -> `take`; rest -> `drop`. Returns length of the prefix. */
+size_t fp_span_i64(const int64_t* in, int64_t* take, int64_t* drop, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+size_t fp_span_f64(const double* in, double* take, double* drop, size_t n, bool (*pred)(double, void*), void* ctx);
+
+/* ---- partition by predicate: matches -> yes, rest -> no. Returns count in yes. ---- */
+size_t fp_partition_i64(const int64_t* in, int64_t* yes, int64_t* no, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+size_t fp_partition_f64(const double* in, double* yes, double* no, size_t n, bool (*pred)(double, void*), void* ctx);
+
+/* ---- Foldable queries ---- */
+bool   fp_all_i64(const int64_t* in, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+bool   fp_all_f64(const double* in, size_t n, bool (*pred)(double, void*), void* ctx);
+bool   fp_any_i64(const int64_t* in, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+bool   fp_any_f64(const double* in, size_t n, bool (*pred)(double, void*), void* ctx);
+size_t fp_count_if_i64(const int64_t* in, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+size_t fp_count_if_f64(const double* in, size_t n, bool (*pred)(double, void*), void* ctx);
+/* find: first element satisfying pred, as Maybe (Nothing if none) */
+Maybe  fp_find_i64(const int64_t* in, size_t n, bool (*pred)(int64_t, void*), void* ctx);
+Maybe  fp_find_f64(const double* in, size_t n, bool (*pred)(double, void*), void* ctx);
+
+/* ---- list monad bind: concatMap / flatMap ----
+ * For each input, `fn` writes 0+ results into `scratch` (capacity `scratch_cap`)
+ * and returns how many it wrote; they are appended to `out` (capacity out_cap).
+ * Returns total written, or (size_t)-1 if `out_cap` is exceeded. */
+size_t fp_concat_map_i64(const int64_t* in, size_t n, int64_t* out, size_t out_cap,
+                         int64_t* scratch, size_t scratch_cap,
+                         size_t (*fn)(int64_t x, int64_t* out, size_t cap, void* ctx), void* ctx);
+
+/* ---- generators (anamorphisms) ---- */
+/* iterate: out = [seed, f seed, f (f seed), ...] of length n */
+size_t fp_iterate_i64(int64_t* out, size_t n, int64_t seed, int64_t (*fn)(int64_t, void*), void* ctx);
+size_t fp_iterate_f64(double*  out, size_t n, double  seed, double  (*fn)(double,  void*), void* ctx);
+/* unfoldr: from a seed, `fn` yields the next value + updated state and returns
+ * true to continue / false to stop. Stops at `max` elements. Returns count. */
+size_t fp_unfoldr_i64(int64_t* out, size_t max, int64_t seed,
+                      bool (*fn)(int64_t* state, int64_t* out_val, void* ctx), void* ctx);
+size_t fp_unfoldr_f64(double* out, size_t max, double seed,
+                      bool (*fn)(double* state, double* out_val, void* ctx), void* ctx);
+
+/* mapMaybe (map then keep only the Justs) already lives in fp_monads.h:
+ *   size_t fp_map_maybe_i64(const int64_t* in, size_t n, Maybe (*fn)(int64_t), int64_t* out);
+ * Included here via fp_monads.h so callers get the whole toolkit from one header. */
+
+#ifdef __cplusplus
+}
+#endif
+#endif /* FP_FUNCTIONAL_H */
