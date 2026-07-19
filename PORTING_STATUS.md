@@ -28,6 +28,7 @@ if called on Linux — do not use them on Linux yet.
 | `fp_core_descriptive_stats` | `fp_moments_f64`, `fp_descriptive_stats_f64` |
 | `fp_core_percentiles` | `fp_percentile_sorted_f64`, `fp_percentiles_sorted_f64`, `fp_quartiles_sorted_f64` |
 | `fp_core_compaction` | `fp_filter_gt_i64_{simple,simd}`, `fp_take_while_gt_i64`, `fp_drop_while_gt_i64`, `fp_partition_gt_i64` (7-arg) |
+| `fp_core_tier2` | `fp_unique_i64`, `fp_union_i64`, `fp_intersect_i64` (set ops) |
 
 Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 `test_game_math.c`, `test_essentials.c` (run `make test`).
@@ -36,7 +37,6 @@ Covered by `tests/test_reductions.c`, `test_int_families.c`, `test_maps.c`,
 
 | Module | Notes |
 |---|---|
-| `fp_core_tier2` | 5-arg (stack) functions |
 | `fp_blake3_avx2` | BLAKE3 hashing (candidate for removal — not core FP/game math) |
 
 ## Bugs fixed so far

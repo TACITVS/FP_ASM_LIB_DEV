@@ -27,6 +27,7 @@ section .text
 ; ----------------------------------------------------------------------------
 global fp_unique_i64
 fp_unique_i64:
+    ABI_ARGS_INT
     test r8, r8
     jz .empty
 
@@ -76,6 +77,10 @@ fp_unique_i64:
 ; ----------------------------------------------------------------------------
 global fp_union_i64
 fp_union_i64:
+%ifdef FP_SYSV
+    mov rax, r8             ; capture len_b (5th int arg) before ABI shuffle (rax free until read)
+%endif
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     push rbx
@@ -88,7 +93,11 @@ fp_union_i64:
     mov r11, rdx                ; r11 = array_b
     mov r12, r8                 ; r12 = output
     mov r13, r9                 ; r13 = len_a
-    mov r14, [rbp+48]           ; r14 = len_b
+%ifdef FP_WIN64
+    mov r14, [rbp+48]           ; Win64: len_b (arg5) on stack
+%else
+    mov r14, rax                ; SysV: len_b captured at entry
+%endif
 
     xor r15, r15                ; r15 = output count
     xor rbx, rbx                ; rbx = index_a
@@ -165,6 +174,10 @@ fp_union_i64:
 ; ----------------------------------------------------------------------------
 global fp_intersect_i64
 fp_intersect_i64:
+%ifdef FP_SYSV
+    mov rax, r8             ; capture len_b (5th int arg) before ABI shuffle (rax free until read)
+%endif
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     push rbx
@@ -177,7 +190,11 @@ fp_intersect_i64:
     mov r11, rdx                ; r11 = array_b
     mov r12, r8                 ; r12 = output
     mov r13, r9                 ; r13 = len_a
-    mov r14, [rbp+48]           ; r14 = len_b
+%ifdef FP_WIN64
+    mov r14, [rbp+48]           ; Win64: len_b (arg5) on stack
+%else
+    mov r14, rax                ; SysV: len_b captured at entry
+%endif
 
     xor r15, r15                ; r15 = output count
     xor rbx, rbx                ; rbx = index_a
