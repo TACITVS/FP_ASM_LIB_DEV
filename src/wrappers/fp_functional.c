@@ -297,3 +297,31 @@ size_t fp_unfoldr_f64(double* out, size_t max, double seed,
 }
 
 /* mapMaybe is provided by fp_monads.c (fp_map_maybe_i64 / fp_map_maybe_f64). */
+
+/* ============ Milestone C: traversal & monoidal folds ============ */
+/* fp_traverse_maybe_{i64,f64} already exist in fp_monads.c; we add the Either
+ * variants (first Left wins) and foldMap here. */
+Either fp_traverse_either_i64(const int64_t* in, size_t n, Either (*fn)(int64_t), int64_t* out) {
+    if (!in || !fn || !out) return fp_left("null argument", -1);
+    for (size_t i = 0; i < n; i++) { Either e = fn(in[i]); if (!fp_is_right(e)) return e; out[i] = e.right.value_i64; }
+    return fp_right_i64((int64_t)n);
+}
+Either fp_traverse_either_f64(const double* in, size_t n, Either (*fn)(double), double* out) {
+    if (!in || !fn || !out) return fp_left("null argument", -1);
+    for (size_t i = 0; i < n; i++) { Either e = fn(in[i]); if (!fp_is_right(e)) return e; out[i] = e.right.value_f64; }
+    return fp_right_i64((int64_t)n);
+}
+int64_t fp_fold_map_i64(const int64_t* in, size_t n, int64_t empty,
+                        int64_t (*map)(int64_t), int64_t (*combine)(int64_t, int64_t)) {
+    if (!in || !map || !combine) return empty;
+    int64_t acc = empty;
+    for (size_t i = 0; i < n; i++) acc = combine(acc, map(in[i]));
+    return acc;
+}
+double fp_fold_map_f64(const double* in, size_t n, double empty,
+                       double (*map)(double), double (*combine)(double, double)) {
+    if (!in || !map || !combine) return empty;
+    double acc = empty;
+    for (size_t i = 0; i < n; i++) acc = combine(acc, map(in[i]));
+    return acc;
+}

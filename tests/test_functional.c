@@ -37,6 +37,13 @@ static int64_t sum3(int64_t a, int64_t b, int64_t d, void* c){ (void)c; return a
 static int cmp_asc(int64_t a, int64_t b, void* c){ (void)c; return (a<b)?-1:((a>b)?1:0); }
 static int cmp_mod10(int64_t a, int64_t b, void* c){ (void)c; return (int)((a%10)-(b%10)); }
 static bool beq(int64_t a, int64_t b, void* c){ (void)c; return a==b; }
+/* milestone C */
+static Maybe  nz(int64_t x){ return x==0 ? fp_nothing() : fp_just_i64(x); }
+static Either inrange(int64_t x){ return (x>=0 && x<100) ? fp_right_i64(x) : fp_left("out of range", 1); }
+static int64_t iabs(int64_t x){ return x<0 ? -x : x; }
+static int64_t imax1(int64_t a, int64_t b){ return a>b ? a : b; }
+static int64_t isq(int64_t x){ return x*x; }
+static int64_t iadd(int64_t a, int64_t b){ return a+b; }
 
 int main(void){
     int64_t a[] = {1,2,3,4};
@@ -120,6 +127,18 @@ int main(void){
       ok("intersperse 0 -> [1,0,2,0,3]", m3==5 && eqa(o3,(int64_t[]){1,0,2,0,3},5)); }
     { int64_t o4[6]; fp_transpose_i64((int64_t[]){1,2,3,4,5,6},2,3,o4);   /* 2x3 -> 3x2 */
       ok("transpose 2x3 -> [1,4,2,5,3,6]", eqa(o4,(int64_t[]){1,4,2,5,3,6},6)); }
+
+    /* ---- Milestone C: traverse (Maybe/Either), foldMap ---- */
+    { Maybe r = fp_traverse_maybe_i64(a,4,nz,out);
+      ok("traverse_maybe all-just -> Just, out filled", fp_is_just(r) && eqa(out,(int64_t[]){1,2,3,4},4)); }
+    { Maybe r = fp_traverse_maybe_i64((int64_t[]){1,0,3},3,nz,out);
+      ok("traverse_maybe has-zero -> Nothing", fp_is_nothing(r)); }
+    { Either e = fp_traverse_either_i64((int64_t[]){1,2,3},3,inrange,out);
+      ok("traverse_either all-in-range -> Right", fp_is_right(e)); }
+    { Either e = fp_traverse_either_i64((int64_t[]){1,200,3},3,inrange,out);
+      ok("traverse_either out-of-range -> Left", fp_is_left(e)); }
+    ok("foldMap max . abs -> 9", fp_fold_map_i64((int64_t[]){-5,3,-9,2},4,0,iabs,imax1) == 9);
+    ok("foldMap (+) . sq -> 14", fp_fold_map_i64((int64_t[]){1,2,3},3,0,isq,iadd) == 14);
 
     printf("\n%s (%d failure%s)\n", fails?"FAILED":"ALL PASS", fails, fails==1?"":"s");
     return fails?1:0;

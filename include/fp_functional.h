@@ -144,6 +144,22 @@ size_t fp_transpose_f64(const double* in, size_t rows, size_t cols, double* out)
  *   size_t fp_map_maybe_i64(const int64_t* in, size_t n, Maybe (*fn)(int64_t), int64_t* out);
  * Included here via fp_monads.h so callers get the whole toolkit from one header. */
 
+/* ============ Milestone C: traversal & monoidal folds ============
+ * traverse = a fused map + sequence that short-circuits on the first failure
+ * (the all-or-nothing validation pattern). On success `out` holds the results
+ * and the return is Just/Right carrying the count; on failure it is Nothing /
+ * the first Left, and `out` is left partially written.
+ * (fp_traverse_maybe_{i64,f64} already live in fp_monads.h, included above.) */
+Either fp_traverse_either_i64(const int64_t* in, size_t n, Either (*fn)(int64_t), int64_t* out);
+Either fp_traverse_either_f64(const double*  in, size_t n, Either (*fn)(double),  double*  out);
+
+/* foldMap = mconcat . map f — fold with an explicit monoid (empty + combine).
+ * e.g. sum = foldMap id (+) 0; maximum = foldMap id max MIN; any p = foldMap p (||) false. */
+int64_t fp_fold_map_i64(const int64_t* in, size_t n, int64_t empty,
+                        int64_t (*map)(int64_t), int64_t (*combine)(int64_t, int64_t));
+double  fp_fold_map_f64(const double* in, size_t n, double empty,
+                        double (*map)(double), double (*combine)(double, double));
+
 #ifdef __cplusplus
 }
 #endif

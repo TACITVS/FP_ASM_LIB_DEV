@@ -30,7 +30,9 @@ are.
 **Generators (anamorphisms)** — `iterate`, `unfoldr`, `range`
 **Composition** — `compose`, `pipe`, `flip`, `curry`/partial application, `const`
 **Optional / error** — `Maybe` and `Either` with `fmap`, `bind`, `ap`,
-`sequence`, `mapMaybe`, `safeDivide`, `safeAt`, `safeHead`
+`sequence`, `traverse` (Maybe & Either, short-circuiting), `mapMaybe`,
+`safeDivide`, `safeAt`, `safeHead`
+**Monoidal** — `foldMap` (fold with an explicit empty + combine)
 **Lazy** — lazy sequences (`map`/`filter`/`take`/`range`/`iterate`)
 **Transducers** — `mapping`, `filtering`, `taking`, composition
 
@@ -38,9 +40,9 @@ are.
 
 - `scanr1`, `mapAccumR`; `zip` / `zip3` / `unzip` (pair types)
 - `sortOn`, `intercalate`, `subsequences` / `permutations`
-- `foldMap` over a `Monoid`; `Foldable`/`Functor`/`Applicative`/`Traversable`
-  as explicit dictionaries (the C stand-in for type classes)
-- `traverse` / `sequenceA` and `mapM` / `forM` over arbitrary applicatives
+- `Foldable`/`Functor`/`Applicative`/`Traversable` as explicit dictionaries
+  (the C stand-in for type classes)
+- `mapM` / `forM` and applicative `traverse` over containers beyond arrays
 - More monads via explicit context: `State`, `Reader`, `Writer`, and the list
   monad as a first-class type
 
