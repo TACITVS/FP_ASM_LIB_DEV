@@ -16,9 +16,9 @@ are.
 ## ✅ Covered today
 
 **Higher-order core** — `map`, `filter`, `foldl`, `foldr`, `foldl1`, `foldr1`,
-`zipWith`, `zipWith3`, `mapAccumL`
-**Scans** — `scanl`, `scanr`, `scanl1`, prefix-sum kernels (`fp_scan_add_*`)
-**Ordering & grouping** — `sortBy` (stable), `groupBy`, `nubBy`, `intersperse`,
+`zipWith`, `zipWith3`, `mapAccumL`, `mapAccumR`, `zip`, `unzip`
+**Scans** — `scanl`, `scanr`, `scanl1`, `scanr1`, prefix-sum kernels (`fp_scan_add_*`)
+**Ordering & grouping** — `sortBy` / `sortOn` (stable), `groupBy`, `nubBy`, `intersperse`,
 `transpose`
 **Reductions / Foldable** — `sum`, `product`, `min`, `max`, `all`, `any`,
 `countIf`, `find` (→ `Maybe`), `elem`/`contains`
@@ -38,8 +38,8 @@ are.
 
 ## 🔜 Planned — remaining operations toward full coverage
 
-- `scanr1`, `mapAccumR`; `zip` / `zip3` / `unzip` (pair types)
-- `sortOn`, `intercalate`, `subsequences` / `permutations`
+- `zip3` / `zipWith3` over >2 inputs returning pair/tuple types
+- `intercalate`, `subsequences` / `permutations`
 - `Foldable`/`Functor`/`Applicative`/`Traversable` as explicit dictionaries
   (the C stand-in for type classes)
 - `mapM` / `forM` and applicative `traverse` over containers beyond arrays

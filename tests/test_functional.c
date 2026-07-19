@@ -44,6 +44,11 @@ static int64_t iabs(int64_t x){ return x<0 ? -x : x; }
 static int64_t imax1(int64_t a, int64_t b){ return a>b ? a : b; }
 static int64_t isq(int64_t x){ return x*x; }
 static int64_t iadd(int64_t a, int64_t b){ return a+b; }
+/* milestone D */
+static int64_t addxa(int64_t x, int64_t acc, void* c){ (void)c; return x + acc; }
+static int64_t suffix_excl(int64_t acc, int64_t x, int64_t* out, void* c){ (void)c; *out = acc; return acc + x; }
+static int64_t keyabs(int64_t x, void* c){ (void)c; return x<0 ? -x : x; }
+static int64_t keymod10(int64_t x, void* c){ (void)c; return x % 10; }
 
 int main(void){
     int64_t a[] = {1,2,3,4};
@@ -139,6 +144,19 @@ int main(void){
       ok("traverse_either out-of-range -> Left", fp_is_left(e)); }
     ok("foldMap max . abs -> 9", fp_fold_map_i64((int64_t[]){-5,3,-9,2},4,0,iabs,imax1) == 9);
     ok("foldMap (+) . sq -> 14", fp_fold_map_i64((int64_t[]){1,2,3},3,0,isq,iadd) == 14);
+
+    /* ---- Milestone D: scanr1, mapAccumR, zip/unzip, sortOn ---- */
+    fp_scanr1_i64(a,out,4,addxa,NULL);
+    ok("scanr1 (+) suffix sums -> [10,9,7,4]", eqa(out,(int64_t[]){10,9,7,4},4));
+    { int64_t racc = fp_mapAccumR_i64(a,out,4,0,suffix_excl,NULL);
+      ok("mapAccumR exclusive-suffix -> [9,7,4,0]", eqa(out,(int64_t[]){9,7,4,0},4) && racc==10); }
+    { fp_pair_i64 pr[3]; fp_zip_i64((int64_t[]){1,2,3},(int64_t[]){10,20,30},pr,3);
+      int64_t ua[3], ub[3]; fp_unzip_i64(pr,ua,ub,3);
+      ok("zip/unzip roundtrip", pr[1].fst==2 && pr[1].snd==20 && eqa(ua,(int64_t[]){1,2,3},3) && eqa(ub,(int64_t[]){10,20,30},3)); }
+    { int64_t s[] = {5,-3,8,-1}; fp_sort_on_i64(s,4,keyabs,NULL);
+      ok("sortOn abs -> [-1,-3,5,8]", eqa(s,(int64_t[]){-1,-3,5,8},4)); }
+    { int64_t s[] = {21,13,11,23}; fp_sort_on_i64(s,4,keymod10,NULL);   /* keys 1,3,1,3 */
+      ok("sortOn stable (ties keep order)", eqa(s,(int64_t[]){21,11,13,23},4)); }
 
     printf("\n%s (%d failure%s)\n", fails?"FAILED":"ALL PASS", fails, fails==1?"":"s");
     return fails?1:0;

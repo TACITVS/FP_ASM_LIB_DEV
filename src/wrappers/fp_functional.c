@@ -65,6 +65,71 @@ TRANSPOSE(int64_t, i64)
 TRANSPOSE(double,  f64)
 
 
+/* ============ Milestone D: right scans/accums, zip, sortOn ========= */
+size_t fp_scanr1_i64(const int64_t* in, int64_t* out, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
+    if (!in || !out || !fn || n == 0) return 0;
+    int64_t acc = in[n-1]; out[n-1] = acc;
+    for (size_t i = n-1; i-- > 0; ) { acc = fn(in[i], acc, ctx); out[i] = acc; }
+    return n;
+}
+size_t fp_scanr1_f64(const double* in, double* out, size_t n, double (*fn)(double, double, void*), void* ctx) {
+    if (!in || !out || !fn || n == 0) return 0;
+    double acc = in[n-1]; out[n-1] = acc;
+    for (size_t i = n-1; i-- > 0; ) { acc = fn(in[i], acc, ctx); out[i] = acc; }
+    return n;
+}
+int64_t fp_mapAccumR_i64(const int64_t* in, int64_t* out, size_t n, int64_t acc0,
+                         int64_t (*fn)(int64_t, int64_t, int64_t*, void*), void* ctx) {
+    if (!in || !out || !fn) return acc0;
+    int64_t acc = acc0;
+    for (size_t i = n; i-- > 0; ) acc = fn(acc, in[i], &out[i], ctx);
+    return acc;
+}
+double fp_mapAccumR_f64(const double* in, double* out, size_t n, double acc0,
+                        double (*fn)(double, double, double*, void*), void* ctx) {
+    if (!in || !out || !fn) return acc0;
+    double acc = acc0;
+    for (size_t i = n; i-- > 0; ) acc = fn(acc, in[i], &out[i], ctx);
+    return acc;
+}
+size_t fp_zip_i64(const int64_t* a, const int64_t* b, fp_pair_i64* out, size_t n) {
+    if (!a || !b || !out) return 0;
+    for (size_t i = 0; i < n; i++) { out[i].fst = a[i]; out[i].snd = b[i]; }
+    return n;
+}
+size_t fp_zip_f64(const double* a, const double* b, fp_pair_f64* out, size_t n) {
+    if (!a || !b || !out) return 0;
+    for (size_t i = 0; i < n; i++) { out[i].fst = a[i]; out[i].snd = b[i]; }
+    return n;
+}
+size_t fp_unzip_i64(const fp_pair_i64* in, int64_t* a, int64_t* b, size_t n) {
+    if (!in || !a || !b) return 0;
+    for (size_t i = 0; i < n; i++) { a[i] = in[i].fst; b[i] = in[i].snd; }
+    return n;
+}
+size_t fp_unzip_f64(const fp_pair_f64* in, double* a, double* b, size_t n) {
+    if (!in || !a || !b) return 0;
+    for (size_t i = 0; i < n; i++) { a[i] = in[i].fst; b[i] = in[i].snd; }
+    return n;
+}
+#define SORT_ON(T, PAIR, SUF) \
+void fp_sort_on_##SUF(T* arr, size_t n, T (*key)(T, void*), void* ctx) { \
+    if (!arr || !key || n < 2) return; \
+    PAIR* d = (PAIR*)malloc(n*sizeof(PAIR)); PAIR* tmp = (PAIR*)malloc(n*sizeof(PAIR)); \
+    if (!d || !tmp) { free(d); free(tmp); return; } \
+    for (size_t i = 0; i < n; i++) { d[i].fst = key(arr[i], ctx); d[i].snd = arr[i]; } \
+    for (size_t w = 1; w < n; w *= 2) for (size_t i = 0; i < n; i += 2*w) { \
+        size_t lo=i, mid=(i+w<n)?i+w:n, hi=(i+2*w<n)?i+2*w:n, l=lo, r=mid, k=lo; \
+        while (l<mid && r<hi) tmp[k++] = (d[r].fst < d[l].fst) ? d[r++] : d[l++]; /* stable */ \
+        while (l<mid) tmp[k++]=d[l++]; \
+        while (r<hi)  tmp[k++]=d[r++]; \
+        for (size_t j=lo;j<hi;j++) d[j]=tmp[j]; \
+    } \
+    for (size_t i = 0; i < n; i++) arr[i] = d[i].snd; \
+    free(d); free(tmp); }
+SORT_ON(int64_t, fp_pair_i64, i64)
+SORT_ON(double,  fp_pair_f64, f64)
+
 /* =================== folds/scans without a seed ==================== */
 int64_t fp_foldl1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t, int64_t, void*), void* ctx) {
     if (!in || !fn || n == 0) return 0;

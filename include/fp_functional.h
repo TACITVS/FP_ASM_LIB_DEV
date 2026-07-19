@@ -30,6 +30,27 @@
 extern "C" {
 #endif
 
+/* ---- pair type for zip / unzip ---- */
+typedef struct { int64_t fst, snd; } fp_pair_i64;
+typedef struct { double  fst, snd; } fp_pair_f64;
+
+/* ---- Milestone D: right-to-left scans/accums, zip/unzip, sortOn ---- */
+size_t fp_scanr1_i64(const int64_t* in, int64_t* out, size_t n, int64_t (*fn)(int64_t x, int64_t acc, void*), void* ctx);
+size_t fp_scanr1_f64(const double* in, double* out, size_t n, double (*fn)(double x, double acc, void*), void* ctx);
+/* mapAccumR: like mapAccumL but threading the accumulator right-to-left. */
+int64_t fp_mapAccumR_i64(const int64_t* in, int64_t* out, size_t n, int64_t acc0,
+                         int64_t (*fn)(int64_t acc, int64_t x, int64_t* out_elem, void*), void* ctx);
+double  fp_mapAccumR_f64(const double* in, double* out, size_t n, double acc0,
+                         double (*fn)(double acc, double x, double* out_elem, void*), void* ctx);
+/* zip / unzip */
+size_t fp_zip_i64(const int64_t* a, const int64_t* b, fp_pair_i64* out, size_t n);
+size_t fp_zip_f64(const double* a, const double* b, fp_pair_f64* out, size_t n);
+size_t fp_unzip_i64(const fp_pair_i64* in, int64_t* a, int64_t* b, size_t n);
+size_t fp_unzip_f64(const fp_pair_f64* in, double* a, double* b, size_t n);
+/* sortOn: STABLE sort by a key projection (decorate-sort-undecorate). */
+void fp_sort_on_i64(int64_t* arr, size_t n, int64_t (*key)(int64_t, void*), void* ctx);
+void fp_sort_on_f64(double*  arr, size_t n, double  (*key)(double,  void*), void* ctx);
+
 /* ---- folds without an explicit seed (use the first/last element) ----
  * foldl1/foldr1 are undefined on an empty list; here they return 0. */
 int64_t fp_foldl1_i64(const int64_t* in, size_t n, int64_t (*fn)(int64_t acc, int64_t x, void*), void* ctx);
