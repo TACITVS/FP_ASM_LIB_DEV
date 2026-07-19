@@ -35,6 +35,10 @@ are.
 **Monoidal** — `foldMap` (fold with an explicit empty + combine)
 **Lazy** — lazy sequences (`map`/`filter`/`take`/`range`/`iterate`)
 **Transducers** — `mapping`, `filtering`, `taking`, composition
+**Closures & monads** — first-class **escaping closures** (`Fn`) and a real
+**`State` monad** (`get`/`put`/`modify`/`bind`/`runState`) in portable C11
+(`fp_closure.h`) — no nested functions, no executable stack, AddressSanitizer-
+clean. See the cost note below.
 
 ## 🔜 Planned — remaining operations toward full coverage
 
@@ -43,8 +47,20 @@ are.
 - `Foldable`/`Functor`/`Applicative`/`Traversable` as explicit dictionaries
   (the C stand-in for type classes)
 - `mapM` / `forM` and applicative `traverse` over containers beyond arrays
-- More monads via explicit context: `State`, `Reader`, `Writer`, and the list
-  monad as a first-class type
+- `Reader` and `Writer` as first-class monads (`State` now shipped; `Reader` is
+  served by the `void* ctx` every HOF takes, `Writer` by `foldMap`/`mapAccumL`)
+- monad *transformers* (stacking effects) — expressible but heavy in C
+
+## 💰 The closure/monad cost note
+
+The `State` monad in `fp_closure.h` is genuine — first-class escaping closures,
+pure, reproducible, leak-free, portable C11. It also **allocates on every
+`bind`/`then`/`put`/`pure`**, so it runs ~1–2 orders of magnitude slower than an
+imperative loop (see `make showcase`). This is the honest deal: reach for it
+when clarity/composition matters and the cost is irrelevant; reach for
+`mapAccumL` (the same stateful traversal, zero allocation, ~parity) on the hot
+path. C can express monads — it just can't hide their cost the way a language
+with closures + do-notation can.
 
 ## ⛔ Out of scope for a C library (language-level, not operations)
 
