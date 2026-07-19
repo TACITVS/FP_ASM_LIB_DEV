@@ -1,7 +1,18 @@
 ; =============================================================================
 ; FP-ASM Library: Standardized Prologue/Epilogue Macros
-; WINDOWS x64 ABI PATCHED VERSION
+;
+; Function bodies are written for the Windows x64 ABI. Cross-platform support
+; (System V / Linux) is provided by the ABI_* shim macros in abi.inc, which are
+; no-ops on Windows. See abi.inc for details.
 ; =============================================================================
+
+%include "abi.inc"
+
+; On ELF targets, emit a non-executable-stack note so the linker does not mark
+; the whole program's stack executable when linking these objects.
+%ifdef FP_SYSV
+section .note.GNU-stack noalloc noexec nowrite progbits
+%endif
 
 ; --- Helper Macros ---
 %macro PROLOGUE 0
