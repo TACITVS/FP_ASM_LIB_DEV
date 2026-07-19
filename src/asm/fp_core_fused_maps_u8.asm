@@ -14,6 +14,7 @@
 ;   - fp_map_offset_u8:  out = x + c (SIMD add - 32-wide!)
 ;   - fp_zip_add_u8:     out = x + y (SIMD add - 32-wide!)
 
+%include "abi.inc"
 bits 64
 default rel
 
@@ -28,11 +29,30 @@ section .text
 
 global fp_map_axpy_u8
 fp_map_axpy_u8:
+%ifdef FP_SYSV
+    mov r10, r8            ; capture int c (5th arg) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     ; Load c from stack (5th arg)
-    movsx r15d, byte [rbp + 48]
+%ifdef FP_WIN64
+    movsx r15d, byte [rbp + 88]
+%else
+    movsx r15d, r10b  ; SysV: c in r8
+%endif
 
     mov r12, rcx        ; x
     mov r13, rdx        ; y
@@ -56,6 +76,18 @@ fp_map_axpy_u8:
     jnz .loop
 
 .cleanup:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
+    vzeroupper
+    mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret
 
@@ -68,8 +100,20 @@ fp_map_axpy_u8:
 
 global fp_map_scale_u8
 fp_map_scale_u8:
+    ABI_ARGS_INT
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     ; c is 4th arg - in R9
     movsx r15d, r9b
@@ -92,6 +136,18 @@ fp_map_scale_u8:
     jnz .loop
 
 .cleanup:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
+    vzeroupper
+    mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret
 
@@ -104,10 +160,20 @@ fp_map_scale_u8:
 
 global fp_map_offset_u8
 fp_map_offset_u8:
+    ABI_ARGS_INT
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     ; c is 4th arg - in R9
     vpinsrb xmm0, xmm0, r9d, 0
@@ -171,8 +237,18 @@ fp_map_offset_u8:
     jnz .tail_loop
 
 .cleanup:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
     vzeroupper
     mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret
 
@@ -185,10 +261,20 @@ fp_map_offset_u8:
 
 global fp_zip_add_u8
 fp_zip_add_u8:
+    ABI_ARGS_INT
     push rbp
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
     mov rbp, rsp
-    sub rsp, 32
-    and rsp, 0xFFFFFFFFFFFFFFE0
+%ifdef FP_WIN64
+    sub rsp, 64                     ; save xmm6/xmm7/xmm15 (Win64 callee-saved)
+    vmovdqu [rsp],    xmm6
+    vmovdqu [rsp+16], xmm7
+    vmovdqu [rsp+32], xmm15
+%endif
 
     mov r12, rcx        ; x
     mov r13, rdx        ; y
@@ -257,7 +343,17 @@ fp_zip_add_u8:
     jnz .tail_loop
 
 .cleanup:
+%ifdef FP_WIN64
+    vmovdqu xmm6,  [rsp]
+    vmovdqu xmm7,  [rsp+16]
+    vmovdqu xmm15, [rsp+32]
+%endif
     vzeroupper
     mov rsp, rbp
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbx
     pop rbp
     ret

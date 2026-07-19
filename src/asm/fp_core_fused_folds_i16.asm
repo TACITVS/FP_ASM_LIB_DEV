@@ -29,6 +29,7 @@ section .text
 
 global fp_fold_sumsq_i16
 fp_fold_sumsq_i16:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -129,6 +130,7 @@ fp_fold_sumsq_i16:
 
 global fp_fold_dotp_i16
 fp_fold_dotp_i16:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -243,6 +245,7 @@ fp_fold_dotp_i16:
 
 global fp_fold_sad_i16
 fp_fold_sad_i16:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
     sub rsp, 32

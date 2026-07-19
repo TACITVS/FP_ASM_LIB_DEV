@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FP·ASM — functional primitives in x64 AVX2 assembly</title>
+<meta name="description" content="A small, fast, externally linkable library of functional-programming primitives and game math whose hot paths are hand-written x64 AVX2 assembly. Cross-platform, tested, dependency-free.">
+<style>
+:root{
+  --bg:#0B0E15; --panel:#121620; --panel-2:#171C28;
+  --ink:#E8EBF2; --ink-muted:#97A0B2; --ink-faint:#6A7488;
+  --hair:rgba(255,255,255,.08); --hair-strong:rgba(255,255,255,.14);
+  --accent:#EEA23C; --accent-soft:rgba(238,162,60,.14); --accent-line:rgba(238,162,60,.45);
+  --baseline:#6B7690;
+  --mono:ui-monospace,"Cascadia Code","JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --maxw:1080px;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#F3F5F8; --panel:#FFFFFF; --panel-2:#F8FAFC;
+    --ink:#161B24; --ink-muted:#586172; --ink-faint:#828B9B;
+    --hair:rgba(16,20,30,.10); --hair-strong:rgba(16,20,30,.16);
+    --accent:#B9700C; --accent-soft:rgba(185,112,12,.10); --accent-line:rgba(185,112,12,.40);
+    --baseline:#98A1B2;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0E15; --panel:#121620; --panel-2:#171C28;
+  --ink:#E8EBF2; --ink-muted:#97A0B2; --ink-faint:#6A7488;
+  --hair:rgba(255,255,255,.08); --hair-strong:rgba(255,255,255,.14);
+  --accent:#EEA23C; --accent-soft:rgba(238,162,60,.14); --accent-line:rgba(238,162,60,.45);
+  --baseline:#6B7690;
+}
+:root[data-theme="light"]{
+  --bg:#F3F5F8; --panel:#FFFFFF; --panel-2:#F8FAFC;
+  --ink:#161B24; --ink-muted:#586172; --ink-faint:#828B9B;
+  --hair:rgba(16,20,30,.10); --hair-strong:rgba(16,20,30,.16);
+  --accent:#B9700C; --accent-soft:rgba(185,112,12,.10); --accent-line:rgba(185,112,12,.40);
+  --baseline:#98A1B2;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:16px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+
+.eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); font-weight:600}
+h1,h2,h3{font-family:var(--mono); font-weight:700; letter-spacing:-.01em; text-wrap:balance; margin:0}
+.mono{font-family:var(--mono)}
+.muted{color:var(--ink-muted)}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* header */
+header{position:sticky; top:0; z-index:10; backdrop-filter:blur(10px);
+  background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--hair)}
+.bar{display:flex; align-items:center; justify-content:space-between; height:60px}
+.logo{font-family:var(--mono); font-weight:700; letter-spacing:.04em; font-size:16px}
+.logo b{color:var(--accent)}
+.navlinks{display:flex; gap:22px; align-items:center; font-family:var(--mono); font-size:13px}
+.navlinks a{color:var(--ink-muted)} .navlinks a:hover{color:var(--ink); text-decoration:none}
+.tgl{font-family:var(--mono); font-size:12px; color:var(--ink-muted); background:transparent;
+  border:1px solid var(--hair-strong); border-radius:6px; padding:5px 9px; cursor:pointer}
+.tgl:hover{color:var(--ink); border-color:var(--accent-line)}
+@media(max-width:640px){.navlinks a.hidesm{display:none}}
+
+/* hero */
+.hero{padding:76px 0 40px; position:relative; overflow:hidden}
+.hero .glow{position:absolute; inset:-40% 30% auto -10%; height:420px;
+  background:radial-gradient(closest-side, var(--accent-soft), transparent 70%); pointer-events:none}
+.hero h1{font-size:clamp(30px,5.2vw,56px); line-height:1.04; margin:18px 0 0}
+.hero h1 .amp{color:var(--accent)}
+.lede{max-width:60ch; color:var(--ink-muted); font-size:clamp(16px,2vw,19px); margin:20px 0 0}
+.hero-cta{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:28px}
+.btn{font-family:var(--mono); font-size:14px; font-weight:600; padding:11px 16px; border-radius:8px;
+  border:1px solid transparent; cursor:pointer; display:inline-flex; gap:8px; align-items:center}
+.btn.primary{background:var(--accent); color:#0B0E15}
+@media(prefers-color-scheme:light){.btn.primary{color:#fff}}
+:root[data-theme="light"] .btn.primary{color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0B0E15}
+.btn.primary:hover{text-decoration:none; filter:brightness(1.06)}
+.btn.ghost{border-color:var(--hair-strong); color:var(--ink)}
+.btn.ghost:hover{border-color:var(--accent-line); text-decoration:none}
+
+/* stat tiles */
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:44px}
+@media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--panel); border:1px solid var(--hair); border-radius:12px; padding:18px 18px 16px}
+.tile .k{font-family:var(--mono); font-size:clamp(26px,4vw,36px); font-weight:700; line-height:1;
+  color:var(--ink); letter-spacing:-.02em}
+.tile .k .x{color:var(--accent)}
+.tile .l{font-size:12.5px; color:var(--ink-muted); margin-top:9px; line-height:1.4}
+
+/* sections */
+section{padding:56px 0; border-top:1px solid var(--hair)}
+.sec-head{max-width:64ch}
+.sec-head h2{font-size:clamp(21px,3.2vw,28px); margin-top:12px}
+.sec-head p{color:var(--ink-muted); margin:12px 0 0}
+
+/* chart */
+.chart-card{margin-top:30px; background:var(--panel); border:1px solid var(--hair); border-radius:14px; padding:22px 20px 14px}
+.legend{display:flex; gap:20px; font-family:var(--mono); font-size:12.5px; color:var(--ink-muted); margin:2px 2px 18px}
+.legend .sw{display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:7px; vertical-align:-1px}
+.rows{display:flex; flex-direction:column; gap:20px}
+.row{display:grid; grid-template-columns:200px 1fr; gap:16px; align-items:center}
+@media(max-width:680px){.row{grid-template-columns:1fr}}
+.row .name{font-family:var(--mono); font-size:13.5px; color:var(--ink)}
+.row .name small{display:block; color:var(--ink-faint); font-size:11.5px; margin-top:2px}
+.bars{display:flex; flex-direction:column; gap:7px; position:relative}
+.track{position:relative; height:20px; display:flex; align-items:center}
+.bar-el{height:20px; border-radius:4px; position:relative; transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.bar-el.scalar{background:var(--baseline)}
+.bar-el.asm{background:var(--accent)}
+.bar-val{position:absolute; left:calc(100% + 8px); top:50%; transform:translateY(-50%);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-muted); white-space:nowrap}
+.speedup{justify-self:end; font-family:var(--mono); font-weight:700; font-size:14px; color:var(--accent);
+  border:1px solid var(--accent-line); border-radius:999px; padding:3px 11px; background:var(--accent-soft)}
+.speedup.par{color:var(--ink-muted); border-color:var(--hair-strong); background:transparent}
+.rowtop{display:flex; justify-content:space-between; align-items:center; gap:12px}
+.method{font-size:12.5px; color:var(--ink-faint); margin-top:16px; font-family:var(--mono); line-height:1.55}
+
+/* why / lanes */
+.two{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:26px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+.panel{background:var(--panel); border:1px solid var(--hair); border-radius:12px; padding:20px}
+.panel h3{font-size:15px; margin-bottom:8px} .panel h3 .tag{color:var(--ink-faint)}
+.panel p{color:var(--ink-muted); font-size:14.5px; margin:0}
+.lanes{display:flex; gap:5px; margin:14px 0 4px; flex-wrap:wrap}
+.lane{flex:1 1 8%; min-width:22px; height:30px; border-radius:4px; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:#0B0E15; font-weight:700}
+@media(prefers-color-scheme:light){.lane{color:#fff}}
+:root[data-theme="light"] .lane{color:#fff}
+:root[data-theme="dark"] .lane{color:#0B0E15}
+.serial{display:flex; align-items:center; gap:6px; margin:14px 0 4px; flex-wrap:wrap}
+.serial .node{width:30px; height:30px; border-radius:4px; background:var(--baseline);
+  display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--ink)}
+.serial .arrow{color:var(--ink-faint)}
+
+/* architecture */
+.layers{display:flex; flex-direction:column; gap:12px; margin-top:26px}
+.layer{display:grid; grid-template-columns:88px 1fr; gap:18px; align-items:start;
+  background:var(--panel); border:1px solid var(--hair); border-left:3px solid var(--accent-line);
+  border-radius:10px; padding:16px 18px}
+.layer .lv{font-family:var(--mono); font-weight:700; color:var(--accent); font-size:14px}
+.layer .lv small{display:block; color:var(--ink-faint); font-weight:400; font-size:11px; margin-top:3px}
+.layer h3{font-size:15px; margin-bottom:5px}
+.layer p{color:var(--ink-muted); font-size:14px; margin:0}
+
+/* code */
+pre{margin:26px 0 0; background:var(--panel); border:1px solid var(--hair); border-radius:12px;
+  padding:20px; overflow-x:auto; font-family:var(--mono); font-size:13.5px; line-height:1.7; color:var(--ink)}
+.c-com{color:var(--ink-faint)} .c-key{color:var(--accent)} .c-fn{color:var(--ink)} .c-str{color:var(--baseline)}
+
+/* roadmap */
+.road{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:24px}
+@media(max-width:720px){.road{grid-template-columns:1fr}}
+.card{background:var(--panel); border:1px solid var(--hair); border-radius:12px; padding:18px 20px}
+.card .st{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:600}
+.card.now .st{color:var(--accent)} .card.next .st{color:var(--ink-faint)}
+.card h3{font-size:15px; margin:10px 0 8px}
+.card ul{margin:0; padding-left:18px; color:var(--ink-muted); font-size:14px; line-height:1.7}
+.card li::marker{color:var(--accent-line)}
+
+/* tooltip */
+#tip{position:fixed; z-index:50; pointer-events:none; opacity:0; transition:opacity .12s;
+  background:var(--panel-2); border:1px solid var(--hair-strong); border-radius:8px; padding:9px 11px;
+  font-family:var(--mono); font-size:12px; color:var(--ink); box-shadow:0 8px 30px rgba(0,0,0,.35); max-width:230px}
+#tip b{color:var(--accent)}
+
+footer{border-top:1px solid var(--hair); padding:40px 0 60px; color:var(--ink-muted); font-size:13px}
+.foot{display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; align-items:flex-start}
+.foot .mono{font-size:12px; color:var(--ink-faint); max-width:52ch; line-height:1.6}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body data-palette="#6B7690,#EEA23C">
+<header>
+  <div class="wrap bar">
+    <div class="logo">FP<b>·</b>ASM</div>
+    <nav class="navlinks">
+      <a href="#bench" class="hidesm">Benchmarks</a>
+      <a href="#how" class="hidesm">Why it's fast</a>
+      <a href="#arch" class="hidesm">Architecture</a>
+      <a href="https://github.com/TACITVS/FP_ASM_LIB_DEV">GitHub</a>
+      <button class="tgl" id="tgl" aria-label="Toggle color theme">theme</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero" style="border-top:none">
+  <div class="glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <span class="eyebrow">x64 AVX2 · functional primitives · zero dependencies</span>
+    <h1>Functional programming for C,<br>at the speed of hand-written <span class="amp">assembly</span>.</h1>
+    <p class="lede">A small, externally linkable library of reductions, folds, maps, and game math
+      (vec3&nbsp;/&nbsp;mat4&nbsp;/&nbsp;quaternion) whose hot paths are hand-tuned x64&nbsp;AVX2. Pure functions,
+      immutable data, no imperative loops in the inner kernels — wrapped in a thin C API you can drop into a game or graphics engine.</p>
+    <div class="hero-cta">
+      <a class="btn primary" href="https://github.com/TACITVS/FP_ASM_LIB_DEV">View on GitHub →</a>
+      <a class="btn ghost" href="#bench">See the benchmarks</a>
+    </div>
+
+    <div class="stats">
+      <div class="tile"><div class="k"><span class="x">8.6</span><span class="x">×</span></div><div class="l">faster float reductions than scalar&nbsp;<span class="mono">-O3</span></div></div>
+      <div class="tile"><div class="k">360</div><div class="l">exported functions across 10 numeric types</div></div>
+      <div class="tile"><div class="k">13</div><div class="l">test suites green on Linux &amp; Windows x64</div></div>
+      <div class="tile"><div class="k">0</div><div class="l">external dependencies — links as <span class="mono">.a</span>&nbsp;/&nbsp;<span class="mono">.so</span>&nbsp;/&nbsp;<span class="mono">.dll</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="bench">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Measured, not marketed</span>
+      <h2>Where SIMD actually wins</h2>
+      <p>Every kernel is timed against a scalar C reference compiled at the <em>same</em>
+        <span class="mono">-O3&nbsp;-march=native</span> — so the baseline is autovectorized by the compiler too.
+        The library pulls ahead exactly where the compiler can't: reductions and dot products, where a scalar
+        float accumulator is a serial dependency chain. Memory-bound element-wise ops sit at parity, and the chart says so.</p>
+    </div>
+
+    <div class="chart-card">
+      <div class="legend" role="note">
+        <span><span class="sw" style="background:var(--baseline)"></span>scalar C&nbsp;<span class="mono">-O3</span> (baseline)</span>
+        <span><span class="sw" style="background:var(--accent)"></span>FP·ASM kernel</span>
+      </div>
+      <div class="rows" id="rows"></div>
+      <p class="method">method · lower is better · time to process 100,000 f32 elements (µs), best of 200 runs ·
+        Intel Core i7-4600M (Haswell, AVX2) · gcc 13 · run it yourself: <span style="color:var(--accent)">make bench</span></p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Why it's fast</span>
+      <h2>Eight lanes, no dependency chain</h2>
+      <p>A naive <span class="mono">for</span>-loop that sums floats can't be reordered by the compiler —
+        floating-point addition isn't associative, so <span class="mono">-O3</span> keeps it strictly serial:
+        each add waits ~4 cycles for the previous one. The assembly kernels keep several independent SIMD
+        accumulators in flight, so the CPU's execution units never stall.</p>
+    </div>
+    <div class="two">
+      <div class="panel">
+        <h3>FP·ASM <span class="tag">— parallel accumulators</span></h3>
+        <div class="lanes" aria-hidden="true">
+          <div class="lane">+</div><div class="lane">+</div><div class="lane">+</div><div class="lane">+</div>
+          <div class="lane">+</div><div class="lane">+</div><div class="lane">+</div><div class="lane">+</div>
+        </div>
+        <p>8× f32 added per instruction, across multiple accumulators — the pipeline stays full.</p>
+      </div>
+      <div class="panel">
+        <h3>Scalar <span class="tag">— serial chain</span></h3>
+        <div class="serial" aria-hidden="true">
+          <div class="node">+</div><span class="arrow">→</span><div class="node">+</div><span class="arrow">→</span>
+          <div class="node">+</div><span class="arrow">→</span><div class="node">+</div><span class="arrow">→</span><div class="node">…</div>
+        </div>
+        <p>Each add depends on the last. One lane, latency-bound — the units sit idle waiting.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Built in layers</span>
+      <h2>Assembly at the core, functions on top</h2>
+      <p>Nothing above the kernels re-implements arithmetic — higher layers compose the assembly primitives.</p>
+    </div>
+    <div class="layers">
+      <div class="layer">
+        <div class="lv">L0<small>asm</small></div>
+        <div><h3>AVX2 SIMD kernels</h3><p>Reductions, fused folds (dot / sum-of-squares / SAD), maps (scale / offset / axpy),
+          prefix scans, and vec3 / mat4 / quaternion math — over 10 numeric types.</p></div>
+      </div>
+      <div class="layer">
+        <div class="lv">L1<small>c</small></div>
+        <div><h3>Functional wrappers</h3><p>Higher-order map / filter / fold, function composition and pipelines,
+          and <span class="mono">Maybe</span> / <span class="mono">Either</span> monads for total, allocation-free error handling.</p></div>
+      </div>
+      <div class="layer">
+        <div class="lv">L2<small>math</small></div>
+        <div><h3>Game &amp; data math</h3><p>Batched vertex transforms, matrix ops, FFT, radix sort, statistics —
+          composed from the L0 kernels, ready for a renderer or simulation loop.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="code">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">The whole API is a header away</span>
+      <h2>Drop it into your frame loop</h2>
+      <p>Transform ten thousand vertices and reduce a buffer without writing a single SIMD intrinsic.</p>
+    </div>
+<pre><span class="c-com">// link:  cc game.c -lfpasm      (or add_subdirectory + fpasm::fpasm in CMake)</span>
+<span class="c-key">#include</span> <span class="c-str">"fp_types.h"</span>
+<span class="c-key">extern void</span>  <span class="c-fn">fp_mat4_mul_vec3_batch</span>(Vec3f* out, <span class="c-key">const</span> Mat4* m, <span class="c-key">const</span> Vec3f* in, <span class="c-key">int</span> n);
+<span class="c-key">extern float</span> <span class="c-fn">fp_fold_dotp_f32</span>(<span class="c-key">const float</span>* a, <span class="c-key">const float</span>* b, <span class="c-key">size_t</span> n);
+
+<span class="c-key">void</span> <span class="c-fn">update</span>(Vec3f* world, <span class="c-key">const</span> Mat4* mvp, <span class="c-key">const</span> Vec3f* local, <span class="c-key">int</span> n){
+    <span class="c-fn">fp_mat4_mul_vec3_batch</span>(world, mvp, local, n);   <span class="c-com">// AVX2, one pass over n vertices</span>
+    <span class="c-key">float</span> energy = <span class="c-fn">fp_fold_dotp_f32</span>((<span class="c-key">float</span>*)world, (<span class="c-key">float</span>*)world, n*3); <span class="c-com">// 5× a scalar dot</span>
+}</pre>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Honest about scope</span>
+      <h2>What it is today — and where it's headed</h2>
+      <p>This is a fast math &amp; FP core, not a game engine. It gives a renderer the pieces that have to be fast;
+        the platform layer is deliberately out of scope — for now.</p>
+    </div>
+    <div class="road">
+      <div class="card now">
+        <div class="st">Shipping now</div>
+        <h3>A tested, cross-platform core</h3>
+        <ul>
+          <li>Linux + Windows x64, one ABI-abstracted source tree</li>
+          <li>Static &amp; shared libraries via Make and CMake</li>
+          <li>13 test suites; every kernel checked against a scalar reference</li>
+          <li>Non-executable stack, no runtime allocations in the kernels</li>
+        </ul>
+      </div>
+      <div class="card next">
+        <div class="st">On the roadmap</div>
+        <h3>Toward a graphics library</h3>
+        <ul>
+          <li>A compact, SIMD-first 2D/3D renderer built on the L0 math</li>
+          <li>The long-term aim: a leaner, faster alternative to today's go-to
+            frameworks — earned by measurement, not asserted</li>
+          <li>macOS / Mach-O target &amp; NEON port under evaluation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <div class="logo" style="font-size:15px; margin-bottom:8px">FP<b>·</b>ASM</div>
+      <div><a href="https://github.com/TACITVS/FP_ASM_LIB_DEV">github.com/TACITVS/FP_ASM_LIB_DEV</a> · MIT</div>
+    </div>
+    <div class="mono">Benchmarks are the honest output of <span style="color:var(--accent)">make bench</span> on the machine noted above;
+      your numbers will differ with CPU and workload size. Memory-bound kernels are expected to match, not beat, an
+      autovectorized compiler — the win is in reductions, dot products, and batched transforms.</div>
+  </div>
+</footer>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  // ---- theme toggle (stamps data-theme; overrides the media query both ways) ----
+  var root=document.documentElement, tgl=document.getElementById('tgl');
+  tgl.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){ cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'; }
+    root.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  });
+
+  // ---- real benchmark data (µs per 100k f32 elements, best of 200) ----
+  var data=[
+    {name:'reduce sum',        sub:'Σ a[i]',            scalar:85.0, asm:9.9,   up:8.6},
+    {name:'dot product',       sub:'Σ a[i]·b[i]',       scalar:96.0, asm:18.9,  up:5.1},
+    {name:'mat4 × vec3',       sub:'batch transform',   scalar:189.0,asm:122.0, up:1.5},
+    {name:'axpy',              sub:'o = 2.5·x + y',     scalar:34.4, asm:34.2,  up:1.0},
+    {name:'scale',             sub:'o = 3·x',           scalar:25.8, asm:25.7,  up:1.0}
+  ];
+  var max=0; data.forEach(function(d){ max=Math.max(max,d.scalar,d.asm); });
+  var rows=document.getElementById('rows'), tip=document.getElementById('tip');
+  // scale to 78% so the value label after the longest bar still fits inside the track
+  function pct(v){ return (v/max*78).toFixed(1)+'%'; }
+  function show(e,html){ tip.innerHTML=html; tip.style.opacity=1;
+    var x=e.clientX+14, y=e.clientY+14; if(x>innerWidth-240)x=e.clientX-224;
+    tip.style.left=x+'px'; tip.style.top=y+'px'; }
+  function hide(){ tip.style.opacity=0; }
+
+  data.forEach(function(d){
+    var row=document.createElement('div'); row.className='row';
+    var par = d.up<1.2;
+    row.innerHTML =
+      '<div class="name">'+d.name+'<small>'+d.sub+'</small></div>'+
+      '<div>'+
+        '<div class="rowtop">'+
+          '<div class="bars" style="flex:1">'+
+            '<div class="track"><div class="bar-el scalar" data-w="'+pct(d.scalar)+'" style="width:0">'+
+              '<span class="bar-val">'+d.scalar.toFixed(0)+' µs</span></div></div>'+
+            '<div class="track"><div class="bar-el asm" data-w="'+pct(d.asm)+'" style="width:0">'+
+              '<span class="bar-val">'+d.asm.toFixed(1)+' µs</span></div></div>'+
+          '</div>'+
+          '<div class="speedup'+(par?' par':'')+'">'+(par?'≈ parity':d.up.toFixed(1)+'×')+'</div>'+
+        '</div>'+
+      '</div>';
+    rows.appendChild(row);
+    // hover tooltips per bar
+    var tipHtml='<b>'+d.name+'</b> · '+d.sub+'<br>scalar '+d.scalar.toFixed(0)+' µs · asm '+d.asm.toFixed(1)+' µs<br>'+
+      (par?'memory-bound — at parity with -O3':'<b>'+d.up.toFixed(1)+'×</b> faster');
+    row.querySelectorAll('.bar-el').forEach(function(b){
+      b.addEventListener('mousemove',function(e){ show(e,tipHtml); });
+      b.addEventListener('mouseleave',hide);
+    });
+  });
+
+  // animate bars in when visible
+  var io=new IntersectionObserver(function(en){
+    en.forEach(function(x){ if(x.isIntersecting){
+      rows.querySelectorAll('.bar-el').forEach(function(b){ b.style.width=b.getAttribute('data-w'); });
+      io.disconnect();
+    }});
+  },{threshold:.25});
+  io.observe(document.getElementById('bench'));
+})();
+</script>
+</body>
+</html>

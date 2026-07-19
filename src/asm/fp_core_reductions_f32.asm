@@ -34,6 +34,7 @@ section .text
 
 global fp_reduce_add_f32
 fp_reduce_add_f32:
+    ABI_ARGS_INT
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: XMM0 = sum
 
@@ -131,6 +132,7 @@ fp_reduce_add_f32:
 
 global fp_reduce_mul_f32
 fp_reduce_mul_f32:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -234,6 +236,7 @@ align 4
 section .text
 global fp_reduce_min_f32
 fp_reduce_min_f32:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null
@@ -333,6 +336,7 @@ fp_reduce_min_f32:
 
 global fp_reduce_max_f32
 fp_reduce_max_f32:
+    ABI_ARGS_INT
     ; Null pointer check
     test rcx, rcx
     jz .error_null

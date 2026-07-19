@@ -28,6 +28,7 @@ section .text
 ; ----------------------------------------------------------------------------
 global fp_take_n_i64
 fp_take_n_i64:
+    ABI_ARGS_INT
     PROLOGUE
     ; Determine actual count to take
     mov rax, r9                 ; RAX = take_count
@@ -76,6 +77,7 @@ fp_take_n_i64:
 ; ----------------------------------------------------------------------------
 global fp_drop_n_i64
 fp_drop_n_i64:
+    ABI_ARGS_INT
     PROLOGUE
     ; Calculate output count
     mov rax, r8                 ; RAX = array_len
@@ -126,9 +128,15 @@ fp_drop_n_i64:
 ; ----------------------------------------------------------------------------
 global fp_slice_i64
 fp_slice_i64:
+%ifdef FP_SYSV
+    mov r10, r8            ; capture 5th int arg (end) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     PROLOGUE
 
-    mov r10, [rbp+48]           ; R10 = end
+%ifdef FP_WIN64
+    mov r10, [rbp+48]           ; Win64: 5th arg (end) on stack
+%endif
 
     ; Validate: start < array_len
     cmp r9, r8
@@ -190,6 +198,7 @@ fp_slice_i64:
 ; ----------------------------------------------------------------------------
 global fp_reduce_product_i64
 fp_reduce_product_i64:
+    ABI_ARGS_INT
     PROLOGUE
     test rdx, rdx
     jz .zero
@@ -244,6 +253,7 @@ fp_reduce_product_i64:
 ; ----------------------------------------------------------------------------
 global fp_reduce_product_f64
 fp_reduce_product_f64:
+    ABI_ARGS_INT
     PROLOGUE
 
     test rdx, rdx
@@ -318,13 +328,15 @@ fp_reduce_product_f64:
 ; ----------------------------------------------------------------------------
 global fp_find_index_i64
 fp_find_index_i64:
+    ABI_ARGS_INT
     PROLOGUE
     test rdx, rdx
     jz .not_found
 
     mov r10, rcx                ; R10 = input
     xor rax, rax                ; RAX = current index
-    vpbroadcastq ymm7, r8       ; YMM7 = target (broadcast)
+    vmovq xmm7, r8
+    vpbroadcastq ymm7, xmm7       ; YMM7 = target (broadcast)  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     mov rcx, rdx
@@ -382,13 +394,15 @@ fp_find_index_i64:
 ; ----------------------------------------------------------------------------
 global fp_contains_i64
 fp_contains_i64:
+    ABI_ARGS_INT
     PROLOGUE
     test rdx, rdx
     jz .not_found
 
     mov r10, rcx                ; R10 = input
     mov rcx, rdx                ; RCX = count
-    vpbroadcastq ymm7, r8       ; YMM7 = target
+    vmovq xmm7, r8
+    vpbroadcastq ymm7, xmm7       ; YMM7 = target  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     cmp rcx, 4
@@ -434,38 +448,25 @@ fp_contains_i64:
 ; ----------------------------------------------------------------------------
 global fp_reverse_i64
 fp_reverse_i64:
+    ABI_ARGS_INT
     PROLOGUE
     test r8, r8
     jz .done
 
-    ; Start from opposite ends
-    mov r10, rcx                ; R10 = input start
-    lea r11, [rcx + r8*8 - 8]   ; R11 = input end
-    mov r12, rdx                ; R12 = output start
-
+    ; Out-of-place reverse: out[i] = in[n-1-i].
+    ; (The previous pair-swap loop was written for in-place reversal and
+    ; produced an interleaved result when writing to a separate buffer.)
+    lea r11, [rcx + r8*8 - 8]   ; R11 = &in[n-1]
+    mov r12, rdx                ; R12 = output
     mov rcx, r8                 ; RCX = count
-    shr rcx, 1                  ; RCX = count / 2 (pairs to swap)
 
 .loop:
-    test rcx, rcx
-    jz .check_odd
-
-    mov rax, [r11]
-    mov [r12], rax
-    mov rax, [r10]
-    mov [r12+8], rax
-
+    mov rax, [r11]              ; rax = in[n-1-k]
+    mov [r12], rax              ; out[k] = rax
     sub r11, 8
-    add r10, 8
-    add r12, 16
+    add r12, 8
     dec rcx
-    jmp .loop
-
-.check_odd:
-    test r8, 1
-    jz .done
-    mov rax, [r11]
-    mov [r12], rax
+    jnz .loop
 
 .done:
     EPILOGUE
@@ -481,9 +482,15 @@ fp_reverse_i64:
 ; ----------------------------------------------------------------------------
 global fp_concat_i64
 fp_concat_i64:
+%ifdef FP_SYSV
+    mov r10, r8            ; capture 5th int arg (len_b) before ABI shuffle
+%endif
+    ABI_ARGS_INT
     PROLOGUE
 
-    mov r10, [rbp+48]           ; R10 = len_b
+%ifdef FP_WIN64
+    mov r10, [rbp+48]           ; Win64: 5th arg (len_b) on stack
+%endif
 
     ; Copy first array
     mov r11, rcx                ; R11 = input_a
@@ -552,13 +559,15 @@ fp_concat_i64:
 ; ----------------------------------------------------------------------------
 global fp_replicate_i64
 fp_replicate_i64:
+    ABI_ARGS_INT
     PROLOGUE
     test rdx, rdx
     jz .done
 
     mov r10, rcx                ; R10 = output
     mov rcx, rdx                ; RCX = count
-    vpbroadcastq ymm0, r8       ; YMM0 = value broadcast
+    vmovq xmm0, r8
+    vpbroadcastq ymm0, xmm0       ; YMM0 = value broadcast  ; AVX2-safe (was GPR-source vpbroadcastq = AVX-512)
 
 .loop4:
     cmp rcx, 4

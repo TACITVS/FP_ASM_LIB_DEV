@@ -1,7 +1,12 @@
 ; =============================================================================
 ; FP-ASM Library: Standardized Prologue/Epilogue Macros
-; WINDOWS x64 ABI PATCHED VERSION
+;
+; Function bodies are written for the Windows x64 ABI. Cross-platform support
+; (System V / Linux) is provided by the ABI_* shim macros in abi.inc, which are
+; no-ops on Windows. See abi.inc for details.
 ; =============================================================================
+
+%include "abi.inc"
 
 ; --- Helper Macros ---
 %macro PROLOGUE 0

@@ -12,6 +12,7 @@
 
 bits 64
 default rel
+%include "abi.inc"
 
 section .text
 
@@ -24,6 +25,7 @@ section .text
 
 global fp_fold_sumsq_u64
 fp_fold_sumsq_u64:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
 
@@ -88,6 +90,7 @@ fp_fold_sumsq_u64:
 
 global fp_fold_dotp_u64
 fp_fold_dotp_u64:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
 
@@ -155,6 +158,7 @@ fp_fold_dotp_u64:
 
 global fp_fold_sad_u64
 fp_fold_sad_u64:
+    ABI_ARGS_INT
     push rbp
     mov rbp, rsp
 

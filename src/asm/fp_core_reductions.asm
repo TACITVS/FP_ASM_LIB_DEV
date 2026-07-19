@@ -38,6 +38,7 @@ section .text
 ; =============================================================================
 fp_reduce_add_i64:
     PROLOGUE
+    ABI_ARGS_INT
     mov  r12, rcx
     mov  r13, rdx
     xor  rax, rax
@@ -124,6 +125,7 @@ fp_reduce_add_i64:
 ; =============================================================================
 fp_reduce_add_f64:
     PROLOGUE
+    ABI_ARGS_INT
     mov  r12, rcx
     mov  r13, rdx
     vpxor  xmm0, xmm0, xmm0
@@ -188,6 +190,7 @@ fp_reduce_add_f64:
 ; =============================================================================
 fp_reduce_max_i64:
     PROLOGUE
+    ABI_ARGS_INT
     mov  r12, rcx     ; in
     mov  r13, rdx     ; n
 
@@ -299,6 +302,7 @@ fp_reduce_max_i64:
 ; =============================================================================
 fp_reduce_max_f64:
     PROLOGUE
+    ABI_ARGS_INT
     mov  r12, rcx
     mov  r13, rdx
     test r13, r13
@@ -352,6 +356,7 @@ fp_reduce_max_f64:
 ; =============================================================================
 fp_reduce_min_f64:
     PROLOGUE
+    ABI_ARGS_INT
     mov  r12, rcx
     mov  r13, rdx
     test r13, r13
@@ -405,6 +410,7 @@ fp_reduce_min_f64:
 ; =============================================================================
 fp_reduce_min_i64:
     PROLOGUE
+    ABI_ARGS_INT
     mov  r12, rcx
     mov  r13, rdx
 
@@ -536,7 +542,7 @@ fp_reduce_min_i64:
 ; =============================================================================
 fp_reduce_add_f64_where:
     PROLOGUE
-
+    ABI_ARGS_INT
     ; Initialize sum to 0.0 (return value for NULL/empty cases)
     vxorpd xmm0, xmm0, xmm0
 
