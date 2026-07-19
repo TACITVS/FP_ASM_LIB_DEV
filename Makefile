@@ -66,7 +66,7 @@ TEST_SRCS := $(wildcard tests/test_*.c)
 TEST_BINS := $(patsubst tests/%.c,$(BUILD)/%,$(TEST_SRCS))
 
 # --- Targets -----------------------------------------------------------------
-.PHONY: all static shared test clean install dirs
+.PHONY: all static shared test bench clean install dirs
 all: static shared
 
 static: $(STATIC)
@@ -98,6 +98,17 @@ test: $(STATIC) $(TEST_BINS)
 
 $(BUILD)/%: tests/%.c $(STATIC) | dirs
 	$(CC) $(CFLAGS) $< $(STATIC) -o $@ $(LDLIBS)
+
+BENCH_SRCS := $(wildcard benchmarks/bench_*.c)
+BENCH_BINS := $(patsubst benchmarks/%.c,$(BUILD)/%,$(BENCH_SRCS))
+
+# Benchmarks are compiled at -O3 -march=native so the scalar reference is
+# autovectorized too (a fair comparison against the hand-written kernels).
+bench: $(STATIC) $(BENCH_BINS)
+	@for b in $(BENCH_BINS); do echo "== $$b =="; $$b >/dev/null; done
+
+$(BUILD)/bench_%: benchmarks/bench_%.c $(STATIC) | dirs
+	$(CC) -I$(INCLUDE) -O3 -march=native $< $(STATIC) -o $@ $(LDLIBS)
 
 dirs:
 	@mkdir -p $(OBJ)
