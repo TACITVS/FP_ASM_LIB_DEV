@@ -9,18 +9,44 @@ consumption by games and graphics libraries.
 - **L1 — C wrappers:** higher-order functions, composition, Maybe/Either monads (`src/wrappers/`)
 - **L2 — Math/algorithms:** vec3/mat4/quaternion, matrix ops, FFT, radix sort (`src/algorithms/`)
 
+## Build
+
+Requirements: **NASM** (≥ 2.13) and a C11 compiler (gcc/clang). The kernels need
+a CPU with **AVX2 + FMA**.
+
+### Make
+
+```bash
+make            # build static + shared libs into build/
+make test       # build and run the test suite
+make install    # install headers + libs under PREFIX (default /usr/local)
+```
+
+### CMake (for game / graphics projects)
+
+```bash
+cmake -S . -B build && cmake --build build
+ctest --test-dir build
+```
+
+Then link from your project:
+
+```cmake
+add_subdirectory(path/to/fp_asm_c)
+target_link_libraries(mygame PRIVATE fpasm::fpasm)
+```
+
 ## Status
 
-This is an extraction-and-hardening of the FP core from a larger vector-database
-project (upstream: `TACITVS/FP_ASM_LIB_DEV`). Work in progress toward a clean,
-cross-platform (Linux + Windows x64), tested, linkable library.
+Extraction-and-hardening of the FP core from a larger vector-database project
+(upstream: `TACITVS/FP_ASM_LIB_DEV`), in progress toward a clean, cross-platform
+(Linux + Windows x64), tested, linkable library.
 
-### Provenance
-
-The initial commit is a faithful copy of the in-scope core from upstream and still
-carries upstream's **Windows-only calling convention** in the assembly — it links on
-Linux but does not yet return correct results there. Cross-platform ABI abstraction,
-a portable build system, and a full test suite are added in subsequent commits.
+The **full API builds on both Windows and Linux**. On Windows it behaves as
+upstream. On Linux, the modules migrated to the cross-platform ABI layer are
+test-verified; the rest are still Windows-only. See
+[PORTING_STATUS.md](PORTING_STATUS.md) for the exact per-module state and the
+bugs fixed so far.
 
 ## License
 
