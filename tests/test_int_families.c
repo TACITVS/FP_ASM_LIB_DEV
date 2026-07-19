@@ -51,7 +51,8 @@ int main(void){
 
     for(int i=0;i<N;i++){
         i32[i]=(i%7)-3; s_add32+=i32[i];
-        if(i32[i]>s_max32)s_max32=i32[i]; if(i32[i]<s_min32)s_min32=i32[i];
+        if(i32[i]>s_max32)s_max32=i32[i];
+        if(i32[i]<s_min32)s_min32=i32[i];
         if(i<8) s_mul32*=i32[i];
         u16[i]=(uint16_t)(i%50); s_addu16+=u16[i];
         i8[i]=(int8_t)((i%17)-8); if(i8[i]>s_maxi8)s_maxi8=i8[i];
