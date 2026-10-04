@@ -56,3 +56,25 @@ upstream vector database, out of scope for an FP + game-math library.
   without preserving them — corrupting the caller on every platform (segfaults
   on Linux under `-O2`). Every narrow map function now uses a uniform frame that
   preserves `rbx`/`r12`–`r15` (and, on Win64 only, `xmm6/xmm7/xmm15`).
+- **Callee-saved `r12`/`r13`/`r14` clobbered by 24 narrow fused folds**
+  (`fp_fold_{sumsq,dotp,sad}_{f32,i8,u8,i16,u16,i32,u32,u64}`). Each now saves
+  what it uses. `tests/test_abi_preserve.c` calls every fold/reduction (and
+  every ISA variant) through a canary trampoline so this can't come back.
+- **`fp_fold_dotp_f64`** added a stale `a[]` element for every `n >= 16`: the
+  scalar-tail accumulator `xmm0` was also a load register in the main loop.
+- **`fp_fold_{sumsq,dotp,sad}_f32`** lost 4 lanes of partial sums whenever
+  `n >= 8` and `n % 8 != 0`: the VEX scalar tail op on `xmm0` zeroed bits
+  128–255 of the vector accumulator `ymm0`. The tail now has its own register.
+- **`fp_reduce_{min,max}_i32`** returned to a garbage address for an empty
+  (non-NULL) array: the in-frame early exit shared a bare `ret` with the
+  NULL-pointer exit.
+
+- **Win64 `xmm6`–`xmm15` clobbered by 39 kernels** (narrow folds and
+  reductions, `fp_count_i64`, `fp_moments_f64`, `fp_percentile_sorted_f64`).
+  That ABI makes them callee-saved, so on Windows the caller's float
+  variables could change. These functions now use `XMM_SAVE_WIN64` /
+  `XMM_RESTORE_WIN64` (`abi.inc`), which compile to nothing on Linux.
+  `make test-win64-abi` forces the saves on in a Linux build and checks
+  `xmm6`–`xmm15` with the canary test. `make lint-asm` statically flags any
+  new function that uses callee-saved GPRs or `xmm6`–`xmm15` without saving them.
+

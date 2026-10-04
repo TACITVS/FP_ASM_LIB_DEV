@@ -26,6 +26,7 @@ global fp_moments_f64
 fp_moments_f64:
     ABI_ARGS_INT
 fp_moments_f64_impl:
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
     mov rbp, rsp
     sub rsp, 32
@@ -138,6 +139,7 @@ fp_moments_f64_impl:
     pop rbx
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .empty_array:
@@ -149,6 +151,7 @@ fp_moments_f64_impl:
     vmovsd [r8 + 24], xmm0
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================

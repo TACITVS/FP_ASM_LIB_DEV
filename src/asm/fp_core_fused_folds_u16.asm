@@ -29,7 +29,9 @@ section .text
 global fp_fold_sumsq_u16
 fp_fold_sumsq_u16:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -116,7 +118,9 @@ fp_fold_sumsq_u16:
 .epilogue:
     vzeroupper
     mov rsp, rbp
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -125,11 +129,12 @@ fp_fold_sumsq_u16:
 ; Signature: uint16_t fp_fold_dotp_u16(const uint16_t* a, const uint16_t* b, size_t n);
 ;
 ; Strategy: vpmullw for parallel multiply, vpaddw for accumulation
-
-global fp_fold_dotp_u16
-fp_fold_dotp_u16:
+FP_DISPATCHED fp_fold_dotp_u16
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -227,7 +232,10 @@ fp_fold_dotp_u16:
 .epilogue:
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -240,7 +248,10 @@ fp_fold_dotp_u16:
 global fp_fold_sad_u16
 fp_fold_sad_u16:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -352,5 +363,8 @@ fp_fold_sad_u16:
 
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret

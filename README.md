@@ -64,7 +64,8 @@ still planned.
 ## Build
 
 Requirements: **NASM** (≥ 2.13) and a C11 compiler (gcc/clang). The kernels
-require a CPU with **AVX2 + FMA**.
+require a CPU with **AVX2 + FMA**; faster AVX-VNNI / AVX-512 variants are
+selected at runtime on CPUs that have them.
 
 ```bash
 make            # static + shared libraries into build/
@@ -72,6 +73,85 @@ make test       # build and run all test suites
 make bench      # run the benchmarks
 make install    # install headers + libs under PREFIX (default /usr/local)
 ```
+
+### Build targets: old and new CPUs
+
+The assembly is the same for every target. `ISA=` only chooses what the
+**C code** may use (`-march`), and runtime dispatch picks the fastest kernel
+variant the CPU actually has.
+
+| `ISA=` | C code needs | Runs on | Use it for |
+|---|---|---|---|
+| `x86-64-v3` | AVX2, FMA, BMI2 | Haswell / Zen 1 and newer | a library you ship to other machines |
+| `haswell` | same, tuned for Haswell | Haswell and newer | the original target (i7-4600M) |
+| `alderlake` / `raptorlake` | + AVX-VNNI, GFNI, VAES… | 12th–14th gen Core, Meteor/Arrow Lake | your 13th-gen laptop |
+| `x86-64-v4` (`avx512`) | + AVX-512 F/BW/CD/DQ/VL | Ice Lake, Sapphire Rapids, Zen 4/5 | AVX-512 servers/desktops |
+| `native` (default) | whatever the build machine has | the build machine | local development |
+
+**13th-gen Core (Raptor Lake) has no AVX-512.** Intel disables it on all
+hybrid P-core/E-core client chips, because the E-cores don't implement it.
+On those CPUs the new path is **AVX-VNNI** plus `-march=raptorlake` tuning. The
+AVX-512 kernels are there for CPUs that do have it.
+
+```bash
+make ISA=x86-64-v3                 # portable: old and new machines
+make ISA=raptorlake                # tuned for 12th-14th gen Core
+make DISPATCH=0                    # legacy layout: public symbols = AVX2 kernels, no dispatcher
+make all-isas                      # build/x86-64-v3/, build/raptorlake/, build/x86-64-v4/ side by side
+make BUILD=build-old ISA=haswell   # keep a separate build tree per target
+```
+
+Changing `ISA`/`DISPATCH`/`CFLAGS` triggers a full rebuild automatically, so
+objects from two targets are never mixed. CMake has the same options:
+`-DFPASM_ISA=raptorlake -DFPASM_DISPATCH=ON -DFPASM_BUILD_TOOLS=ON`.
+
+**Runtime dispatch** (`include/fp_dispatch.h`). These kernels have ISA
+variants. The best one is chosen on first call:
+
+| kernel | avx2 | avxvnni | avx512 |
+|---|:-:|:-:|:-:|
+| `fp_reduce_add_f32/f64`, `fp_fold_sumsq_f32`, `fp_fold_dotp_f32/f64` | ✓ | | ✓ |
+| `fp_fold_dotp_i8/u8/i16/u16` | ✓ | ✓ | ✓ (AVX512-VNNI) |
+
+Every variant is also exported by name (`fp_fold_dotp_i8_avxvnni`, …) for A/B
+tests. `FPASM_TIER=avx2|avxvnni|avx512` caps the tier at runtime.
+`FPASM_VERBOSE=1` prints the selection. `fp_dispatch_set_max_tier()` does the
+same from code.
+
+### Diagnostics
+
+```bash
+make info        # toolchain, NASM, ISA -> -march, what -march=native resolves to, supported presets
+make diag        # build/fpasm-info: CPU, OS register state, every feature vs. what this build needs, dispatch table
+make check-cpu   # fpasm-info --check: fail with an explanation if this build can't run here (runs before `make test`)
+make bench-isa   # fpasm-info --bench: time every kernel variant this CPU supports
+make lint-asm    # static check: callee-saved GPRs / Win64 xmm6-15 used without saving
+make test-win64-abi  # Linux run of the Win64 register-preservation contract
+```
+
+`fpasm-info` also has `--json` and `--tier`. It reports hybrid P/E-core
+layout (and which core type the thread is on), hypervisors (WSL2, Windows
+VBS), and features the CPU has but the OS hasn't enabled. If a library built
+for a newer CPU runs on an older one, it prints what is missing and which
+`ISA=` to rebuild with, instead of failing with *Illegal instruction*.
+From code: `fp_cpu_report(stdout)`, `fp_cpu_check(stderr)`, `fp_cpu_has(FP_CPU_AVX_VNNI)`
+(`include/fp_cpu.h`). The shared library checks automatically at load time.
+Set `FPASM_CPU_CHECK=0|strict|report` to turn this off, make it abort, or
+print the full report. With static linking, call `fp_cpu_check()` yourself.
+
+Measured with `fpasm-info --bench` (64k elements, one core) on an AVX-512
+Xeon (Emerald Rapids):
+
+| kernel | avx2 | avxvnni | avx512 |
+|---|--:|--:|--:|
+| `fp_fold_dotp_i8` | 1.0× | **12.1×** | **14.5×** |
+| `fp_fold_dotp_f32` | 1.0× | — | 1.41× |
+| `fp_fold_sumsq_f32` | 1.0× | — | 1.33× |
+| `fp_reduce_add_f32` | 1.0× | — | 1.10× (memory-bound) |
+| `fp_fold_dotp_i16` | 1.0× | 1.00× | 1.20× |
+
+On a Raptor Lake laptop, run `taskset -c 0-7 make bench-isa` (P-cores) and
+again on an E-core to see the hybrid difference.
 
 ### CMake — link it into a game / graphics project
 

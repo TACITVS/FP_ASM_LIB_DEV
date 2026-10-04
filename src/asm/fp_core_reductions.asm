@@ -20,7 +20,6 @@ section .rdata
 
 section .text
     global fp_reduce_add_i64
-    global fp_reduce_add_f64
     global fp_reduce_add_f64_where
     global fp_reduce_max_i64
     global fp_reduce_max_f64
@@ -123,7 +122,7 @@ fp_reduce_add_i64:
 ; double fp_reduce_add_f64(const double* in, size_t n)
 ; (Unchanged - Performed great)
 ; =============================================================================
-fp_reduce_add_f64:
+FP_DISPATCHED fp_reduce_add_f64
     PROLOGUE
     ABI_ARGS_INT
     mov  r12, rcx

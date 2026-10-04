@@ -470,6 +470,7 @@ fp_replicate_f64:
 global fp_count_i64
 fp_count_i64:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rdx, rdx
     jz .zero
 
@@ -514,4 +515,5 @@ fp_count_i64:
     xor rax, rax
 .done:
     vzeroupper
+    XMM_RESTORE_WIN64
     ret

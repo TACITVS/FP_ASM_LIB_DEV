@@ -23,14 +23,14 @@ section .text
 ; Signature: float fp_fold_sumsq_f32(const float* input, size_t n);
 ;
 ; Haskell type: foldl (+) 0.0 . map (\x -> x * x) :: [Float] -> Float
-
-global fp_fold_sumsq_f32
-fp_fold_sumsq_f32:
+FP_DISPATCHED fp_fold_sumsq_f32
     ABI_ARGS_INT
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: XMM0 = sum of squares
 
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -80,19 +80,23 @@ fp_fold_sumsq_f32:
     jmp .loop8
 
 .tail:
+    ; Scalar tail goes into its own accumulator: a VEX scalar op on xmm0
+    ; would zero bits 128..255 of the vector accumulator ymm0.
+    vxorps xmm5, xmm5, xmm5
     test rcx, rcx
     jz .horizontal_sum
 
 .tail_loop:
     vmovss xmm4, [r12]
     vmulss xmm4, xmm4, xmm4         ; Scalar square
-    vaddss xmm0, xmm0, xmm4
+    vaddss xmm5, xmm5, xmm4
 
     add r12, 4
     dec rcx
     jnz .tail_loop
 
 .horizontal_sum:
+    vaddps ymm0, ymm0, ymm5         ; + tail (upper lanes of ymm5 are zero)
     vaddps ymm0, ymm0, ymm1
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
@@ -104,7 +108,9 @@ fp_fold_sumsq_f32:
 
     vzeroupper
     mov rsp, rbp
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -115,13 +121,12 @@ fp_fold_sumsq_f32:
 ; Haskell type: foldl (+) 0.0 . zipWith (*) :: [Float] -> [Float] -> Float
 ;
 ; Uses FMA (Fused Multiply-Add) for maximum performance
-
-global fp_fold_dotp_f32
-fp_fold_dotp_f32:
+FP_DISPATCHED fp_fold_dotp_f32
     ABI_ARGS_INT
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: XMM0 = dot product
 
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
     push r12                        ; Preserve non-volatile R12
     push r13                        ; Preserve non-volatile R13
@@ -177,13 +182,14 @@ fp_fold_dotp_f32:
     jmp .loop8
 
 .tail:
+    vxorps xmm5, xmm5, xmm5         ; separate tail accumulator (see sumsq)
     test rcx, rcx
     jz .horizontal_sum
 
 .tail_loop:
     vmovss xmm4, [r12]
     vmovss xmm8, [r13]
-    vfmadd231ss xmm0, xmm4, xmm8    ; Scalar FMA
+    vfmadd231ss xmm5, xmm4, xmm8    ; Scalar FMA
 
     add r12, 4
     add r13, 4
@@ -191,6 +197,7 @@ fp_fold_dotp_f32:
     jnz .tail_loop
 
 .horizontal_sum:
+    vaddps ymm0, ymm0, ymm5
     vaddps ymm0, ymm0, ymm1
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
@@ -203,6 +210,7 @@ fp_fold_dotp_f32:
     pop r13                         ; Restore non-volatile R13
     pop r12                         ; Restore non-volatile R12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -218,7 +226,10 @@ fp_fold_sad_f32:
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: XMM0 = sum of absolute differences
 
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -290,6 +301,7 @@ fp_fold_sad_f32:
     jmp .loop8
 
 .tail:
+    vxorps xmm5, xmm5, xmm5         ; separate tail accumulator (see sumsq)
     test rcx, rcx
     jz .horizontal_sum
 
@@ -298,7 +310,7 @@ fp_fold_sad_f32:
     vmovss xmm8, [r13]
     vsubss xmm4, xmm4, xmm8
     vandps xmm4, xmm4, xmm15        ; Scalar absolute value
-    vaddss xmm0, xmm0, xmm4
+    vaddss xmm5, xmm5, xmm4
 
     add r12, 4
     add r13, 4
@@ -306,6 +318,7 @@ fp_fold_sad_f32:
     jnz .tail_loop
 
 .horizontal_sum:
+    vaddps ymm0, ymm0, ymm5
     vaddps ymm0, ymm0, ymm1
     vaddps ymm2, ymm2, ymm3
     vaddps ymm0, ymm0, ymm2
@@ -315,5 +328,8 @@ fp_fold_sad_f32:
 
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret

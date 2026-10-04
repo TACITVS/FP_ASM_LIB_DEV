@@ -29,6 +29,7 @@ global fp_reduce_add_i16
 fp_reduce_add_i16:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -101,10 +102,12 @@ fp_reduce_add_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     xor eax, eax                 ; Return 0 for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -118,6 +121,7 @@ global fp_reduce_mul_i16
 fp_reduce_mul_i16:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -213,10 +217,12 @@ fp_reduce_mul_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     mov eax, 1                   ; Return 1 for null pointer (identity for multiply)
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -228,6 +234,7 @@ global fp_reduce_min_i16
 fp_reduce_min_i16:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -307,6 +314,7 @@ fp_reduce_min_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .return_int16_max:
@@ -314,10 +322,12 @@ fp_reduce_min_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     mov eax, 0x7FFF              ; Return INT16_MAX for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -329,6 +339,7 @@ global fp_reduce_max_i16
 fp_reduce_max_i16:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -408,6 +419,7 @@ fp_reduce_max_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .return_int16_min:
@@ -415,8 +427,10 @@ fp_reduce_max_i16:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     mov eax, 0x8000              ; Return INT16_MIN for null pointer
+    XMM_RESTORE_WIN64
     ret

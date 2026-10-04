@@ -31,9 +31,7 @@ section .text
 ;   - 8x f32 per YMM register (DOUBLE f64 throughput!)
 ;
 ; Performance: ~2-3x faster than gcc -O3 (8-wide SIMD)
-
-global fp_reduce_add_f32
-fp_reduce_add_f32:
+FP_DISPATCHED fp_reduce_add_f32
     ABI_ARGS_INT
     ; Windows x64 ABI: RCX = input, RDX = n
     ; Return: XMM0 = sum

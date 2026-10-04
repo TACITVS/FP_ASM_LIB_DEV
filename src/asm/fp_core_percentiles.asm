@@ -33,6 +33,7 @@ fp_percentile_sorted_f64:
     vmovaps xmm2, xmm0     ; Win float a3 (p) <- SysV float a1
 %endif
 fp_percentile_sorted_f64_impl:
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
     push rbx                ; preserve rbx (was clobbered without saving)
     mov rbp, rsp
@@ -78,6 +79,7 @@ fp_percentile_sorted_f64_impl:
     mov rsp, rbp
     pop rbx
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .at_last_element:
@@ -87,6 +89,7 @@ fp_percentile_sorted_f64_impl:
     mov rsp, rbp
     pop rbx
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .single_element:
@@ -95,6 +98,7 @@ fp_percentile_sorted_f64_impl:
     mov rsp, rbp
     pop rbx
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .empty_array:
@@ -103,6 +107,7 @@ fp_percentile_sorted_f64_impl:
     mov rsp, rbp
     pop rbx
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================

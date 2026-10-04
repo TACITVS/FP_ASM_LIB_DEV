@@ -29,6 +29,7 @@ global fp_reduce_add_u64
 fp_reduce_add_u64:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -100,10 +101,12 @@ fp_reduce_add_u64:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     xor rax, rax                 ; Return 0 for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================

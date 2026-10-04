@@ -34,7 +34,9 @@ fp_fold_sumsq_i32:
     ; Return: EAX = sum of squares
 
     ; Prologue
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -113,7 +115,9 @@ fp_fold_sumsq_i32:
     ; Epilogue
     vzeroupper
     mov rsp, rbp
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -131,7 +135,10 @@ fp_fold_dotp_i32:
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: EAX = dot product
 
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -223,7 +230,10 @@ fp_fold_dotp_i32:
 
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -241,7 +251,10 @@ fp_fold_sad_i32:
     ; Windows x64 ABI: RCX = a, RDX = b, R8 = n
     ; Return: EAX = sum of absolute differences
 
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -368,5 +381,8 @@ fp_fold_sad_i32:
 
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret

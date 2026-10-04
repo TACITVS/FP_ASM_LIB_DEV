@@ -30,6 +30,7 @@ global fp_fold_sumsq_u8
 fp_fold_sumsq_u8:
     ABI_ARGS_INT
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
 
     mov r12, rcx
@@ -50,6 +51,7 @@ fp_fold_sumsq_u8:
 
 .done:
     movsx eax, al
+    pop r12
     pop rbp
     ret
 
@@ -59,11 +61,11 @@ fp_fold_sumsq_u8:
 ; Signature: int8_t fp_fold_dotp_u8(const int8_t* a, const int8_t* b, size_t n);
 ;
 ; LIMITATION: No vpmullb, must use scalar
-
-global fp_fold_dotp_u8
-fp_fold_dotp_u8:
+FP_DISPATCHED fp_fold_dotp_u8
     ABI_ARGS_INT
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
 
     mov r12, rcx
@@ -87,6 +89,8 @@ fp_fold_dotp_u8:
 
 .done:
     movsx eax, al
+    pop r13
+    pop r12
     pop rbp
     ret
 
@@ -101,7 +105,10 @@ fp_fold_dotp_u8:
 global fp_fold_sad_u8
 fp_fold_sad_u8:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -248,5 +255,8 @@ fp_fold_sad_u8:
 
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
