@@ -423,6 +423,7 @@ void fp_cpu_report(FILE* out) {
     fprintf(out, "  ISA preset    : %s\n", bi->isa);
     fprintf(out, "  C -march      : %s\n", bi->march);
     fprintf(out, "  compiler      : %s\n", bi->compiler);
+    fprintf(out, "  gfx default   : %s (fp_gfx_default(); every preset usable at runtime)\n", bi->gfx);
     fprintf(out, "  dispatch      : %s\n", bi->dispatch
             ? "runtime (best kernel per CPU: AVX-512 > AVX-VNNI > AVX2)"
             : "off (public symbols are the AVX2 kernels)");

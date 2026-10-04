@@ -169,6 +169,71 @@ target_link_libraries(mygame PRIVATE fpasm::fpasm)
 
 Or link the built library directly: `cc game.c -lfpasm`.
 
+## Renderer integration (Direct3D 11 and others)
+
+The library stays **purely functional and renderer-agnostic**. It never
+includes or links a graphics API and keeps no mutable global state. Everything
+renderer-specific is a *value* you pass in:
+
+```c
+#include "fp_gfx.h"
+
+fp_gfx_conventions c;                         /* immutable data, no globals   */
+fp_gfx_conventions_init(&c, FP_GFX_D3D11, 1); /* Direct3D 11 + reversed-Z     */
+
+Mat4 view, proj, vp;
+fp_mat4_lookat_gfx(&view, 0,2,6,  0,0,0,  0,1,0, &c);
+fp_mat4_perspective_gfx(&proj, 1.05f, 16.0f/9, 0.1f, INFINITY, &c);  /* depth [0,1] */
+fp_mat4_mul(&vp, &proj, &view);
+
+/* depth state that matches the projection */
+float clear = fp_gfx_depth_clear_value(&c);   /* 0 with reversed-Z           */
+int   cmp   = fp_gfx_depth_compare(&c);       /* FP_GFX_COMPARE_GREATER      */
+
+/* fill GPU buffers: kernels write, never read, so mapped memory is fine */
+fp_mat4_upload_gfx(cbuffer_ptr, &vp, &c);     /* layout the shader expects   */
+fp_mat4_mul_vec3_batch(scratch, &vp, verts, n);
+fp_stream_copy(mapped_vb, scratch, n * sizeof(Vec3f));   /* non-temporal */
+```
+
+| Preset | Depth range | View space | Clip Y | Use with |
+|---|---|---|---|---|
+| `FP_GFX_D3D11` / `FP_GFX_D3D12` | [0, 1] | right-handed | up | Direct3D (HLSL `mul(M, v)`) |
+| `FP_GFX_D3D11_LH` | [0, 1] | left-handed | up | DirectXMath `*LH` style |
+| `FP_GFX_VULKAN` | [0, 1] | right-handed | down | Vulkan |
+| `FP_GFX_METAL` | [0, 1] | right-handed | up | Metal |
+| `FP_GFX_OPENGL` | [-1, 1] | right-handed | up | OpenGL (same as the old `fp_mat4_perspective`) |
+
+Any preset can be combined with **reversed-Z** (far better depth precision
+with [0, 1] depth) and an **infinite far plane**.
+
+**Out of the box for Direct3D 11:**
+- `make GFX=d3d11` (CMake `-DFPASM_GFX=d3d11`) makes `fp_gfx_default()` return
+  the D3D11 conventions. It's a default value only, so all presets still work at
+  runtime, and `fpasm-info` reports it.
+- `shaders/fpasm.hlsli` (and `fpasm.glsl`) describe the same data on the
+  shader side: `Vec3f` and `Quaternion` are `float4`, `Mat4` is a column-major
+  `float4x4`, and `fp_quat_rotate` matches `fp_quat_rotate_vec3`.
+- On Windows the build produces `libfpasm.dll`, its import library
+  `libfpasm.dll.a`, and `libfpasm.a`.
+- `examples/d3d11/fpasm_d3d11_smoke.c` is a headless Direct3D 11 test (WARP)
+  that renders with both the CPU path (library transform + streamed vertex
+  buffer) and the GPU path (constant-buffer matrix), uses reversed-Z depth, and
+  checks the pixels against the library's own projection. Run it with
+  `make TARGET_OS=windows run-example-d3d11`. It is a *consumer* of the
+  library, not part of it.
+
+**Building for Windows**
+- **Natively (MSYS2 UCRT64):** `make ISA=x86-64-v3 GFX=d3d11 test`
+- **From Linux or WSL2:**
+  `make TARGET_OS=windows CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar ISA=x86-64-v3 RUN=wine64 test`
+  runs the whole test suite as Windows binaries. That includes a register
+  check under the real Win64 rules (`rsi`, `rdi`, `xmm6`–`xmm15`).
+
+CI (`.github/workflows/ci.yml`) runs Linux, the Windows cross-build under
+Wine (plus the D3D11 smoke test on Wine's D3D11), and native Windows with
+MSYS2 (the D3D11 smoke test on Microsoft's WARP).
+
 ## Cross-platform status
 
 The entire in-scope library is ported to a single ABI-abstracted source tree and

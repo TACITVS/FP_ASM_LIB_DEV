@@ -30,6 +30,22 @@ file(GLOB C_SOURCES   CONFIGURE_DEPENDS src/wrappers/*.c src/algorithms/*.c src/
 set(FPASM_ISA "native" CACHE STRING "ISA preset for the C code (see README: Build targets)")
 set_property(CACHE FPASM_ISA PROPERTY STRINGS native x86-64-v3 haswell alderlake raptorlake x86-64-v4)
 option(FPASM_DISPATCH "Pick AVX-VNNI / AVX-512 kernel variants at runtime" ON)
+# Default renderer conventions returned by fp_gfx_default() (include/fp_gfx.h).
+# Never links or includes a graphics API; every preset stays usable at runtime.
+set(FPASM_GFX "opengl" CACHE STRING "Default renderer conventions")
+set_property(CACHE FPASM_GFX PROPERTY STRINGS opengl d3d11 d3d11-lh d3d12 vulkan metal)
+set(_fpasm_gfx_enum_opengl   FP_GFX_OPENGL)
+set(_fpasm_gfx_enum_generic  FP_GFX_OPENGL)
+set(_fpasm_gfx_enum_d3d11    FP_GFX_D3D11)
+set(_fpasm_gfx_enum_dx11     FP_GFX_D3D11)
+set(_fpasm_gfx_enum_d3d11-lh FP_GFX_D3D11_LH)
+set(_fpasm_gfx_enum_d3d12    FP_GFX_D3D12)
+set(_fpasm_gfx_enum_vulkan   FP_GFX_VULKAN)
+set(_fpasm_gfx_enum_metal    FP_GFX_METAL)
+set(_fpasm_gfx_enum ${_fpasm_gfx_enum_${FPASM_GFX}})
+if(NOT _fpasm_gfx_enum)
+    message(FATAL_ERROR "FP-ASM: unknown FPASM_GFX=${FPASM_GFX} (opengl, d3d11, d3d11-lh, d3d12, vulkan, metal)")
+endif()
 option(FPASM_BUILD_TOOLS "Build the fpasm-info diagnostic tool" ON)
 
 include(CheckCCompilerFlag)
@@ -59,7 +75,7 @@ endif()
 if(FPASM_DISPATCH)
     set(CMAKE_ASM_NASM_FLAGS "${CMAKE_ASM_NASM_FLAGS} -DFP_DISPATCH")
 endif()
-message(STATUS "FP-ASM: ISA=${FPASM_ISA} -> -march=${_fpasm_march}; dispatch=${FPASM_DISPATCH}")
+message(STATUS "FP-ASM: ISA=${FPASM_ISA} -> -march=${_fpasm_march}; dispatch=${FPASM_DISPATCH}; gfx=${FPASM_GFX}")
 
 add_library(fpasm ${ASM_SOURCES} ${C_SOURCES})
 add_library(fpasm::fpasm ALIAS fpasm)
@@ -85,6 +101,7 @@ if(NOT MSVC)
 endif()
 target_compile_definitions(fpasm PRIVATE
     $<$<COMPILE_LANGUAGE:C>:FPASM_ISA_NAME=${FPASM_ISA} FPASM_MARCH=${_fpasm_march}>
+    $<$<COMPILE_LANGUAGE:C>:FPASM_GFX_DEFAULT=${_fpasm_gfx_enum} FPASM_GFX_NAME=${FPASM_GFX}>
     $<$<AND:$<COMPILE_LANGUAGE:C>,$<BOOL:${FPASM_DISPATCH}>>:FP_DISPATCH>)
 
 if(FPASM_BUILD_TOOLS)
@@ -121,3 +138,4 @@ endif()
 install(TARGETS fpasm EXPORT fpasmTargets
         ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY include/ DESTINATION include/fpasm FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY shaders/ DESTINATION share/fpasm/shaders)

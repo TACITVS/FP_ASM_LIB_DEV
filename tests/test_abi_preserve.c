@@ -13,6 +13,7 @@
 #include "fp_core.h"
 #include "fp_cpu.h"
 #include "fp_dispatch.h"
+#include "fp_gfx.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -21,6 +22,11 @@
 #include <string.h>
 
 static int failures = 0, checks = 0;
+
+/* FP_TEST_CHECK_XMM=1: also require xmm6-15 to survive, i.e. the Win64
+ * contract. Meaningful for a library assembled with -DFP_FORCE_XMM_SAVE
+ * (`make ASMFLAGS=-DFP_FORCE_XMM_SAVE`); on plain SysV they are volatile. */
+static int g_check_xmm;
 
 #if defined(__x86_64__) && defined(__ELF__)
 
@@ -58,9 +64,60 @@ __asm__(
     "  pop %r15\n  pop %r14\n  pop %r13\n  pop %r12\n  pop %rbp\n  pop %rbx\n"
     "  ret\n"
     ".size fp_test_abi_probe, .-fp_test_abi_probe\n");
+#define FP_ABI_NGPR 6
+static const char* const g_reg_names[8] = { "rbx", "rbp", "r12", "r13", "r14", "r15", "", "" };
+#define FP_ABI_PROBE_OK 1
+
+#elif defined(_WIN64) && defined(__GNUC__)
+
+/* Win64 version: rcx = fn, rdx/r8/r9 = a0..a2, [rsp+40] = gpr_out[8],
+ * [rsp+48] = xmm_io[20]. Win64 also makes rdi, rsi and xmm6-xmm15
+ * callee-saved, so all of them get canaries (and xmm is always checked). */
+void fp_test_abi_probe(void (*fn)(void), uintptr_t a0, uintptr_t a1, uintptr_t a2,
+                       uint64_t* out, uint64_t* xmm_io);
+__asm__(
+    ".text\n"
+    ".globl fp_test_abi_probe\n"
+    ".def fp_test_abi_probe; .scl 2; .type 32; .endef\n"
+    "fp_test_abi_probe:\n"
+    "  push %rbx\n  push %rbp\n  push %rdi\n  push %rsi\n"
+    "  push %r12\n  push %r13\n  push %r14\n  push %r15\n"
+    "  mov 104(%rsp), %rax\n  mov 112(%rsp), %r10\n"   /* stack args 5 and 6 */
+    "  push %rax\n  push %r10\n  sub $40, %rsp\n"       /* aligned + shadow space */
+    "  movdqu 0(%r10), %xmm6\n    movdqu 16(%r10), %xmm7\n   movdqu 32(%r10), %xmm8\n"
+    "  movdqu 48(%r10), %xmm9\n   movdqu 64(%r10), %xmm10\n  movdqu 80(%r10), %xmm11\n"
+    "  movdqu 96(%r10), %xmm12\n  movdqu 112(%r10), %xmm13\n movdqu 128(%r10), %xmm14\n"
+    "  movdqu 144(%r10), %xmm15\n"
+    "  mov %rcx, %rax\n  mov %rdx, %rcx\n  mov %r8, %rdx\n  mov %r9, %r8\n"
+    "  movabs $0x1BADB0021BADB001, %rbx\n"
+    "  movabs $0x1BADB0021BADB002, %rbp\n"
+    "  movabs $0x1BADB0021BADB003, %r12\n"
+    "  movabs $0x1BADB0021BADB004, %r13\n"
+    "  movabs $0x1BADB0021BADB005, %r14\n"
+    "  movabs $0x1BADB0021BADB006, %r15\n"
+    "  movabs $0x1BADB0021BADB007, %rdi\n"
+    "  movabs $0x1BADB0021BADB008, %rsi\n"
+    "  call *%rax\n"
+    "  add $40, %rsp\n  pop %r10\n  pop %rax\n"
+    "  mov %rbx, 0(%rax)\n  mov %rbp, 8(%rax)\n  mov %r12, 16(%rax)\n  mov %r13, 24(%rax)\n"
+    "  mov %r14, 32(%rax)\n  mov %r15, 40(%rax)\n  mov %rdi, 48(%rax)\n  mov %rsi, 56(%rax)\n"
+    "  movdqu %xmm6, 0(%r10)\n    movdqu %xmm7, 16(%r10)\n   movdqu %xmm8, 32(%r10)\n"
+    "  movdqu %xmm9, 48(%r10)\n   movdqu %xmm10, 64(%r10)\n  movdqu %xmm11, 80(%r10)\n"
+    "  movdqu %xmm12, 96(%r10)\n  movdqu %xmm13, 112(%r10)\n movdqu %xmm14, 128(%r10)\n"
+    "  movdqu %xmm15, 144(%r10)\n"
+    "  pop %r15\n  pop %r14\n  pop %r13\n  pop %r12\n"
+    "  pop %rsi\n  pop %rdi\n  pop %rbp\n  pop %rbx\n"
+    "  ret\n");
+#define FP_ABI_NGPR 8
+static const char* const g_reg_names[8] = { "rbx", "rbp", "r12", "r13", "r14", "r15", "rdi", "rsi" };
+#define FP_ABI_PROBE_OK 1
+#endif
+
+#ifdef FP_ABI_PROBE_OK
 
 /* X(symbol, arity: 1 = (in, n) | 2 = (a, b, n), tier needed or 0) */
 #define KERNELS(X) \
+    X(fp_stream_copy, 2, 0) \
     X(fp_fold_dotp_f32, 2, 0) \
     X(fp_fold_dotp_f64, 2, 0) \
     X(fp_fold_dotp_i16, 2, 0) \
@@ -153,14 +210,9 @@ __asm__(
     X(fp_fold_dotp_u16_avx512, 2, FP_TIER_AVX512) \
 
 
-/* FP_TEST_CHECK_XMM=1: also require xmm6-15 to survive, i.e. the Win64
- * contract. Meaningful for a library assembled with -DFP_FORCE_XMM_SAVE
- * (`make ASMFLAGS=-DFP_FORCE_XMM_SAVE`); on plain SysV they are volatile. */
-static int g_check_xmm;
 
 static void probe(const char* name, void (*fn)(void), int arity, const void* a, const void* b, size_t n) {
-    static const char* const reg[6] = { "rbx", "rbp", "r12", "r13", "r14", "r15" };
-    uint64_t out[6], xmm[20];
+    uint64_t out[8], xmm[20];
     int i;
     for (i = 0; i < 20; i++) xmm[i] = 0xC0FFEE0000000000ull + (uint64_t)i;
     if (getenv("FP_TEST_VERBOSE")) { fprintf(stderr, "probe %s n=%zu\n", name, n); fflush(stderr); }
@@ -175,10 +227,10 @@ static void probe(const char* name, void (*fn)(void), int arity, const void* a, 
                 i |= 1;   /* one report per register */
             }
         }
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < FP_ABI_NGPR; i++) {
         checks++;
         if (out[i] != (0x1BADB0021BADB001ull + (uint64_t)i)) {
-            printf("FAIL %-28s n=%-4zu clobbers %s\n", name, n, reg[i]);
+            printf("FAIL %-28s n=%-4zu clobbers %s\n", name, n, g_reg_names[i]);
             failures++;
         }
     }
@@ -207,7 +259,7 @@ static void run_probes(void) {
     printf("abi: %d kernel calls probed\n", count);
 }
 #else
-static void run_probes(void) { puts("abi: SKIP (needs x86-64 ELF / System V)"); }
+static void run_probes(void) { puts("abi: SKIP (needs x86-64 ELF/System V or Win64 with GCC/Clang)"); }
 #endif
 
 /* ---- tail regressions: the scalar tail must not clobber the vector sum ---- */
@@ -233,6 +285,9 @@ static void tails(void) {
 
 int main(void) {
     g_check_xmm = getenv("FP_TEST_CHECK_XMM") && strcmp(getenv("FP_TEST_CHECK_XMM"), "0") != 0;
+#ifdef _WIN64
+    g_check_xmm = 1;   /* the real Win64 contract: always enforced on Windows */
+#endif
     if (g_check_xmm) puts("abi: also checking xmm6-xmm15 (Win64 contract)");
     /* Resolve the dispatcher now. Otherwise the first probe of a public
      * dispatched kernel would also run its one-time setup, which is ordinary

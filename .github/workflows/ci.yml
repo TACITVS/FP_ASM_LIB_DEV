@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# ISA=x86-64-v3 keeps the C code runnable on any AVX2 runner; the faster
+# AVX-VNNI / AVX-512 kernels are still exercised when the runner has them.
+jobs:
+  linux:
+    name: Linux (gcc, SysV ABI)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install NASM
+        run: sudo apt-get update && sudo apt-get install -y nasm
+      - name: Toolchain and CPU
+        run: make info ISA=x86-64-v3
+      - name: Tests (portable build)
+        run: make -j"$(nproc)" ISA=x86-64-v3 test
+      - name: Tests (GFX=d3d11, no dispatch)
+        run: make -j"$(nproc)" ISA=x86-64-v3 GFX=d3d11 DISPATCH=0 BUILD=build/d3d11 test
+      - name: Win64 register contract (emulated)
+        run: make ISA=x86-64-v3 test-win64-abi
+      - name: Assembly ABI lint
+        run: make lint-asm
+      - name: CMake + CTest
+        run: |
+          cmake -S . -B build/cmake -DFPASM_ISA=x86-64-v3 -DFPASM_GFX=d3d11
+          cmake --build build/cmake -j"$(nproc)"
+          ctest --test-dir build/cmake --output-on-failure
+      - name: CPU / build report
+        if: always()
+        run: make ISA=x86-64-v3 diag || true
+
+  windows-cross:
+    name: Windows build under Wine (mingw-w64, real Win64 ABI)
+    runs-on: ubuntu-24.04
+    env:
+      WIN: TARGET_OS=windows CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar ISA=x86-64-v3 GFX=d3d11 BUILD=build/win RUN=wine64
+      WINEDEBUG: -all
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain, Wine, virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm gcc-mingw-w64-x86-64 wine64 xvfb libgl1-mesa-dri
+          echo "/usr/lib/wine" >> "$GITHUB_PATH"
+      - name: Build library (static + DLL + import lib)
+        run: make -j"$(nproc)" $WIN all
+      - name: Tests as Windows binaries
+        run: make -j"$(nproc)" $WIN test
+      - name: Direct3D 11 smoke test (Wine D3D11 on llvmpipe)
+        run: |
+          make $WIN example-d3d11
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a wine64 build/win/fpasm_d3d11_smoke.exe
+
+  windows:
+    name: Windows (MSYS2 UCRT64, native Direct3D 11 WARP)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-nasm
+      - name: Toolchain and CPU
+        run: make info ISA=x86-64-v3 GFX=d3d11
+      - name: Tests
+        run: make -j4 ISA=x86-64-v3 GFX=d3d11 test
+      - name: Direct3D 11 smoke test (WARP)
+        run: make ISA=x86-64-v3 GFX=d3d11 run-example-d3d11
+      - name: CPU / build report
+        if: always()
+        run: make ISA=x86-64-v3 GFX=d3d11 diag || true

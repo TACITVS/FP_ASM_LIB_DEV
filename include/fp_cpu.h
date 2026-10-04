@@ -112,6 +112,7 @@ typedef struct {
     const char* march;          /* -march value used for the C code */
     const char* compiler;       /* compiler version string */
     int         dispatch;       /* 1 if runtime kernel dispatch is compiled in */
+    const char* gfx;            /* default renderer conventions (GFX= / FPASM_GFX) */
     uint64_t    required;       /* FP_CPU_BIT() mask this build needs */
 } fp_build_info_t;
 

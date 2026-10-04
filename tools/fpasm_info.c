@@ -48,8 +48,8 @@ static void print_json(void) {
             printf("%s\"%s\"", first ? "" : ", ", fp_cpu_feature_name((fp_cpu_feature)i));
             first = 0;
         }
-    printf("],\n  \"build\": {\"isa\": \"%s\", \"march\": \"%s\", \"compiler\": \"%s\", \"dispatch\": %s},\n",
-           bi->isa, bi->march, bi->compiler, bi->dispatch ? "true" : "false");
+    printf("],\n  \"build\": {\"isa\": \"%s\", \"march\": \"%s\", \"compiler\": \"%s\", \"gfx\": \"%s\", \"dispatch\": %s},\n",
+           bi->isa, bi->march, bi->compiler, bi->gfx, bi->dispatch ? "true" : "false");
     printf("  \"missing\": [");
     first = 1;
     for (i = 0; i < FP_CPU_FEATURE_COUNT; i++)

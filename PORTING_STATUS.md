@@ -77,4 +77,17 @@ upstream vector database, out of scope for an FP + game-math library.
   `make test-win64-abi` forces the saves on in a Linux build and checks
   `xmm6`–`xmm15` with the canary test. `make lint-asm` statically flags any
   new function that uses callee-saved GPRs or `xmm6`–`xmm15` without saving them.
+- **`fp_filter_gt_i64_simd`** used `rsi`/`rdi` as table pointers without
+  saving them. Those registers are callee-saved on Win64, so on Windows the
+  caller's registers were corrupted (found by running the Windows build of
+  the test suite under Wine). It now uses `r8`/`r9`. `make lint-asm` checks
+  `rsi`/`rdi` too, and on Windows `test_abi_preserve` probes every kernel
+  under the real Win64 rules.
+- **`fp_mat4_lookat`** stored the camera axes as columns instead of rows (a
+  transposed rotation with a row-based translation). It was correct only for
+  cameras looking straight down an axis; a turned camera rendered mirrored
+  or skewed. It now delegates to `fp_mat4_lookat_gfx` with the OpenGL
+  conventions, and `tests/test_gfx.c` checks view matrices by behaviour
+  (eye at the origin, target straight ahead, camera right maps to +x, camera
+  up maps to +y, orthonormal).
 

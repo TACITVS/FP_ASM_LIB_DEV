@@ -3,6 +3,7 @@
 
 For every exported function it reports:
   * GPR:  rbx / r12-r15 written but never pushed          (SysV + Win64 bug)
+          rsi / rdi written but never pushed                (Win64 bug)
   * XMM:  xmm6-xmm15 / ymm6-15 written but never saved    (Win64 bug)
 
 A function counts as saving a register when it pushes it, stores it to
@@ -19,6 +20,8 @@ import sys
 
 GPR_ALIASES = {
     "rbx": ("rbx", "ebx", "bx", "bl"),
+    "rsi": ("rsi", "esi", "si", "sil"),     # callee-saved on Win64 only
+    "rdi": ("rdi", "edi", "di", "dil"),     # callee-saved on Win64 only
     "r12": ("r12", "r12d", "r12w", "r12b"),
     "r13": ("r13", "r13d", "r13w", "r13b"),
     "r14": ("r14", "r14d", "r14w", "r14b"),
@@ -27,7 +30,9 @@ GPR_ALIASES = {
 
 
 def functions(path):
-    text = open(path).read()
+    # Code inside `%ifdef FP_SYSV` runs only on SysV, where rsi/rdi carry the
+    # arguments and are caller-saved: drop it before looking at registers.
+    text = re.sub(r"%ifdef FP_SYSV.*?%endif", "", open(path).read(), flags=re.S)
     exported = set(re.findall(r"global\s+(\w+)", text)) | set(re.findall(r"FP_DISPATCHED\s+(\w+)", text))
     funcs, cur = {}, None
     for raw in text.split("\n"):
@@ -51,7 +56,7 @@ def lint(path):
         gpr_saved = set(re.findall(r"push\s+(\w+)", text))
         xmm_saved = set()
         if "PROLOGUE" in body:
-            gpr_saved |= set(GPR_ALIASES)
+            gpr_saved |= {"rbx", "r12", "r13", "r14", "r15"}
             xmm_saved |= set(range(6, 14))
         if "XMM_SAVE_WIN64" in body:
             xmm_saved |= set(range(6, 16))
@@ -70,7 +75,8 @@ def lint(path):
                 xmm_saved.add(int(m.group(1)))
         bad_xmm = sorted(xmm_used - xmm_saved)
         if bad_gpr:
-            problems.append(f"{path}: {fn}: clobbers callee-saved {', '.join(bad_gpr)} (all ABIs)")
+            problems.append(f"{path}: {fn}: clobbers callee-saved {', '.join(bad_gpr)} "
+                            f"({'Win64' if set(bad_gpr) <= {'rsi', 'rdi'} else 'SysV and/or Win64'})")
         if bad_xmm:
             problems.append(f"{path}: {fn}: clobbers xmm{', xmm'.join(map(str, bad_xmm))} "
                             "without saving (Win64 callee-saved; use XMM_SAVE_WIN64)")

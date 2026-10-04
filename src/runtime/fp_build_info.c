@@ -22,6 +22,11 @@
 #else
 #  define FP_MARCH_STR "compiler default"
 #endif
+#ifdef FPASM_GFX_NAME
+#  define FP_GFX_STR FP_XSTR(FPASM_GFX_NAME)
+#else
+#  define FP_GFX_STR "opengl"
+#endif
 #ifdef FP_DISPATCH
 #  define FP_DISPATCH_ON 1
 #else
@@ -47,6 +52,7 @@ const fp_build_info_t fp_build_info_data = {
     FP_MARCH_STR,
     FP_COMPILER,
     FP_DISPATCH_ON,
+    FP_GFX_STR,
     /* The assembly needs the AVX2 baseline; the C code needs whatever the
      * -march in effect let the compiler use. */
     FP_CPU_ASM_BASELINE
