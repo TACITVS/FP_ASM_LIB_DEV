@@ -234,6 +234,11 @@ static void tails(void) {
 int main(void) {
     g_check_xmm = getenv("FP_TEST_CHECK_XMM") && strcmp(getenv("FP_TEST_CHECK_XMM"), "0") != 0;
     if (g_check_xmm) puts("abi: also checking xmm6-xmm15 (Win64 contract)");
+    /* Resolve the dispatcher now. Otherwise the first probe of a public
+     * dispatched kernel would also run its one-time setup, which is ordinary
+     * C (and glibc getenv) compiled for SysV, where xmm6-15 are volatile; on
+     * Windows that C code is compiled for Win64 and preserves them itself. */
+    fp_dispatch_init();
     run_probes();
     tails();
     printf("\n%s (%d checks, %d failures)\n", failures ? "SOME FAILED" : "ALL PASS", checks, failures);

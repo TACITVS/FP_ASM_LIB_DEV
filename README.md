@@ -111,7 +111,8 @@ variants. The best one is chosen on first call:
 | kernel | avx2 | avxvnni | avx512 |
 |---|:-:|:-:|:-:|
 | `fp_reduce_add_f32/f64`, `fp_fold_sumsq_f32`, `fp_fold_dotp_f32/f64` | ✓ | | ✓ |
-| `fp_fold_dotp_i8/u8/i16/u16` | ✓ | ✓ | ✓ (AVX512-VNNI) |
+| `fp_fold_dotp_i8/u8` | ✓ | ✓ | ✓ (AVX512-VNNI) |
+| `fp_fold_dotp_i16/u16` | ✓ | (exported, not selected: slower on Raptor Lake) | ✓ (AVX512-VNNI) |
 
 Every variant is also exported by name (`fp_fold_dotp_i8_avxvnni`, …) for A/B
 tests. `FPASM_TIER=avx2|avxvnni|avx512` caps the tier at runtime.
@@ -139,19 +140,21 @@ From code: `fp_cpu_report(stdout)`, `fp_cpu_check(stderr)`, `fp_cpu_has(FP_CPU_A
 Set `FPASM_CPU_CHECK=0|strict|report` to turn this off, make it abort, or
 print the full report. With static linking, call `fp_cpu_check()` yourself.
 
-Measured with `fpasm-info --bench` (64k elements, one core) on an AVX-512
-Xeon (Emerald Rapids):
+Measured with `fpasm-info --bench` (64k elements per call):
 
-| kernel | avx2 | avxvnni | avx512 |
-|---|--:|--:|--:|
-| `fp_fold_dotp_i8` | 1.0× | **12.1×** | **14.5×** |
-| `fp_fold_dotp_f32` | 1.0× | — | 1.41× |
-| `fp_fold_sumsq_f32` | 1.0× | — | 1.33× |
-| `fp_reduce_add_f32` | 1.0× | — | 1.10× (memory-bound) |
-| `fp_fold_dotp_i16` | 1.0× | 1.00× | 1.20× |
+| kernel | i7-13700HX (Raptor Lake, WSL2) | Xeon (Emerald Rapids, AVX-512) |
+|---|--:|--:|
+| `fp_fold_dotp_i8` | **14.3×** (avxvnni) | **14.5×** (avx512) / 12.1× (avxvnni) |
+| `fp_fold_dotp_u8` | **16.1×** (avxvnni) | 14.4× (avx512) |
+| `fp_fold_dotp_f32` | — (AVX2 only) | 1.41× (avx512) |
+| `fp_fold_sumsq_f32` | — | 1.33× (avx512) |
+| `fp_reduce_add_f32` | — | 1.10× (avx512, memory-bound) |
+| `fp_fold_dotp_i16` | 0.94× (avxvnni, so not selected) | 1.20× (avx512) |
 
-On a Raptor Lake laptop, run `taskset -c 0-7 make bench-isa` (P-cores) and
-again on an E-core to see the hybrid difference.
+Speedups are relative to the AVX2 kernel on the same machine. The AVX2 float
+kernels on the laptop already run at ~100 GB/s, i.e. memory bandwidth.
+Under WSL2 the hypervisor hides the P/E-core layout and decides which
+physical core each virtual CPU runs on, so repeat runs for stable numbers.
 
 ### CMake — link it into a game / graphics project
 

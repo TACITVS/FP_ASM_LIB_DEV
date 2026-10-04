@@ -386,7 +386,11 @@ void fp_cpu_report(FILE* out) {
                 ct == FP_CORE_PERFORMANCE ? "a P-core" :
                 ct == FP_CORE_EFFICIENCY  ? "an E-core" : "an unknown core type");
     } else {
-        fprintf(out, "  hybrid        : no\n");
+        if (ci->hypervisor && strstr(ci->uarch, "(hybrid)"))
+            fprintf(out, "  hybrid        : not reported (the hypervisor hides it), but this model is a\n"
+                         "                  P-core + E-core design; core type per thread is unknown here\n");
+        else
+            fprintf(out, "  hybrid        : no\n");
     }
     if (ci->avx10_version)
         fprintf(out, "  AVX10         : version %d\n", ci->avx10_version);
@@ -435,12 +439,13 @@ void fp_cpu_report(FILE* out) {
     }
 
     fprintf(out, "\nNotes\n");
-    if (ci->hybrid && !(ci->cpuid_features & B(AVX512F)))
+    int hybrid_model = ci->hybrid || strstr(ci->uarch, "(hybrid)") != NULL;
+    if (hybrid_model && !(ci->cpuid_features & B(AVX512F)))
         fprintf(out, "  - Hybrid Intel CPU without AVX-512: Alder/Raptor Lake and later client chips\n"
                      "    disable AVX-512 because the E-cores lack it. The library uses AVX2 and,\n"
                      "    for integer dot products, AVX-VNNI%s.\n",
                      (ci->features & B(AVX_VNNI)) ? " (available here)" : "");
-    if (ci->hybrid)
+    if (hybrid_model)
         fprintf(out, "  - P-cores and E-cores differ ~2x in SIMD throughput. For stable benchmark\n"
                      "    numbers pin to P-cores (Linux: taskset -c 0-7 ...; check lscpu --extended).\n");
     if ((ci->cpuid_features & B(AVX512F)) && !(ci->features & B(AVX512F)))

@@ -125,7 +125,13 @@ $(OBJ)/fp_cpu.o $(OBJ)/fp_dispatch.o: private ARCHFLAGS := $(BASE_ARCHFLAGS)
 # Rebuild everything when the configuration changes (switching ISA= without
 # `make clean` would otherwise silently mix objects from two targets).
 CONFIG_STAMP := $(BUILD)/config.stamp
-CONFIG_STR   := ISA=$(ISA) ARCH=$(ARCH) DISPATCH=$(DISPATCH) CC=$(CC) CFLAGS=$(CFLAGS) ASMFLAGS=$(ASMFLAGS)
+# For -march=native, record what "native" means on this machine, so moving
+# the tree to another CPU (or a cloud VM landing on a different host) rebuilds.
+ifeq ($(ARCH),native)
+  NATIVE_MARCH := $(shell $(CC) -march=native -Q --help=target 2>/dev/null | awk '$$1=="-march="{print $$2; exit}')
+  NATIVE_SIG   := $(NATIVE_MARCH)/$(shell grep -m1 -o -w 'flags.*' /proc/cpuinfo 2>/dev/null | cksum | cut -d' ' -f1)
+endif
+CONFIG_STR   := ISA=$(ISA) ARCH=$(ARCH) NATIVE=$(NATIVE_SIG) DISPATCH=$(DISPATCH) CC=$(CC) CFLAGS=$(CFLAGS) ASMFLAGS=$(ASMFLAGS)
 ifeq (,$(filter clean info,$(MAKECMDGOALS)))
 $(shell mkdir -p $(BUILD); [ "`cat $(CONFIG_STAMP) 2>/dev/null`" = "$(CONFIG_STR)" ] || echo "$(CONFIG_STR)" > $(CONFIG_STAMP))
 endif
@@ -224,7 +230,7 @@ lint-asm:
 test-win64-abi:
 	@$(MAKE) --no-print-directory BUILD=$(BUILD)/win64-abi ASMFLAGS=-DFP_FORCE_XMM_SAVE \
 	    ISA=$(ISA) DISPATCH=$(DISPATCH) $(BUILD)/win64-abi/test_abi_preserve
-	@FP_TEST_CHECK_XMM=1 $(BUILD)/win64-abi/test_abi_preserve | tail -n 1
+	@FP_TEST_CHECK_XMM=1 $(BUILD)/win64-abi/test_abi_preserve | grep -E '^(FAIL|abi:|ALL PASS|SOME FAILED)'
 
 # Build one library per ISA side by side: build/<isa>/libfpasm.{a,so}.
 ISAS ?= x86-64-v3 raptorlake x86-64-v4
