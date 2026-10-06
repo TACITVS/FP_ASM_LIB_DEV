@@ -11,7 +11,7 @@
   --ink:#E8EBF2; --ink-muted:#97A0B2; --ink-faint:#6A7488;
   --hair:rgba(255,255,255,.08); --hair-strong:rgba(255,255,255,.14);
   --accent:#EEA23C; --accent-soft:rgba(238,162,60,.14); --accent-line:rgba(238,162,60,.45);
-  --baseline:#6B7690;
+  --baseline:#6B7690; --js:#5BA7E6;
   --mono:ui-monospace,"Cascadia Code","JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --maxw:1080px;
@@ -22,7 +22,7 @@
     --ink:#161B24; --ink-muted:#586172; --ink-faint:#828B9B;
     --hair:rgba(16,20,30,.10); --hair-strong:rgba(16,20,30,.16);
     --accent:#B9700C; --accent-soft:rgba(185,112,12,.10); --accent-line:rgba(185,112,12,.40);
-    --baseline:#98A1B2;
+    --baseline:#98A1B2; --js:#2F7FC0;
   }
 }
 :root[data-theme="dark"]{
@@ -30,14 +30,14 @@
   --ink:#E8EBF2; --ink-muted:#97A0B2; --ink-faint:#6A7488;
   --hair:rgba(255,255,255,.08); --hair-strong:rgba(255,255,255,.14);
   --accent:#EEA23C; --accent-soft:rgba(238,162,60,.14); --accent-line:rgba(238,162,60,.45);
-  --baseline:#6B7690;
+  --baseline:#6B7690; --js:#5BA7E6;
 }
 :root[data-theme="light"]{
   --bg:#F3F5F8; --panel:#FFFFFF; --panel-2:#F8FAFC;
   --ink:#161B24; --ink-muted:#586172; --ink-faint:#828B9B;
   --hair:rgba(16,20,30,.10); --hair-strong:rgba(16,20,30,.16);
   --accent:#B9700C; --accent-soft:rgba(185,112,12,.10); --accent-line:rgba(185,112,12,.40);
-  --baseline:#98A1B2;
+  --baseline:#98A1B2; --js:#2F7FC0;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -187,6 +187,35 @@ pre{margin:26px 0 0; background:var(--panel); border:1px solid var(--hair); bord
 footer{border-top:1px solid var(--hair); padding:40px 0 60px; color:var(--ink-muted); font-size:13px}
 .foot{display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; align-items:flex-start}
 .foot .mono{font-size:12px; color:var(--ink-faint); max-width:52ch; line-height:1.6}
+/* live demo */
+.demo-card{margin-top:30px; background:var(--panel); border:1px solid var(--hair); border-radius:14px; padding:14px}
+.demo-stage{position:relative; aspect-ratio:16/9; min-height:240px; border-radius:10px; overflow:hidden;
+  background:#05070C url("images/verdant_swarm.png") center/cover no-repeat}
+.demo-stage canvas{position:absolute; inset:0; width:100%; height:100%; display:block; background:#05070C; outline:none}
+.demo-stage canvas:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+@media(max-width:640px){.demo-stage{aspect-ratio:4/3}}
+.demo-hud{position:absolute; left:12px; top:12px; padding:9px 12px; border-radius:8px; pointer-events:none;
+  background:rgba(5,8,12,.68); border:1px solid rgba(255,255,255,.08); color:#E8EBF2;
+  font-family:var(--mono); font-size:12px; line-height:1.6; max-width:calc(100% - 24px)}
+.demo-hud b{color:#7CF29A} .demo-hud .dim{color:#97A0B2}
+@media(max-width:640px){.demo-hud{font-size:10.5px; padding:6px 8px} .demo-hud .dim{display:none}}
+.legend{flex-wrap:wrap; row-gap:8px} .legend > span{white-space:nowrap}
+.demo-msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
+  padding:24px; background:rgba(5,7,12,.55); color:#E8EBF2; font-family:var(--mono); font-size:13px}
+.demo-stage.nogpu .demo-hud{display:none}
+.demo-stage.nogpu .demo-msg{align-items:flex-end; background:linear-gradient(transparent 55%, rgba(5,7,12,.85))}
+.demo-controls{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; margin-top:12px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-muted)}
+.demo-controls label{display:inline-flex; gap:8px; align-items:center}
+.demo-controls select,.demo-controls button{font:inherit; color:var(--ink); background:var(--panel-2);
+  border:1px solid var(--hair-strong); border-radius:6px; padding:5px 9px; cursor:pointer}
+.demo-controls button:hover,.demo-controls select:hover{border-color:var(--accent-line)}
+.demo-controls .keys{margin-left:auto; color:var(--ink-faint)}
+@media(max-width:640px){.demo-controls .keys{display:none}}
+.bar-el.js{background:var(--js)}
+.row.total .name{color:var(--accent)}
+.summary{margin:2px 2px 22px; color:var(--ink-muted); font-size:14.5px; max-width:80ch}
+.summary b{color:var(--ink); font-variant-numeric:tabular-nums}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -195,6 +224,7 @@ footer{border-top:1px solid var(--hair); padding:40px 0 60px; color:var(--ink-mu
   <div class="wrap bar">
     <div class="logo">FP<b>·</b>ASM</div>
     <nav class="navlinks">
+      <a href="#demo" class="hidesm">Live demo</a>
       <a href="#bench" class="hidesm">Benchmarks</a>
       <a href="#how" class="hidesm">Why it's fast</a>
       <a href="#arch" class="hidesm">Architecture</a>
@@ -216,14 +246,73 @@ footer{border-top:1px solid var(--hair); padding:40px 0 60px; color:var(--ink-mu
       immutable data, no imperative loops in the inner kernels — wrapped in a thin C API you can drop into a game or graphics engine.</p>
     <div class="hero-cta">
       <a class="btn primary" href="https://github.com/TACITVS/FP_ASM_LIB_DEV">View on GitHub →</a>
+      <a class="btn ghost" href="#demo">Run the live demo</a>
       <a class="btn ghost" href="#bench">See the benchmarks</a>
     </div>
 
     <div class="stats">
       <div class="tile"><div class="k"><span class="x">8.6</span><span class="x">×</span></div><div class="l">faster float reductions than scalar&nbsp;<span class="mono">-O3</span></div></div>
       <div class="tile"><div class="k">360</div><div class="l">exported functions across 10 numeric types</div></div>
-      <div class="tile"><div class="k">13</div><div class="l">test suites green on Linux &amp; Windows x64</div></div>
+      <div class="tile"><div class="k">21</div><div class="l">test programs green on Linux &amp; Windows x64</div></div>
       <div class="tile"><div class="k">0</div><div class="l">external dependencies — links as <span class="mono">.a</span>&nbsp;/&nbsp;<span class="mono">.so</span>&nbsp;/&nbsp;<span class="mono">.dll</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Live demo · runs in your browser</span>
+      <h2>Verdant Swarm: a galaxy simulated every frame</h2>
+      <p>A spiral galaxy, simulated on your CPU every frame and drawn with <span class="mono">WebGPU</span>
+        (or <span class="mono">WebGL&nbsp;2</span> / <span class="mono">WebGL&nbsp;1</span> on older systems).
+        The simulation is the same as the repository's Direct3D&nbsp;11 demo, with the same recipe, the same four
+        stages and the same data sizes, written here in plain JavaScript. Browsers can't run x64 assembly,
+        so the chart below compares this page's live timings with the native numbers published in the repository.</p>
+    </div>
+
+    <div class="demo-card">
+      <div class="demo-stage" id="swarm-stage">
+        <div class="demo-hud" id="swarm-hud">VERDANT SWARM</div>
+        <div class="demo-msg" id="swarm-msg">Scroll here to start the demo</div>
+      </div>
+      <div class="demo-controls">
+        <label>stars
+          <select id="swarm-stars" aria-label="Number of stars">
+            <option value="131072">131,072</option>
+            <option value="262144">262,144</option>
+            <option value="524288">524,288</option>
+            <option value="1048576">1,048,576</option>
+            <option value="2097152">2,097,152</option>
+          </select>
+        </label>
+        <label>renderer
+          <select id="swarm-gfx" aria-label="Renderer">
+            <option value="auto">auto</option>
+            <option value="webgpu">WebGPU</option>
+            <option value="webgl2">WebGL 2</option>
+            <option value="webgl1">WebGL 1</option>
+          </select>
+        </label>
+        <button id="swarm-pause" type="button">Pause</button>
+        <button id="swarm-hudbtn" type="button">Hide HUD</button>
+        <span class="keys">click the galaxy, then Space pauses · H toggles the HUD</span>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <p class="summary" id="swarm-summary">Measuring…</p>
+      <div class="legend" role="note">
+        <span><span class="sw" style="background:var(--js)"></span>this page · JavaScript, live</span>
+        <span><span class="sw" style="background:var(--baseline)"></span>native · plain C <span class="mono">-O3</span></span>
+        <span><span class="sw" style="background:var(--accent)"></span>native · FP·ASM</span>
+      </div>
+      <div class="rows" id="swarm-rows"></div>
+      <p class="method">ms per frame · lower is better · pill = how many times faster native FP·ASM is than this page ·
+        this page: trimmed mean of the last 61 frames on the browser's main thread, 1 thread ·
+        native: <span id="swarm-machine"></span>, median <span style="color:var(--accent)">swarm_bench</span> times at 1,048,576 stars,
+        scaled linearly to the star count above · different machines, so measure yours natively:
+        <span style="color:var(--accent)">make run-swarm-bench</span></p>
     </div>
   </div>
 </section>
@@ -389,7 +478,7 @@ SR r = <span class="c-fn">st_run</span>(<span class="c-fn">roll</span>(), seed);
         <ul>
           <li>Linux + Windows x64, one ABI-abstracted source tree</li>
           <li>Static &amp; shared libraries via Make and CMake</li>
-          <li>13 test suites; every kernel checked against a scalar reference</li>
+          <li>21 test programs; every kernel checked against a scalar reference</li>
           <li>Non-executable stack, no runtime allocations in the kernels</li>
         </ul>
       </div>
@@ -485,5 +574,6 @@ SR r = <span class="c-fn">st_run</span>(<span class="c-fn">roll</span>(), seed);
   io.observe(document.getElementById('bench'));
 })();
 </script>
+<script src="swarm-web.js" defer></script>
 </body>
 </html>

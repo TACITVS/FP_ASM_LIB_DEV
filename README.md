@@ -48,7 +48,7 @@ wins on reductions/dot/batched math, parity on the memory-bound kernels.*
 ![Verdant Swarm: a million-star galaxy simulated with FP-ASM kernels and drawn with Direct3D 11](docs/images/verdant_swarm.png)
 
 A spiral galaxy of a million stars, simulated on the CPU every frame and drawn
-with Direct3D 11 (`examples/swarm/`). Each frame is a pure function of time,
+with Direct3D 11 (`examples/swarm/`). **[Live in the browser →](https://tacitvs.github.io/FP_ASM_LIB_DEV/#demo)** Each frame is a pure function of time,
 with four stages split across a thread pool:
 
 | Stage | What it does | FP-ASM kernels |
@@ -104,6 +104,34 @@ How to read this table:
   On a laptop CPU (an i7-13700HX has 30 MB of L3) at 1M stars, expect numbers
   like the demo rows. With fewer stars (`--stars 262144`), expect numbers closer
   to the `swarm_bench` rows.
+
+**In the browser.** The project page (`docs/index.html`, plus `docs/swarm-web.js`)
+runs the same galaxy live:
+- **Simulation:** the same recipe, stages and data sizes, in plain JavaScript on
+  the page's main thread. Shared-memory workers need cross-origin isolation
+  headers, which GitHub Pages can't send.
+- **Rendering:** WebGPU, falling back to WebGL 2, then WebGL 1 (with or without
+  HDR). On a browser with no GPU API, the page shows the screenshot instead.
+- **Comparison:** a live chart puts the browser's per-stage times next to the
+  native single-thread numbers above. The native numbers are scaled to the
+  chosen star count, and the chart says that they were measured on a different
+  machine.
+
+  For reference, headless Chromium on the same Xeon VM as the table above, at
+  262,144 stars:
+
+  | | ms per frame |
+  |---|--:|
+  | JavaScript | 8.97 |
+  | plain C | 3.48 |
+  | FP-ASM | 1.73 |
+
+  FP-ASM is 5.2× faster than the page's JavaScript.
+
+- **Options:** `?gfx=webgpu|webgl2|webgl1` forces a renderer, and `?stars=N`
+  sets the star count.
+- **Hosting:** GitHub Pages serves the `docs/` folder of `main`. Enable it under
+  Settings → Pages → Deploy from a branch → `main` / `docs`.
 
 ## Architecture
 

@@ -26,6 +26,8 @@ jobs:
         run: make lint-asm
       - name: Thread safety under ThreadSanitizer
         run: make ISA=x86-64-v3 test-tsan
+      - name: Landing-page demo script parses
+        run: node --check docs/swarm-web.js
       - name: Verdant Swarm benchmark (FP-ASM vs plain C, verified)
         run: make ISA=x86-64-v3 run-swarm-bench SWARM_ARGS="--stars 262144 --frames 20 --threads 1,all"
       - name: CMake + CTest
