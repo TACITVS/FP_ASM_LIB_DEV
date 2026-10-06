@@ -26,6 +26,8 @@ jobs:
         run: make lint-asm
       - name: Thread safety under ThreadSanitizer
         run: make ISA=x86-64-v3 test-tsan
+      - name: Verdant Swarm benchmark (FP-ASM vs plain C, verified)
+        run: make ISA=x86-64-v3 run-swarm-bench SWARM_ARGS="--stars 262144 --frames 20 --threads 1,all"
       - name: CMake + CTest
         run: |
           cmake -S . -B build/cmake -DFPASM_ISA=x86-64-v3 -DFPASM_GFX=d3d11
@@ -56,6 +58,12 @@ jobs:
         run: |
           make $WIN example-d3d11
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a wine64 build/win/fpasm_d3d11_smoke.exe
+      - name: Verdant Swarm demo, headless (Wine D3D11 on llvmpipe)
+        run: |
+          make $WIN demo-swarm swarm-bench
+          wine64 build/win/swarm_bench.exe --stars 131072 --frames 10 --threads 1,all
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a wine64 build/win/verdant_swarm.exe \
+              --headless --stars 131072 --frames 15 --capture build/win/verdant_swarm.bmp
 
   windows:
     name: Windows (MSYS2 UCRT64, native Direct3D 11 WARP)
@@ -79,6 +87,17 @@ jobs:
         run: make -j4 ISA=x86-64-v3 GFX=d3d11 test
       - name: Direct3D 11 smoke test (WARP)
         run: make ISA=x86-64-v3 GFX=d3d11 run-example-d3d11
+      - name: Verdant Swarm demo, headless (WARP)
+        run: |
+          make ISA=x86-64-v3 GFX=d3d11 run-swarm-bench SWARM_ARGS="--stars 262144 --frames 20 --threads 1,all"
+          make ISA=x86-64-v3 GFX=d3d11 run-demo-swarm SWARM_ARGS="--headless --stars 262144 --frames 60 --capture build/verdant_swarm.bmp"
+      - name: Upload demo capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdant-swarm-capture
+          path: build/verdant_swarm.bmp
+          if-no-files-found: ignore
       - name: CPU / build report
         if: always()
         run: make ISA=x86-64-v3 GFX=d3d11 diag || true

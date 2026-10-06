@@ -1534,6 +1534,9 @@ void fp_zipWith_vec3_add_f32(
 
 /**
  * Specialized map: Rotates an array of vectors by a single quaternion.
+ * q must be a unit quaternion (the rotation matrix is built from it once,
+ * then applied to every vector). Output w lanes are 0. In-place safe
+ * (out_vecs == in_vecs).
  */
 void fp_map_quat_rotate_vec3_f32(
     const Vec3f* in_vecs,

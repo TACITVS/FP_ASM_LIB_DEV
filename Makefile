@@ -24,6 +24,8 @@
 #   make lint-asm        # static check: callee-saved GPR / Win64 xmm6-15 misuse
 #   make test-tsan       # multithreaded test under ThreadSanitizer
 #   make TARGET_OS=windows run-example-d3d11   # Direct3D 11 end-to-end smoke test
+#   make run-swarm-bench                       # demo benchmark: FP-ASM vs plain C per stage
+#   make TARGET_OS=windows run-demo-swarm      # "Verdant Swarm" D3D11 galaxy demo
 #   make test-win64-abi  # run the ABI canary test with the Win64 xmm saves forced on
 #
 # Requirements: NASM (>=2.13) and a C11 compiler (gcc/clang). The kernels
@@ -282,6 +284,31 @@ endif
 	$(CC) $(CFLAGS) -I$(INCLUDE) $(BASE_ARCHFLAGS) $< $(STATIC) -o $@ -ld3d11 -ld3dcompiler
 run-example-d3d11: $(D3D11_EXAMPLE)
 	$(RUN) $(D3D11_EXAMPLE)
+
+# "Verdant Swarm" demo: a galaxy simulated per stage with FP-ASM kernels or
+# plain C (compiled with the library's own flags, so the comparison is fair).
+SWARM_CORE   := examples/swarm/swarm_sim.c examples/swarm/swarm_pool.c
+SWARM_HDRS   := $(wildcard examples/swarm/*.h)
+SWARM_BENCH  := $(BUILD)/swarm_bench$(EXE)
+SWARM_DEMO   := $(BUILD)/verdant_swarm$(EXE)
+SWARM_ARGS   ?=
+.PHONY: swarm-bench run-swarm-bench demo-swarm run-demo-swarm
+swarm-bench: $(SWARM_BENCH)
+$(SWARM_BENCH): examples/swarm/swarm_bench.c $(SWARM_CORE) $(SWARM_HDRS) $(STATIC) | dirs
+	$(CC) $(ALL_CFLAGS) -Iexamples/swarm examples/swarm/swarm_bench.c $(SWARM_CORE) $(STATIC) -o $@ $(LDLIBS)
+run-swarm-bench: $(SWARM_BENCH)
+	$(RUN) $(SWARM_BENCH) $(SWARM_ARGS)
+
+# Interactive Direct3D 11 front end (Windows; --headless --capture for CI).
+demo-swarm: $(SWARM_DEMO)
+$(SWARM_DEMO): examples/swarm/swarm_d3d11.c $(SWARM_CORE) $(SWARM_HDRS) $(STATIC) | dirs
+ifneq ($(TARGET_OS),windows)
+	$(error demo-swarm needs TARGET_OS=windows (MSYS2/MinGW or a mingw-w64 cross compiler))
+endif
+	$(CC) $(ALL_CFLAGS) -Iexamples/swarm examples/swarm/swarm_d3d11.c $(SWARM_CORE) $(STATIC) -o $@ \
+	    -ld3d11 -ldxgi -ldxguid -ld3dcompiler -lgdi32 -luser32
+run-demo-swarm: $(SWARM_DEMO)
+	$(RUN) $(SWARM_DEMO) $(SWARM_ARGS)
 
 lint-asm:
 	@python3 tools/asm_abi_lint.py

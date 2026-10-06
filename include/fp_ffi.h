@@ -91,7 +91,7 @@ void fp_zip_add_f64(const double* a, const double* b, double* out, size_t n);
 /* ---- 3D batches (the per-frame hot paths) ------------------------------ */
 void  fp_mat4_mul_vec3_batch(Vec3f* output, const Mat4* m, const Vec3f* input, int count);
 void  fp_map_transform_vec3_f32(const Vec3f* in_vecs, Vec3f* out_vecs, size_t n, const Mat4* matrix);
-void  fp_map_quat_rotate_vec3_f32(const Vec3f* in_vecs, Vec3f* out_vecs, size_t n, const Quaternion* quat);
+void  fp_map_quat_rotate_vec3_f32(const Vec3f* in_vecs, Vec3f* out_vecs, size_t n, const Quaternion* quat);  /* unit q; in-place ok */
 void  fp_zipWith_vec3_add_f32(const Vec3f* in_a, const Vec3f* in_b, Vec3f* out_vecs, size_t n);
 void  fp_reduce_vec3_add_f32(const Vec3f* in_vecs, size_t n, Vec3f* out_sum);
 float fp_fold_vec3_dot_f32(const Vec3f* in_a, const Vec3f* in_b, size_t n);

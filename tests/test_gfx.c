@@ -305,6 +305,49 @@ int main(void) {
 #endif
     }
 
+    /* 5e. batch quaternion rotation: matches its formula for unit and
+     *     non-unit quaternions (and q v q* for unit ones), every length 0..100
+     *     (all tails), in place, nothing written past n, 4th lane = 0 */
+    {
+        static Vec3f in[101], out[101], ref;
+        int k, len;
+        for (k = 0; k < 6; k++) {
+            float sc = k < 3 ? 1.0f : 0.5f + 0.4f * (float)k;     /* k>=3: non-unit */
+            float ang = 0.9f * (float)k + 0.3f, ax = 0.3f, ay = -0.8f + 0.2f * (float)k, az = 0.5f;
+            float al = sqrtf(ax * ax + ay * ay + az * az), sh = sinf(ang * 0.5f);
+            Quaternion q = { sc * ax / al * sh, sc * ay / al * sh, sc * az / al * sh, sc * cosf(ang * 0.5f) };
+            for (len = 0; len <= 100; len++) {
+                int i, bad = 0;
+                for (i = 0; i < 101; i++) {
+                    in[i].x = (float)(i % 13) - 6.0f; in[i].y = 0.25f * (float)(i % 7);
+                    in[i].z = -1.5f + 0.1f * (float)i; in[i]._pad = 77.0f;
+                    out[i] = in[i];
+                }
+                fp_map_quat_rotate_vec3_f32(out, out, (size_t)len, &q);      /* in place */
+                for (i = 0; i < 101; i++) {
+                    if (i < len) {
+                        /* the batch kernel's contract (unchanged from before):
+                         * v + 2w(u x v) + 2u x (u x v), which is q v q* for unit q */
+                        float v3[3] = { in[i].x, in[i].y, in[i].z }, r3[3];
+                        shader_quat_rotate(&q, v3, r3);
+                        ref.x = r3[0]; ref.y = r3[1]; ref.z = r3[2];
+                        if (k < 3) {   /* unit q: also equals the per-vector q v q* */
+                            Vec3f qvq;
+                            fp_quat_rotate_vec3(&qvq, &q, &in[i]);
+                            if (!near_eq(qvq.x, ref.x, 2e-5f) || !near_eq(qvq.y, ref.y, 2e-5f) ||
+                                !near_eq(qvq.z, ref.z, 2e-5f)) bad++;
+                        }
+                        if (!near_eq(out[i].x, ref.x, 2e-5f) || !near_eq(out[i].y, ref.y, 2e-5f) ||
+                            !near_eq(out[i].z, ref.z, 2e-5f) || out[i]._pad != 0.0f) bad++;
+                    } else if (memcmp(&out[i], &in[i], sizeof in[i]) != 0) {
+                        bad++;                                  /* wrote past n */
+                    }
+                }
+                CHECK(bad == 0, "batch quat rotate k=%d n=%d: %d bad elements", k, len, bad);
+            }
+        }
+    }
+
     /* 6. helpers, presets, purity of presets */
     CHECK(fp_gfx_cbuffer_size(0) == 0 && fp_gfx_cbuffer_size(1) == 16 && fp_gfx_cbuffer_size(64) == 64 &&
           fp_gfx_cbuffer_size(65) == 80, "cbuffer size rounding");

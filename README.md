@@ -43,6 +43,68 @@ Intel Core i7-4600M (Haswell, AVX2), gcc 13. Reproduce with `make bench`.
 *Your numbers will vary with CPU and workload size. The honest takeaway: big
 wins on reductions/dot/batched math, parity on the memory-bound kernels.*
 
+## Demo: Verdant Swarm
+
+![Verdant Swarm: a million-star galaxy simulated with FP-ASM kernels and drawn with Direct3D 11](docs/images/verdant_swarm.png)
+
+A spiral galaxy of a million stars, simulated on the CPU every frame and drawn
+with Direct3D 11 (`examples/swarm/`). Each frame is a pure function of time,
+with four stages split across a thread pool:
+
+| Stage | What it does | FP-ASM kernels |
+|---|---|---|
+| motion | each radial band rotates at its own speed (differential rotation) | `fp_map_quat_rotate_vec3_f32` |
+| turbulence | `world += a(t) · jitter` | `fp_map_axpy_f32` |
+| analysis | centre of mass, spread and motion energy of the galaxy | `fp_reduce_vec3_add_f32`, `fp_fold_sumsq_f32` |
+| projection | `clip = view_proj · world`, written straight into the mapped D3D11 vertex buffer | `fp_mat4_mul_vec3_batch` |
+
+Every stage also exists as the plain C loop you would write yourself, built
+with the same flags (`-O3 -march=...`, so the compiler auto-vectorizes it too).
+The HUD shows each stage's cost in both versions, measured live: every third
+frame runs both versions back to back on the same data, alternating which goes
+first. The camera frames the galaxy from the analysis results, so those
+reductions feed the frame.
+
+The work is split into a fixed number of chunks, and their partial sums are
+combined in chunk order, so results are bit-identical at any thread count.
+`swarm_bench` checks this, along with FP-ASM against plain C.
+
+```sh
+make run-swarm-bench SWARM_ARGS="--stars 1048576 --threads 1,4,all"   # any OS, headless
+make TARGET_OS=windows run-demo-swarm                                  # the D3D11 demo
+make TARGET_OS=windows run-demo-swarm SWARM_ARGS="--headless --frames 120 --capture shot.bmp"
+```
+
+Keys: **C** switches FP-ASM / plain C, **T** cycles the thread count, **K**
+lowers the kernel tier cap (AVX-512 → AVX-VNNI → AVX2 → auto), **Space**
+pauses, **H** hides the HUD, **Esc** quits.
+
+**Measured.** 1M stars, Intel Xeon (Emerald Rapids, AVX-512), 4 vCPUs, gcc 13.
+Times are milliseconds per frame.
+
+| | motion | turbulence | analysis | projection | total |
+|---|--:|--:|--:|--:|--:|
+| `swarm_bench`, 1 thread, FP-ASM | 1.44 | 1.38 | 2.53 | 1.56 | 7.01 |
+| `swarm_bench`, 1 thread, plain C | 3.11 | 1.81 | 7.08 | 1.92 | 14.48 |
+| speedup | **2.2×** | 1.3× | **2.8×** | 1.2× | **2.1×** |
+| demo while rendering, 4 threads, FP-ASM | 1.02 | 0.76 | 1.17 | 0.77 | 3.73 |
+| demo while rendering, 4 threads, plain C | 1.28 | 0.74 | 2.42 | 0.87 | 5.31 |
+| speedup | 1.25× | ≈ 1× | **2.1×** | 1.1× | **1.4×** |
+
+How to read this table:
+- **The reductions win everywhere.** In the analysis stage, the compiler cannot
+  reorder a float accumulator, and the kernels keep several in flight.
+- **Motion wins while the data is cached.** The quaternion kernel builds the
+  rotation matrix once per batch.
+- **Streaming stages approach parity once memory is the limit.** The galaxy is
+  about 100 MB of data. In `swarm_bench` it stayed in this server's very large
+  L3 cache. In the demo, rendering evicts it every frame, so those stages wait
+  on DRAM bandwidth.
+
+  On a laptop CPU (an i7-13700HX has 30 MB of L3) at 1M stars, expect numbers
+  like the demo rows. With fewer stars (`--stars 262144`), expect numbers closer
+  to the `swarm_bench` rows.
+
 ## Architecture
 
 | Layer | What | Where |
@@ -231,9 +293,12 @@ with [0, 1] depth) and an **infinite far plane**.
   runs the whole test suite as Windows binaries. That includes a register
   check under the real Win64 rules (`rsi`, `rdi`, `xmm6`–`xmm15`).
 
-CI (`.github/workflows/ci.yml`) runs Linux, the Windows cross-build under
-Wine (plus the D3D11 smoke test on Wine's D3D11), and native Windows with
-MSYS2 (the D3D11 smoke test on Microsoft's WARP).
+CI (`.github/workflows/ci.yml`) runs three jobs:
+- Linux.
+- The Windows cross-build under Wine, plus the D3D11 smoke test and the headless
+  Verdant Swarm demo on Wine's D3D11.
+- Native Windows with MSYS2: the smoke test and the demo on Microsoft's WARP
+  rasterizer. The demo's capture is uploaded as a build artifact.
 
 ## Threads and foreign-language bindings
 

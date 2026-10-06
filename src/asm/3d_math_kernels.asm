@@ -204,12 +204,53 @@ fp_zipWith_vec3_add_f32:
 ; -----------------------------------------------------------------------------
 ; void fp_map_quat_rotate_vec3_f32(
 ;     RCX: const Vec3f* in_vecs,
-;     RDX: Vec3f* out_vecs,
+;     RDX: Vec3f* out_vecs,          (may equal in_vecs)
 ;     R8:  size_t n,
 ;     R9:  const QuatF32* quat
 ; );
-; Quaternion rotation optimized with SIMD math
+; out[i] = q * in[i] * conj(q), i.e. v + 2w(u x v) + 2u x (u x v), with the
+; output's 4th lane set to 0.
+;
+; Rotating many vectors by ONE quaternion is a linear map, so the 3x3 matrix
+;   R = I + 2w[u]x + 2[u]x^2,  column j = e_j + 2u_j*u - 2|u|^2 e_j + 2w(u x e_j)
+; is built once, and each vector costs 3 in-lane broadcasts + 3 FMAs, two
+; vectors per 256-bit register. (The previous version did the two cross
+; products per vector with 8 shuffles each, bottlenecked on the shuffle port,
+; and lost to compiler-vectorized C.)
 ; -----------------------------------------------------------------------------
+; QCOL dst_ymm, e_j, imm — build rotation column j into ymm<dst> (both lanes).
+;   Uses xmm8 = u (w lane 0), xmm9 = 2w, xmm10 = 2|u|^2, xmm13 = 0.
+%macro QCOL 3
+    vmovaps xmm0, [%2]                  ; e_j
+    vshufps xmm1, xmm8, xmm8, %3        ; u_j broadcast
+    vmulps  xmm1, xmm1, xmm8            ; u_j * u
+    vaddps  xmm1, xmm1, xmm1            ; 2 u_j u
+    vaddps  xmm1, xmm1, xmm0            ; + e_j
+    vmulps  xmm2, xmm10, xmm0           ; 2|u|^2 e_j
+    vsubps  xmm1, xmm1, xmm2
+    vshufps xmm3, xmm8, xmm8, 0xC9      ; u.yzx
+    vshufps xmm4, xmm0, xmm0, 0xD2      ; e.zxy
+    vmulps  xmm3, xmm3, xmm4
+    vshufps xmm4, xmm8, xmm8, 0xD2      ; u.zxy
+    vshufps xmm5, xmm0, xmm0, 0xC9      ; e.yzx
+    vmulps  xmm4, xmm4, xmm5
+    vsubps  xmm3, xmm3, xmm4            ; u x e_j
+    vmulps  xmm3, xmm3, xmm9            ; * 2w
+    vaddps  xmm1, xmm1, xmm3
+    vblendps xmm1, xmm1, xmm13, 0x8     ; 4th lane = 0
+    vinsertf128 ymm%1, ymm1, xmm1, 1    ; same column in both 128-bit lanes
+%endmacro
+
+; QROT2 dst, src — rotate the two vectors in ymm<src> (clobbers ymm3-5)
+%macro QROT2 2
+    vpermilps ymm3, ymm%2, 0x00         ; x x x x | x x x x
+    vpermilps ymm4, ymm%2, 0x55         ; y ...
+    vpermilps ymm5, ymm%2, 0xAA         ; z ...
+    vmulps    ymm%1, ymm3, ymm6
+    vfmadd231ps ymm%1, ymm4, ymm7
+    vfmadd231ps ymm%1, ymm5, ymm12
+%endmacro
+
 fp_map_quat_rotate_vec3_f32:
     ABI_ARGS_INT
     PROLOGUE
@@ -217,135 +258,48 @@ fp_map_quat_rotate_vec3_f32:
     mov     r12, rcx                ; r12 = in_vecs
     mov     r13, rdx                ; r13 = out_vecs
     mov     r14, r8                 ; r14 = n
-    ; Load quaternion (u = xyz, s = w) and precompute constants
-    vmovups xmm8, [r9]              ; u = [qx,qy,qz, qw]
-    vbroadcastss xmm11, [r9+12]     ; s broadcast
-    vxorps xmm13, xmm13, xmm13
-    vblendps xmm8, xmm8, xmm13, 0x8 ; zero w lane for u
 
-    ; Precompute 2*s (broadcast)
-    vaddss  xmm10, xmm11, xmm11
-    vbroadcastss xmm10, xmm10
+    vxorps  xmm13, xmm13, xmm13
+    vmovups xmm8, [r9]              ; (x, y, z, w)
+    vblendps xmm8, xmm8, xmm13, 0x8 ; u = (x, y, z, 0)
+    vbroadcastss xmm9, [r9 + 12]
+    vaddps  xmm9, xmm9, xmm9        ; 2w
+    vdpps   xmm10, xmm8, xmm8, 0x7F ; |u|^2 in every lane
+    vaddps  xmm10, xmm10, xmm10     ; 2|u|^2
 
-.loop_quat:
+    QCOL 6,  g_axis_x, 0x00
+    QCOL 7,  g_axis_y, 0x55
+    QCOL 12, g_axis_z, 0xAA
+
+.quat4:                             ; 4 vectors per iteration
+    cmp     r14, 4
+    jb      .quat1
+    vmovups ymm0, [r12]
+    vmovups ymm1, [r12 + 32]
+    QROT2   2, 0
+    QROT2   0, 1
+    vmovups [r13], ymm2
+    vmovups [r13 + 32], ymm0
+    add     r12, 64
+    add     r13, 64
+    sub     r14, 4
+    jmp     .quat4
+
+.quat1:                             ; 0..3 left, one at a time (low lanes)
     test    r14, r14
     jz      .cleanup_quat
-    cmp     r14, 2
-    jb      .loop_quat_single
-
-    vmovups xmm0, [r12]             ; v
-
-    ; cross(u, v)
-    vshufps xmm1, xmm8, xmm8, 0xC9  ; u_y, u_z, u_x
-    vshufps xmm2, xmm0, xmm0, 0xD2  ; v_z, v_x, v_y
-    vmulps  xmm3, xmm1, xmm2
-
-    vshufps xmm4, xmm8, xmm8, 0xD2  ; u_z, u_x, u_y
-    vshufps xmm5, xmm0, xmm0, 0xC9  ; v_y, v_z, v_x
-    vmulps  xmm4, xmm4, xmm5
-
-    vsubps  xmm3, xmm3, xmm4        ; cross(u,v)
-
-    ; t = 2 * cross(u, v)
-    vaddps  xmm3, xmm3, xmm3
-
-    ; term = v + s * t
-    vmulps  xmm4, xmm3, xmm11
-    vaddps  xmm0, xmm0, xmm4
-
-    ; cross(u, t)
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm3, xmm3, 0xD2
-    vmulps  xmm4, xmm1, xmm2
-
-    vshufps xmm5, xmm3, xmm3, 0xC9
-    vshufps xmm6, xmm8, xmm8, 0xD2
-    vmulps  xmm5, xmm5, xmm6
-
-    vsubps  xmm4, xmm4, xmm5
-
-    ; result = term + cross(u,t)
-    vaddps  xmm0, xmm0, xmm4
-    vblendps xmm0, xmm0, xmm13, 0x8  ; zero w lane
-
-    vmovups [r13], xmm0
-
-    ; second vector in the pair
-    vmovups xmm0, [r12+16]
-
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm0, xmm0, 0xD2
-    vmulps  xmm3, xmm1, xmm2
-
-    vshufps xmm4, xmm8, xmm8, 0xD2
-    vshufps xmm5, xmm0, xmm0, 0xC9
-    vmulps  xmm4, xmm4, xmm5
-
-    vsubps  xmm3, xmm3, xmm4
-
-    vaddps  xmm3, xmm3, xmm3
-
-    vmulps  xmm4, xmm3, xmm11
-    vaddps  xmm0, xmm0, xmm4
-
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm3, xmm3, 0xD2
-    vmulps  xmm4, xmm1, xmm2
-
-    vshufps xmm5, xmm3, xmm3, 0xC9
-    vshufps xmm6, xmm8, xmm8, 0xD2
-    vmulps  xmm5, xmm5, xmm6
-
-    vsubps  xmm4, xmm4, xmm5
-
-    vaddps  xmm0, xmm0, xmm4
-    vblendps xmm0, xmm0, xmm13, 0x8
-
-    vmovups [r13+16], xmm0
-
-    add     r12, 32
-    add     r13, 32
-    sub     r14, 2
-    jnz     .loop_quat
-    jmp     .cleanup_quat
-
-.loop_quat_single:
-    vmovups xmm0, [r12]             ; v
-
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm0, xmm0, 0xD2
-    vmulps  xmm3, xmm1, xmm2
-
-    vshufps xmm4, xmm8, xmm8, 0xD2
-    vshufps xmm5, xmm0, xmm0, 0xC9
-    vmulps  xmm4, xmm4, xmm5
-
-    vsubps  xmm3, xmm3, xmm4
-
-    vaddps  xmm3, xmm3, xmm3
-
-    vmulps  xmm4, xmm3, xmm11
-    vaddps  xmm0, xmm0, xmm4
-
-    vshufps xmm1, xmm8, xmm8, 0xC9
-    vshufps xmm2, xmm3, xmm3, 0xD2
-    vmulps  xmm4, xmm1, xmm2
-
-    vshufps xmm5, xmm3, xmm3, 0xC9
-    vshufps xmm6, xmm8, xmm8, 0xD2
-    vmulps  xmm5, xmm5, xmm6
-
-    vsubps  xmm4, xmm4, xmm5
-
-    vaddps  xmm0, xmm0, xmm4
-    vblendps xmm0, xmm0, xmm13, 0x8
-
-    vmovups [r13], xmm0
-
+    vmovups xmm0, [r12]
+    vpermilps xmm3, xmm0, 0x00
+    vpermilps xmm4, xmm0, 0x55
+    vpermilps xmm5, xmm0, 0xAA
+    vmulps  xmm2, xmm3, xmm6
+    vfmadd231ps xmm2, xmm4, xmm7
+    vfmadd231ps xmm2, xmm5, xmm12
+    vmovups [r13], xmm2
     add     r12, 16
     add     r13, 16
     dec     r14
-    jnz     .loop_quat
+    jmp     .quat1
 
 .cleanup_quat:
     EPILOGUE
@@ -712,3 +666,7 @@ align 16
 g_quat_three: dd 1.5
 align 16
 g_one_f32: dd 1.0
+align 16
+g_axis_x: dd 1.0, 0.0, 0.0, 0.0
+g_axis_y: dd 0.0, 1.0, 0.0, 0.0
+g_axis_z: dd 0.0, 0.0, 1.0, 0.0
