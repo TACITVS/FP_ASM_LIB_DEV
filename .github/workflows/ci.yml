@@ -61,9 +61,12 @@ jobs:
       - name: Verdant Swarm demo, headless (Wine D3D11 on llvmpipe)
         run: |
           make $WIN demo-swarm swarm-bench
-          wine64 build/win/swarm_bench.exe --stars 131072 --frames 10 --threads 1,all
+          # The demo needs a wineserver started inside the virtual display, so
+          # it runs first; wait for that server to exit before the next binary.
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a wine64 build/win/verdant_swarm.exe \
               --headless --stars 131072 --frames 15 --capture build/win/verdant_swarm.bmp
+          wineserver -w
+          wine64 build/win/swarm_bench.exe --stars 131072 --frames 10 --threads 1,all
 
   windows:
     name: Windows (MSYS2 UCRT64, native Direct3D 11 WARP)
