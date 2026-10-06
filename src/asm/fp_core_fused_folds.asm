@@ -11,7 +11,7 @@
 ; =============================================================================
 default rel
 %include "abi.inc"
-section .data
+RODATA                              ; immutable constants (abi.inc)
     ; Removed unused masks
 
 section .text

@@ -11,6 +11,7 @@
  */
 #include "fp_dispatch.h"
 #include "fp_cpu.h"
+#include "fp_once.h"
 #include "fp_core.h"   /* public prototypes: the definitions below must match */
 
 #include <stdlib.h>
@@ -84,7 +85,7 @@ static kentry g_table[] = { FP_DISPATCH_KERNELS(TABLE_ENTRY) };
 #define N_KERNELS (sizeof g_table / sizeof g_table[0])
 
 static fp_tier g_cap = FP_TIER_AUTO;
-static int     g_init;
+static long    g_init_once;   /* fp_once.h state */
 
 static const char* const tier_names[FP_TIER_COUNT] = { "avx2", "avxvnni", "avx512" };
 
@@ -149,11 +150,11 @@ static void resolve_all(void) {
 
 void fp_dispatch_init(void) {
     const char* v;
-    if (g_init) return;
+    if (!fp_once_begin(&g_init_once)) return;   /* one thread resolves, the rest wait */
     if (g_cap == FP_TIER_AUTO)
         g_cap = fp_tier_from_name(getenv("FPASM_TIER"));
     resolve_all();
-    g_init = 1;
+    fp_once_end(&g_init_once);
     v = getenv("FPASM_VERBOSE");
     if (v && *v && strcmp(v, "0") != 0) fp_dispatch_report(stderr);
 }

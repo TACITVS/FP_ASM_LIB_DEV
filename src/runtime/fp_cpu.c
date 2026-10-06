@@ -6,6 +6,7 @@
  * can explain a mismatch before an AVX2/AVX-512 instruction would fault.
  */
 #include "fp_cpu.h"
+#include "fp_once.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -109,40 +110,41 @@ typedef struct {
     uint64_t             xcr0;   /* dump only */
 } cpuid_src;
 
-static const cpuid_src* g_src;   /* only set while decoding */
-
-static void cpuid(unsigned leaf, unsigned sub, unsigned r[4]) {
+/* src == NULL (or no dump) reads the live CPU. Passed explicitly, never via
+ * a global, so decoding a dump cannot interfere with live detection running
+ * on another thread. */
+static void cpuid(const cpuid_src* src, unsigned leaf, unsigned sub, unsigned r[4]) {
     size_t i;
-    if (!g_src || !g_src->dump) { cpuid_live(leaf, sub, r); return; }
+    if (!src || !src->dump) { cpuid_live(leaf, sub, r); return; }
     r[0] = r[1] = r[2] = r[3] = 0;
-    for (i = 0; i < g_src->n; i++)
-        if (g_src->dump[i].leaf == leaf && g_src->dump[i].sub == sub) {
-            r[0] = g_src->dump[i].eax; r[1] = g_src->dump[i].ebx;
-            r[2] = g_src->dump[i].ecx; r[3] = g_src->dump[i].edx;
+    for (i = 0; i < src->n; i++)
+        if (src->dump[i].leaf == leaf && src->dump[i].sub == sub) {
+            r[0] = src->dump[i].eax; r[1] = src->dump[i].ebx;
+            r[2] = src->dump[i].ecx; r[3] = src->dump[i].edx;
             return;
         }
 }
 
-static uint64_t read_xcr0(void) {
-    return (g_src && g_src->dump) ? g_src->xcr0 : xgetbv0();
+static uint64_t read_xcr0(const cpuid_src* src) {
+    return (src && src->dump) ? src->xcr0 : xgetbv0();
 }
 
 static fp_cpu_info_t g_info;
-static volatile int  g_ready;
+static long          g_info_once;   /* fp_once.h state */
 
-static void detect(fp_cpu_info_t* ci) {
+static void detect(fp_cpu_info_t* ci, const cpuid_src* src) {
     unsigned r[4], max_leaf, max_ext;
     uint64_t f = 0;
     memset(ci, 0, sizeof *ci);
 
-    cpuid(0, 0, r);
+    cpuid(src, 0, 0, r);
     max_leaf = r[0];
     memcpy(ci->vendor + 0, &r[1], 4);
     memcpy(ci->vendor + 4, &r[3], 4);
     memcpy(ci->vendor + 8, &r[2], 4);
     ci->vendor[12] = '\0';
 
-    cpuid(1, 0, r);
+    cpuid(src, 1, 0, r);
     {
         unsigned eax = r[0];
         unsigned base_fam = (eax >> 8) & 0xF, base_mod = (eax >> 4) & 0xF;
@@ -164,13 +166,13 @@ static void detect(fp_cpu_info_t* ci) {
         if (BIT(c, 23)) f |= B(POPCNT);
         if (BIT(c, 28)) f |= B(AVX);
         if (BIT(c, 29)) f |= B(F16C);
-        if (BIT(c, 27)) ci->xcr0 = read_xcr0();   /* OSXSAVE */
+        if (BIT(c, 27)) ci->xcr0 = read_xcr0(src);   /* OSXSAVE */
         ci->hypervisor = BIT(c, 31);
     }
 
     if (max_leaf >= 7) {
         unsigned max_sub;
-        cpuid(7, 0, r);
+        cpuid(src, 7, 0, r);
         max_sub = r[0];
         {
             unsigned b = r[1], c = r[2], d = r[3];
@@ -202,7 +204,7 @@ static void detect(fp_cpu_info_t* ci) {
             if (BIT(d, 25)) f |= B(AMX_INT8);
         }
         if (max_sub >= 1) {
-            cpuid(7, 1, r);
+            cpuid(src, 7, 1, r);
             if (BIT(r[0], 4))  f |= B(AVX_VNNI);
             if (BIT(r[0], 5))  f |= B(AVX512_BF16);
             if (BIT(r[0], 23)) f |= B(AVX_IFMA);
@@ -211,20 +213,20 @@ static void detect(fp_cpu_info_t* ci) {
         }
     }
     if ((f & B(AVX10)) && max_leaf >= 0x24) {
-        cpuid(0x24, 0, r);
+        cpuid(src, 0x24, 0, r);
         ci->avx10_version = (int)(r[1] & 0xFF);
     }
 
-    cpuid(0x80000000u, 0, r);
+    cpuid(src, 0x80000000u, 0, r);
     max_ext = r[0];
     if (max_ext >= 0x80000001u) {
-        cpuid(0x80000001u, 0, r);
+        cpuid(src, 0x80000001u, 0, r);
         if (BIT(r[2], 5)) f |= B(LZCNT);
     }
     if (max_ext >= 0x80000004u) {
         unsigned i;
         for (i = 0; i < 3; i++) {
-            cpuid(0x80000002u + i, 0, r);
+            cpuid(src, 0x80000002u + i, 0, r);
             memcpy(ci->brand + 16 * i, r, 16);
         }
         ci->brand[48] = '\0';
@@ -282,18 +284,14 @@ int fp_cpu_decode(const fp_cpuid_leaf* dump, size_t n, uint64_t xcr0, fp_cpu_inf
     cpuid_src src;
     if (!dump || !out) return -1;
     src.dump = dump; src.n = n; src.xcr0 = xcr0;
-    g_src = &src;                /* not thread-safe; diagnostics/tests only */
-    detect(out);
-    g_src = NULL;
+    detect(out, &src);
     return 0;
 }
 
 const fp_cpu_info_t* fp_cpu_info(void) {
-    if (!g_ready) {
-        fp_cpu_info_t tmp;
-        detect(&tmp);          /* deterministic: concurrent callers write the same bytes */
-        g_info = tmp;
-        g_ready = 1;
+    if (fp_once_begin(&g_info_once)) {   /* exactly one thread detects */
+        detect(&g_info, NULL);
+        fp_once_end(&g_info_once);
     }
     return &g_info;
 }
@@ -307,9 +305,9 @@ fp_core_type fp_cpu_current_core_type(void) {
     unsigned r[4];
     const fp_cpu_info_t* ci = fp_cpu_info();
     if (!ci->hybrid) return FP_CORE_UNKNOWN;
-    cpuid(0, 0, r);
+    cpuid(NULL, 0, 0, r);
     if (r[0] < 0x1A) return FP_CORE_UNKNOWN;
-    cpuid(0x1A, 0, r);
+    cpuid(NULL, 0x1A, 0, r);
     switch (r[0] >> 24) {
     case 0x20: return FP_CORE_EFFICIENCY;
     case 0x40: return FP_CORE_PERFORMANCE;
@@ -365,7 +363,7 @@ int fp_cpu_check(FILE* err) {
     return n;
 }
 
-static const char* yn(int b) { return b ? "yes" : "no"; }
+static const char* yes_no(int b) { return b ? "yes" : "no"; }
 
 void fp_cpu_report(FILE* out) {
     const fp_cpu_info_t* ci = fp_cpu_info();
@@ -397,16 +395,16 @@ void fp_cpu_report(FILE* out) {
     if (ci->hypervisor) {
         unsigned r[4];
         char hv[13];
-        cpuid(0x40000000u, 0, r);
+        cpuid(NULL, 0x40000000u, 0, r);
         memcpy(hv, &r[1], 4); memcpy(hv + 4, &r[2], 4); memcpy(hv + 8, &r[3], 4);
         hv[12] = '\0';
         fprintf(out, "  hypervisor    : yes (\"%s\") — VM, WSL2 or Windows VBS; features are what it exposes\n", hv);
     }
     fprintf(out, "  OS reg. state : XCR0=0x%llx  SSE:%s  AVX/YMM:%s  AVX-512/ZMM:%s  AMX:%s\n",
             (unsigned long long)ci->xcr0,
-            yn((ci->xcr0 & XCR0_SSE) != 0), yn((ci->xcr0 & XCR0_AVX) != 0),
-            yn((ci->xcr0 & XCR0_AVX512) == XCR0_AVX512),
-            yn((ci->xcr0 & XCR0_AMX) == XCR0_AMX));
+            yes_no((ci->xcr0 & XCR0_SSE) != 0), yes_no((ci->xcr0 & XCR0_AVX) != 0),
+            yes_no((ci->xcr0 & XCR0_AVX512) == XCR0_AVX512),
+            yes_no((ci->xcr0 & XCR0_AMX) == XCR0_AMX));
 
     fprintf(out, "\nFeatures (cpu = usable on this CPU+OS, build = required by this library build)\n");
     for (i = 0; i < FP_CPU_FEATURE_COUNT; i++) {
@@ -415,7 +413,7 @@ void fp_cpu_report(FILE* out) {
         const char* note = "";
         if (need && !has) note = "  <-- MISSING";
         else if (!has && (ci->cpuid_features & b)) note = "  (CPU has it, OS disabled)";
-        fprintf(out, "  %-17s cpu:%-3s  build:%-3s%s\n", feature_names[i], yn(has),
+        fprintf(out, "  %-17s cpu:%-3s  build:%-3s%s\n", feature_names[i], yes_no(has),
                 need ? "yes" : "-", note);
     }
 

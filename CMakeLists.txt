@@ -96,7 +96,7 @@ if(NOT MSVC)
     # CPU detection/dispatch must run on any x86-64 to explain a mismatch
     # instead of dying on SIGILL: compile them for the baseline (these
     # source-level options come after the target's, so they win).
-    set_source_files_properties(src/runtime/fp_cpu.c src/runtime/fp_dispatch.c
+    set_source_files_properties(src/runtime/fp_cpu.c src/runtime/fp_dispatch.c src/runtime/fp_ffi.c
         PROPERTIES COMPILE_OPTIONS "-march=x86-64;-mtune=generic")
 endif()
 target_compile_definitions(fpasm PRIVATE
@@ -119,10 +119,11 @@ if(FPASM_BUILD_TOOLS)
     # Runs first; a build/CPU mismatch is then a readable failure, not SIGILL.
     add_test(NAME check_cpu COMMAND fpasm-info --check)
 endif()
+find_package(Threads REQUIRED)
 foreach(test_src ${TEST_SOURCES})
     get_filename_component(test_name ${test_src} NAME_WE)
     add_executable(${test_name} ${test_src})
-    target_link_libraries(${test_name} PRIVATE fpasm::fpasm)
+    target_link_libraries(${test_name} PRIVATE fpasm::fpasm Threads::Threads)
     if(NOT MSVC)
         target_compile_options(${test_name} PRIVATE -march=${_fpasm_march})
     endif()

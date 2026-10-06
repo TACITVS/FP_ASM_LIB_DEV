@@ -320,7 +320,7 @@ fp_descriptive_stats_f64:
     pop rbp
     ret
 
-section .data
+RODATA                              ; immutable constants (abi.inc)
 align 8
 const_2:    dq 2.0
 const_3:    dq 3.0

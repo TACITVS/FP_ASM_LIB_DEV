@@ -128,6 +128,7 @@ make check-cpu   # fpasm-info --check: fail with an explanation if this build ca
 make bench-isa   # fpasm-info --bench: time every kernel variant this CPU supports
 make lint-asm    # static check: callee-saved GPRs / Win64 xmm6-15 used without saving
 make test-win64-abi  # Linux run of the Win64 register-preservation contract
+make test-tsan   # the multithreaded test under ThreadSanitizer
 ```
 
 `fpasm-info` also has `--json` and `--tier`. It reports hybrid P/E-core
@@ -233,6 +234,39 @@ with [0, 1] depth) and an **infinite far plane**.
 CI (`.github/workflows/ci.yml`) runs Linux, the Windows cross-build under
 Wine (plus the D3D11 smoke test on Wine's D3D11), and native Windows with
 MSYS2 (the D3D11 smoke test on Microsoft's WARP).
+
+## Threads and foreign-language bindings
+
+**Thread safety.** The library has no mutable global state. Its constants
+live in read-only memory, and every kernel reads its inputs and writes only
+its outputs. Any number of threads may call it at once, as long as their
+*output* buffers don't overlap. The only lazily initialized state is the
+CPU-detection cache and the kernel-dispatch table. Both use proper
+run-once initialization: exactly one thread fills them in, and the others
+wait for it. Calling `fp_dispatch_init()` at start-up avoids even that brief
+wait.
+
+This is tested. `tests/test_threads.c` starts 16 threads through a barrier,
+so their first calls race that initialization. The threads run the kernels
+on their own buffers, and the results must match a single-threaded run bit
+for bit. `make test-tsan` (also in CI) runs the same test under
+ThreadSanitizer.
+
+**FFI.** `include/fp_ffi.h` is the stable surface to bind from other languages
+(Common Lisp CFFI / `sb-alien`, Chez Scheme `foreign-procedure`, Rust, Zig,
+Python `ctypes`, ...):
+- Batch functions that take a pointer and a count, so each FFI call does a
+  whole array's worth of work.
+- Plain C types only, structs by pointer (never by value), and no callbacks.
+- The memory layout of `Vec3f`, `Quaternion`, `Mat4` and
+  `fp_gfx_conventions` is documented in the header.
+
+A binding can check the library it actually loaded with
+`fp_ffi_abi_version()` and `fp_ffi_type_size()`. Buffers must not move while
+a call runs, so in a garbage-collected language use non-moving memory: foreign
+allocation, `static-vectors` in Common Lisp, or pinned arrays.
+`tests/test_ffi.c` loads the shared library at runtime the way an FFI does
+(`dlopen` / `LoadLibrary`) and resolves every symbol the header lists.
 
 ## Cross-platform status
 

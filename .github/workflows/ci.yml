@@ -24,6 +24,8 @@ jobs:
         run: make ISA=x86-64-v3 test-win64-abi
       - name: Assembly ABI lint
         run: make lint-asm
+      - name: Thread safety under ThreadSanitizer
+        run: make ISA=x86-64-v3 test-tsan
       - name: CMake + CTest
         run: |
           cmake -S . -B build/cmake -DFPASM_ISA=x86-64-v3 -DFPASM_GFX=d3d11

@@ -185,4 +185,18 @@ section .note.GNU-stack noalloc noexec nowrite progbits
     %endif
 %endmacro
 
+; -----------------------------------------------------------------------------
+; RODATA — switch to the read-only data section for the library's constants
+; (lookup tables, 1.0, identity matrix, ...). They are never written, and
+; keeping them read-only means a stray write faults immediately instead of
+; silently changing results for every caller on every thread.
+; -----------------------------------------------------------------------------
+%macro RODATA 0
+    %ifdef FP_WIN64
+        section .rdata rdata align=32
+    %else
+        section .rodata align=32
+    %endif
+%endmacro
+
 %endif ; FP_ABI_INC

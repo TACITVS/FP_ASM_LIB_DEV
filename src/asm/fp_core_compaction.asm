@@ -12,7 +12,7 @@ default rel
 
 %include "macros.inc"
 
-section .data
+RODATA                              ; immutable constants (abi.inc)
 align 32
 
 ; Lookup table: 16 entries, one for each 4-bit mask pattern

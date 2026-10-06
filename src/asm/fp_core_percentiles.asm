@@ -301,7 +301,7 @@ fp_quartiles_sorted_f64:
     pop rbp
     ret
 
-section .data
+RODATA                              ; immutable constants (abi.inc)
 align 8
 const_025:  dq 0.25
 const_050:  dq 0.50

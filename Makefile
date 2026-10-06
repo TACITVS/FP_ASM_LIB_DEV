@@ -22,6 +22,7 @@
 #   make diag            # CPU/OS/build/dispatch report (build/fpasm-info)
 #   make bench-isa       # time every kernel variant this CPU supports
 #   make lint-asm        # static check: callee-saved GPR / Win64 xmm6-15 misuse
+#   make test-tsan       # multithreaded test under ThreadSanitizer
 #   make TARGET_OS=windows run-example-d3d11   # Direct3D 11 end-to-end smoke test
 #   make test-win64-abi  # run the ABI canary test with the Win64 xmm saves forced on
 #
@@ -134,13 +135,13 @@ else ifeq ($(TARGET_OS),macos)
     SHLIB_EXT  := dylib
     EXE        :=
     PICFLAG    := -fPIC
-    LDLIBS     := -lm
+    LDLIBS     := -lm -pthread
 else
     ASMFMT     := elf64
     SHLIB_EXT  := so
     EXE        :=
     PICFLAG    := -fPIC
-    LDLIBS     := -lm
+    LDLIBS     := -lm -pthread -ldl
 endif
 INFO   := $(BUILD)/fpasm-info$(EXE)
 
@@ -164,7 +165,7 @@ TEST_BINS := $(patsubst tests/%.c,$(BUILD)/%$(EXE),$(TEST_SRCS))
 # Objects compiled for the x86-64 baseline (fp_build_info.c is deliberately
 # NOT in this list: it records the real build flags).
 # (`private` keeps make from propagating the override to prerequisites.)
-$(OBJ)/fp_cpu.o $(OBJ)/fp_dispatch.o: private ARCHFLAGS := $(BASE_ARCHFLAGS)
+$(OBJ)/fp_cpu.o $(OBJ)/fp_dispatch.o $(OBJ)/fp_ffi.o: private ARCHFLAGS := $(BASE_ARCHFLAGS)
 
 # Rebuild everything when the configuration changes (switching ISA= without
 # `make clean` would otherwise silently mix objects from two targets).
@@ -207,7 +208,8 @@ $(OBJ)/%.o: %.c | dirs
 
 # --- Tests: link each tests/test_*.c against the static library --------------
 # check-cpu runs first so an ISA/CPU mismatch is a readable error, not SIGILL.
-test: $(STATIC) $(TEST_BINS) check-cpu
+# (test_ffi also loads the shared library at runtime, like an FFI binding.)
+test: $(STATIC) $(SHARED) $(TEST_BINS) check-cpu
 	@echo "== running tests =="; \
 	fail=0; for t in $(TEST_BINS); do \
 	    echo "-- $$t --"; $(RUN) $$t || fail=1; \
@@ -283,6 +285,14 @@ run-example-d3d11: $(D3D11_EXAMPLE)
 
 lint-asm:
 	@python3 tools/asm_abi_lint.py
+
+# The multithreaded test under ThreadSanitizer (Linux/macOS, gcc or clang).
+# Only the C runtime is instrumented; the kernels touch caller-owned buffers.
+.PHONY: test-tsan
+test-tsan:
+	@$(MAKE) --no-print-directory BUILD=$(BUILD)/tsan ISA=$(ISA) DISPATCH=$(DISPATCH) \
+	    CFLAGS="-O1 -g -std=c11 -Wall -fsanitize=thread" $(BUILD)/tsan/test_threads$(EXE)
+	@TSAN_OPTIONS=halt_on_error=1 $(RUN) $(BUILD)/tsan/test_threads$(EXE)
 
 # The Win64 ABI keeps xmm6-15 callee-saved; force those saves on in a Linux
 # build and verify them with the canary test.
