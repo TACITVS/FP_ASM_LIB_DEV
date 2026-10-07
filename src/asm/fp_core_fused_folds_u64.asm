@@ -27,6 +27,7 @@ global fp_fold_sumsq_u64
 fp_fold_sumsq_u64:
     ABI_ARGS_INT
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
 
     mov r12, rcx
@@ -78,6 +79,7 @@ fp_fold_sumsq_u64:
     add rax, r9
     add rax, r10
 
+    pop r12
     pop rbp
     ret
 
@@ -92,6 +94,8 @@ global fp_fold_dotp_u64
 fp_fold_dotp_u64:
     ABI_ARGS_INT
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
 
     mov r12, rcx
@@ -146,6 +150,8 @@ fp_fold_dotp_u64:
     add rax, r9
     add rax, r10
 
+    pop r13
+    pop r12
     pop rbp
     ret
 
@@ -160,6 +166,9 @@ global fp_fold_sad_u64
 fp_fold_sad_u64:
     ABI_ARGS_INT
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
+    push r14                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
 
     mov r12, rcx
@@ -256,5 +265,8 @@ fp_fold_sad_u64:
     add rax, r9
     add rax, r10
 
+    pop r14
+    pop r13
+    pop r12
     pop rbp
     ret

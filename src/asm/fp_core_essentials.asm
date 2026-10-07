@@ -589,6 +589,6 @@ fp_replicate_i64:
 .done:
     EPILOGUE
 
-section .data
+RODATA                              ; immutable constants (abi.inc)
 align 8
 one_const: dq 1.0

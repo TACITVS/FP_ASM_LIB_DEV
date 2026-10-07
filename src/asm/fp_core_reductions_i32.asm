@@ -349,8 +349,13 @@ fp_reduce_min_i32:
     pop rbp
     ret
 
-.return_int32_max:
-.error_null:
+.return_int32_max:                 ; empty array: reached INSIDE the frame
+    mov eax, 0x7FFFFFFF
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+.error_null:                        ; NULL input: reached before the prologue
     mov eax, 0x7FFFFFFF             ; Return INT32_MAX for null/empty array
     ret
 
@@ -460,7 +465,12 @@ fp_reduce_max_i32:
     pop rbp
     ret
 
-.return_int32_min:
-.error_null:
+.return_int32_min:                 ; empty array: reached INSIDE the frame
+    mov eax, 0x80000000
+    vzeroupper
+    mov rsp, rbp
+    pop rbp
+    ret
+.error_null:                        ; NULL input: reached before the prologue
     mov eax, 0x80000000             ; Return INT32_MIN for null/empty array
     ret

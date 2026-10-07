@@ -43,6 +43,96 @@ Intel Core i7-4600M (Haswell, AVX2), gcc 13. Reproduce with `make bench`.
 *Your numbers will vary with CPU and workload size. The honest takeaway: big
 wins on reductions/dot/batched math, parity on the memory-bound kernels.*
 
+## Demo: Verdant Swarm
+
+![Verdant Swarm: a million-star galaxy simulated with FP-ASM kernels and drawn with Direct3D 11](docs/images/verdant_swarm.png)
+
+A spiral galaxy of a million stars, simulated on the CPU every frame and drawn
+with Direct3D 11 (`examples/swarm/`). **[Live in the browser →](https://tacitvs.github.io/FP_ASM_LIB_DEV/#demo)** Each frame is a pure function of time,
+with four stages split across a thread pool:
+
+| Stage | What it does | FP-ASM kernels |
+|---|---|---|
+| motion | each radial band rotates at its own speed (differential rotation) | `fp_map_quat_rotate_vec3_f32` |
+| turbulence | `world += a(t) · jitter` | `fp_map_axpy_f32` |
+| analysis | centre of mass, spread and motion energy of the galaxy | `fp_reduce_vec3_add_f32`, `fp_fold_sumsq_f32` |
+| projection | `clip = view_proj · world`, written straight into the mapped D3D11 vertex buffer | `fp_mat4_mul_vec3_batch` |
+
+Every stage also exists as the plain C loop you would write yourself, built
+with the same flags (`-O3 -march=...`, so the compiler auto-vectorizes it too).
+The HUD shows each stage's cost in both versions, measured live: every third
+frame runs both versions back to back on the same data, alternating which goes
+first. The camera frames the galaxy from the analysis results, so those
+reductions feed the frame.
+
+The work is split into a fixed number of chunks, and their partial sums are
+combined in chunk order, so results are bit-identical at any thread count.
+`swarm_bench` checks this, along with FP-ASM against plain C.
+
+```sh
+make run-swarm-bench SWARM_ARGS="--stars 1048576 --threads 1,4,all"   # any OS, headless
+make TARGET_OS=windows run-demo-swarm                                  # the D3D11 demo
+make TARGET_OS=windows run-demo-swarm SWARM_ARGS="--headless --frames 120 --capture shot.bmp"
+```
+
+Keys: **C** switches FP-ASM / plain C, **T** cycles the thread count, **K**
+lowers the kernel tier cap (AVX-512 → AVX-VNNI → AVX2 → auto), **Space**
+pauses, **H** hides the HUD, **Esc** quits.
+
+**Measured.** 1M stars, Intel Xeon (Emerald Rapids, AVX-512), 4 vCPUs, gcc 13.
+Times are milliseconds per frame.
+
+| | motion | turbulence | analysis | projection | total |
+|---|--:|--:|--:|--:|--:|
+| `swarm_bench`, 1 thread, FP-ASM | 1.44 | 1.38 | 2.53 | 1.56 | 7.01 |
+| `swarm_bench`, 1 thread, plain C | 3.11 | 1.81 | 7.08 | 1.92 | 14.48 |
+| speedup | **2.2×** | 1.3× | **2.8×** | 1.2× | **2.1×** |
+| demo while rendering, 4 threads, FP-ASM | 1.02 | 0.76 | 1.17 | 0.77 | 3.73 |
+| demo while rendering, 4 threads, plain C | 1.28 | 0.74 | 2.42 | 0.87 | 5.31 |
+| speedup | 1.25× | ≈ 1× | **2.1×** | 1.1× | **1.4×** |
+
+How to read this table:
+- **The reductions win everywhere.** In the analysis stage, the compiler cannot
+  reorder a float accumulator, and the kernels keep several in flight.
+- **Motion wins while the data is cached.** The quaternion kernel builds the
+  rotation matrix once per batch.
+- **Streaming stages approach parity once memory is the limit.** The galaxy is
+  about 100 MB of data. In `swarm_bench` it stayed in this server's very large
+  L3 cache. In the demo, rendering evicts it every frame, so those stages wait
+  on DRAM bandwidth.
+
+  On a laptop CPU (an i7-13700HX has 30 MB of L3) at 1M stars, expect numbers
+  like the demo rows. With fewer stars (`--stars 262144`), expect numbers closer
+  to the `swarm_bench` rows.
+
+**In the browser.** The project page (`docs/index.html`, plus `docs/swarm-web.js`)
+runs the same galaxy live:
+- **Simulation:** the same recipe, stages and data sizes, in plain JavaScript on
+  the page's main thread. Shared-memory workers need cross-origin isolation
+  headers, which GitHub Pages can't send.
+- **Rendering:** WebGPU, falling back to WebGL 2, then WebGL 1 (with or without
+  HDR). On a browser with no GPU API, the page shows the screenshot instead.
+- **Comparison:** a live chart puts the browser's per-stage times next to the
+  native single-thread numbers above. The native numbers are scaled to the
+  chosen star count, and the chart says that they were measured on a different
+  machine.
+
+  For reference, headless Chromium on the same Xeon VM as the table above, at
+  262,144 stars:
+
+  | | ms per frame |
+  |---|--:|
+  | JavaScript | 8.97 |
+  | plain C | 3.48 |
+  | FP-ASM | 1.73 |
+
+  FP-ASM is 5.2× faster than the page's JavaScript.
+
+- **Options:** `?gfx=webgpu|webgl2|webgl1` forces a renderer, and `?stars=N`
+  sets the star count.
+- **Hosting:** GitHub Pages serves the `docs/` folder of `main`. Enable it under
+  Settings → Pages → Deploy from a branch → `main` / `docs`.
+
 ## Architecture
 
 | Layer | What | Where |
@@ -64,7 +154,8 @@ still planned.
 ## Build
 
 Requirements: **NASM** (≥ 2.13) and a C11 compiler (gcc/clang). The kernels
-require a CPU with **AVX2 + FMA**.
+require a CPU with **AVX2 + FMA**; faster AVX-VNNI / AVX-512 variants are
+selected at runtime on CPUs that have them.
 
 ```bash
 make            # static + shared libraries into build/
@@ -72,6 +163,89 @@ make test       # build and run all test suites
 make bench      # run the benchmarks
 make install    # install headers + libs under PREFIX (default /usr/local)
 ```
+
+### Build targets: old and new CPUs
+
+The assembly is the same for every target. `ISA=` only chooses what the
+**C code** may use (`-march`), and runtime dispatch picks the fastest kernel
+variant the CPU actually has.
+
+| `ISA=` | C code needs | Runs on | Use it for |
+|---|---|---|---|
+| `x86-64-v3` | AVX2, FMA, BMI2 | Haswell / Zen 1 and newer | a library you ship to other machines |
+| `haswell` | same, tuned for Haswell | Haswell and newer | the original target (i7-4600M) |
+| `alderlake` / `raptorlake` | + AVX-VNNI, GFNI, VAES… | 12th–14th gen Core, Meteor/Arrow Lake | your 13th-gen laptop |
+| `x86-64-v4` (`avx512`) | + AVX-512 F/BW/CD/DQ/VL | Ice Lake, Sapphire Rapids, Zen 4/5 | AVX-512 servers/desktops |
+| `native` (default) | whatever the build machine has | the build machine | local development |
+
+**13th-gen Core (Raptor Lake) has no AVX-512.** Intel disables it on all
+hybrid P-core/E-core client chips, because the E-cores don't implement it.
+On those CPUs the new path is **AVX-VNNI** plus `-march=raptorlake` tuning. The
+AVX-512 kernels are there for CPUs that do have it.
+
+```bash
+make ISA=x86-64-v3                 # portable: old and new machines
+make ISA=raptorlake                # tuned for 12th-14th gen Core
+make DISPATCH=0                    # legacy layout: public symbols = AVX2 kernels, no dispatcher
+make all-isas                      # build/x86-64-v3/, build/raptorlake/, build/x86-64-v4/ side by side
+make BUILD=build-old ISA=haswell   # keep a separate build tree per target
+```
+
+Changing `ISA`/`DISPATCH`/`CFLAGS` triggers a full rebuild automatically, so
+objects from two targets are never mixed. CMake has the same options:
+`-DFPASM_ISA=raptorlake -DFPASM_DISPATCH=ON -DFPASM_BUILD_TOOLS=ON`.
+
+**Runtime dispatch** (`include/fp_dispatch.h`). These kernels have ISA
+variants. The best one is chosen on first call:
+
+| kernel | avx2 | avxvnni | avx512 |
+|---|:-:|:-:|:-:|
+| `fp_reduce_add_f32/f64`, `fp_fold_sumsq_f32`, `fp_fold_dotp_f32/f64` | ✓ | | ✓ |
+| `fp_fold_dotp_i8/u8` | ✓ | ✓ | ✓ (AVX512-VNNI) |
+| `fp_fold_dotp_i16/u16` | ✓ | (exported, not selected: slower on Raptor Lake) | ✓ (AVX512-VNNI) |
+
+Every variant is also exported by name (`fp_fold_dotp_i8_avxvnni`, …) for A/B
+tests. `FPASM_TIER=avx2|avxvnni|avx512` caps the tier at runtime.
+`FPASM_VERBOSE=1` prints the selection. `fp_dispatch_set_max_tier()` does the
+same from code.
+
+### Diagnostics
+
+```bash
+make info        # toolchain, NASM, ISA -> -march, what -march=native resolves to, supported presets
+make diag        # build/fpasm-info: CPU, OS register state, every feature vs. what this build needs, dispatch table
+make check-cpu   # fpasm-info --check: fail with an explanation if this build can't run here (runs before `make test`)
+make bench-isa   # fpasm-info --bench: time every kernel variant this CPU supports
+make lint-asm    # static check: callee-saved GPRs / Win64 xmm6-15 used without saving
+make test-win64-abi  # Linux run of the Win64 register-preservation contract
+make test-tsan   # the multithreaded test under ThreadSanitizer
+```
+
+`fpasm-info` also has `--json` and `--tier`. It reports hybrid P/E-core
+layout (and which core type the thread is on), hypervisors (WSL2, Windows
+VBS), and features the CPU has but the OS hasn't enabled. If a library built
+for a newer CPU runs on an older one, it prints what is missing and which
+`ISA=` to rebuild with, instead of failing with *Illegal instruction*.
+From code: `fp_cpu_report(stdout)`, `fp_cpu_check(stderr)`, `fp_cpu_has(FP_CPU_AVX_VNNI)`
+(`include/fp_cpu.h`). The shared library checks automatically at load time.
+Set `FPASM_CPU_CHECK=0|strict|report` to turn this off, make it abort, or
+print the full report. With static linking, call `fp_cpu_check()` yourself.
+
+Measured with `fpasm-info --bench` (64k elements per call):
+
+| kernel | i7-13700HX (Raptor Lake, WSL2) | Xeon (Emerald Rapids, AVX-512) |
+|---|--:|--:|
+| `fp_fold_dotp_i8` | **14.3×** (avxvnni) | **14.5×** (avx512) / 12.1× (avxvnni) |
+| `fp_fold_dotp_u8` | **16.1×** (avxvnni) | 14.4× (avx512) |
+| `fp_fold_dotp_f32` | — (AVX2 only) | 1.41× (avx512) |
+| `fp_fold_sumsq_f32` | — | 1.33× (avx512) |
+| `fp_reduce_add_f32` | — | 1.10× (avx512, memory-bound) |
+| `fp_fold_dotp_i16` | 0.94× (avxvnni, so not selected) | 1.20× (avx512) |
+
+Speedups are relative to the AVX2 kernel on the same machine. The AVX2 float
+kernels on the laptop already run at ~100 GB/s, i.e. memory bandwidth.
+Under WSL2 the hypervisor hides the P/E-core layout and decides which
+physical core each virtual CPU runs on, so repeat runs for stable numbers.
 
 ### CMake — link it into a game / graphics project
 
@@ -85,6 +259,107 @@ target_link_libraries(mygame PRIVATE fpasm::fpasm)
 ```
 
 Or link the built library directly: `cc game.c -lfpasm`.
+
+## Renderer integration (Direct3D 11 and others)
+
+The library stays **purely functional and renderer-agnostic**. It never
+includes or links a graphics API and keeps no mutable global state. Everything
+renderer-specific is a *value* you pass in:
+
+```c
+#include "fp_gfx.h"
+
+fp_gfx_conventions c;                         /* immutable data, no globals   */
+fp_gfx_conventions_init(&c, FP_GFX_D3D11, 1); /* Direct3D 11 + reversed-Z     */
+
+Mat4 view, proj, vp;
+fp_mat4_lookat_gfx(&view, 0,2,6,  0,0,0,  0,1,0, &c);
+fp_mat4_perspective_gfx(&proj, 1.05f, 16.0f/9, 0.1f, INFINITY, &c);  /* depth [0,1] */
+fp_mat4_mul(&vp, &proj, &view);
+
+/* depth state that matches the projection */
+float clear = fp_gfx_depth_clear_value(&c);   /* 0 with reversed-Z           */
+int   cmp   = fp_gfx_depth_compare(&c);       /* FP_GFX_COMPARE_GREATER      */
+
+/* fill GPU buffers: kernels write, never read, so mapped memory is fine */
+fp_mat4_upload_gfx(cbuffer_ptr, &vp, &c);     /* layout the shader expects   */
+fp_mat4_mul_vec3_batch(scratch, &vp, verts, n);
+fp_stream_copy(mapped_vb, scratch, n * sizeof(Vec3f));   /* non-temporal */
+```
+
+| Preset | Depth range | View space | Clip Y | Use with |
+|---|---|---|---|---|
+| `FP_GFX_D3D11` / `FP_GFX_D3D12` | [0, 1] | right-handed | up | Direct3D (HLSL `mul(M, v)`) |
+| `FP_GFX_D3D11_LH` | [0, 1] | left-handed | up | DirectXMath `*LH` style |
+| `FP_GFX_VULKAN` | [0, 1] | right-handed | down | Vulkan |
+| `FP_GFX_METAL` | [0, 1] | right-handed | up | Metal |
+| `FP_GFX_OPENGL` | [-1, 1] | right-handed | up | OpenGL (same as the old `fp_mat4_perspective`) |
+
+Any preset can be combined with **reversed-Z** (far better depth precision
+with [0, 1] depth) and an **infinite far plane**.
+
+**Out of the box for Direct3D 11:**
+- `make GFX=d3d11` (CMake `-DFPASM_GFX=d3d11`) makes `fp_gfx_default()` return
+  the D3D11 conventions. It's a default value only, so all presets still work at
+  runtime, and `fpasm-info` reports it.
+- `shaders/fpasm.hlsli` (and `fpasm.glsl`) describe the same data on the
+  shader side: `Vec3f` and `Quaternion` are `float4`, `Mat4` is a column-major
+  `float4x4`, and `fp_quat_rotate` matches `fp_quat_rotate_vec3`.
+- On Windows the build produces `libfpasm.dll`, its import library
+  `libfpasm.dll.a`, and `libfpasm.a`.
+- `examples/d3d11/fpasm_d3d11_smoke.c` is a headless Direct3D 11 test (WARP)
+  that renders with both the CPU path (library transform + streamed vertex
+  buffer) and the GPU path (constant-buffer matrix), uses reversed-Z depth, and
+  checks the pixels against the library's own projection. Run it with
+  `make TARGET_OS=windows run-example-d3d11`. It is a *consumer* of the
+  library, not part of it.
+
+**Building for Windows**
+- **Natively (MSYS2 UCRT64):** `make ISA=x86-64-v3 GFX=d3d11 test`
+- **From Linux or WSL2:**
+  `make TARGET_OS=windows CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar ISA=x86-64-v3 RUN=wine64 test`
+  runs the whole test suite as Windows binaries. That includes a register
+  check under the real Win64 rules (`rsi`, `rdi`, `xmm6`–`xmm15`).
+
+CI (`.github/workflows/ci.yml`) runs three jobs:
+- Linux.
+- The Windows cross-build under Wine, plus the D3D11 smoke test and the headless
+  Verdant Swarm demo on Wine's D3D11.
+- Native Windows with MSYS2: the smoke test and the demo on Microsoft's WARP
+  rasterizer. The demo's capture is uploaded as a build artifact.
+
+## Threads and foreign-language bindings
+
+**Thread safety.** The library has no mutable global state. Its constants
+live in read-only memory, and every kernel reads its inputs and writes only
+its outputs. Any number of threads may call it at once, as long as their
+*output* buffers don't overlap. The only lazily initialized state is the
+CPU-detection cache and the kernel-dispatch table. Both use proper
+run-once initialization: exactly one thread fills them in, and the others
+wait for it. Calling `fp_dispatch_init()` at start-up avoids even that brief
+wait.
+
+This is tested. `tests/test_threads.c` starts 16 threads through a barrier,
+so their first calls race that initialization. The threads run the kernels
+on their own buffers, and the results must match a single-threaded run bit
+for bit. `make test-tsan` (also in CI) runs the same test under
+ThreadSanitizer.
+
+**FFI.** `include/fp_ffi.h` is the stable surface to bind from other languages
+(Common Lisp CFFI / `sb-alien`, Chez Scheme `foreign-procedure`, Rust, Zig,
+Python `ctypes`, ...):
+- Batch functions that take a pointer and a count, so each FFI call does a
+  whole array's worth of work.
+- Plain C types only, structs by pointer (never by value), and no callbacks.
+- The memory layout of `Vec3f`, `Quaternion`, `Mat4` and
+  `fp_gfx_conventions` is documented in the header.
+
+A binding can check the library it actually loaded with
+`fp_ffi_abi_version()` and `fp_ffi_type_size()`. Buffers must not move while
+a call runs, so in a garbage-collected language use non-moving memory: foreign
+allocation, `static-vectors` in Common Lisp, or pinned arrays.
+`tests/test_ffi.c` loads the shared library at runtime the way an FFI does
+(`dlopen` / `LoadLibrary`) and resolves every symbol the header lists.
 
 ## Cross-platform status
 

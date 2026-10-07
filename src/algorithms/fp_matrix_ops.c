@@ -11,6 +11,7 @@
  */
 
 #include "fp_core.h"
+#include "fp_gfx.h"
 #include <math.h>
 #include <float.h>
 
@@ -101,46 +102,16 @@ void fp_mat4_rotation_euler(Mat4* out, float pitch_x, float yaw_y, float roll_z)
 
 /* ========== VIEW MATRICES ========== */
 
+/* Right-handed (OpenGL) view matrix. Delegates to the convention-aware
+ * version. The previous implementation stored the camera axes as columns
+ * instead of rows (a transposed rotation with a row-based translation), which
+ * was only correct for cameras looking straight down an axis. */
 void fp_mat4_lookat(Mat4* out,
                     float eye_x, float eye_y, float eye_z,
                     float target_x, float target_y, float target_z,
                     float up_x, float up_y, float up_z) {
-    // Calculate forward vector (target - eye)
-    float fx = target_x - eye_x;
-    float fy = target_y - eye_y;
-    float fz = target_z - eye_z;
-    float f_len = sqrtf(fx*fx + fy*fy + fz*fz);
-    if (f_len < 1e-8f) {
-        fp_mat4_identity(out);
-        return;
-    }
-    fx /= f_len;
-    fy /= f_len;
-    fz /= f_len;
-
-    // Calculate right vector (forward × up)
-    float rx = fy*up_z - fz*up_y;
-    float ry = fz*up_x - fx*up_z;
-    float rz = fx*up_y - fy*up_x;
-    float r_len = sqrtf(rx*rx + ry*ry + rz*rz);
-    if (r_len < 1e-8f) {
-        fp_mat4_identity(out);
-        return;
-    }
-    rx /= r_len;
-    ry /= r_len;
-    rz /= r_len;
-
-    // Calculate true up vector (right × forward)
-    float ux = ry*fz - rz*fy;
-    float uy = rz*fx - rx*fz;
-    float uz = rx*fy - ry*fx;
-
-    // Build view matrix (inverse of camera transform)
-    out->m[0] = rx;   out->m[4] = ux;   out->m[8]  = -fx;  out->m[12] = -(rx*eye_x + ry*eye_y + rz*eye_z);
-    out->m[1] = ry;   out->m[5] = uy;   out->m[9]  = -fy;  out->m[13] = -(ux*eye_x + uy*eye_y + uz*eye_z);
-    out->m[2] = rz;   out->m[6] = uz;   out->m[10] = -fz;  out->m[14] = -(-fx*eye_x - fy*eye_y - fz*eye_z);
-    out->m[3] = 0.0f; out->m[7] = 0.0f; out->m[11] = 0.0f; out->m[15] = 1.0f;
+    fp_mat4_lookat_gfx(out, eye_x, eye_y, eye_z, target_x, target_y, target_z,
+                       up_x, up_y, up_z, fp_gfx_preset(FP_GFX_OPENGL));
 }
 
 /* ========== PROJECTION MATRICES ========== */

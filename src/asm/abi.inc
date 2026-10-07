@@ -118,4 +118,85 @@ section .note.GNU-stack noalloc noexec nowrite progbits
     %endif
 %endmacro
 
+; -----------------------------------------------------------------------------
+; FP_DISPATCHED name — entry label for a kernel that has faster ISA variants
+; (AVX-VNNI / AVX-512) selected at runtime by src/runtime/fp_dispatch.c.
+;
+; Always emits `name_avx2` (the baseline AVX2 body, callable directly).
+; Without FP_DISPATCH (the legacy/static build) it also emits the public
+; `name` at the same address, so nothing changes for old builds. With
+; FP_DISPATCH defined, the C dispatcher owns `name` and forwards to the best
+; variant the CPU supports.
+; -----------------------------------------------------------------------------
+%macro FP_DISPATCHED 1
+    global %{1}_avx2
+    %ifndef FP_DISPATCH
+        global %1
+        %1:
+    %endif
+    %{1}_avx2:
+%endmacro
+
+; -----------------------------------------------------------------------------
+; XMM_SAVE_WIN64 / XMM_RESTORE_WIN64 — the Win64 ABI makes xmm6-xmm15
+; callee-saved (SysV makes every vector register volatile). Kernels that use
+; them bracket their body with these: SAVE after the ABI_* shims, RESTORE
+; before every `ret` (the stack must be back at its post-SAVE position).
+; No-ops on SysV, unless assembled with -DFP_FORCE_XMM_SAVE, which lets the
+; Linux test suite exercise the Windows code path (tests/test_abi_preserve.c
+; then checks xmm6-15 with FP_TEST_CHECK_XMM=1).
+; 168 = 10 * 16 + 8 keeps rsp 16-byte aligned relative to the entry.
+; -----------------------------------------------------------------------------
+%ifdef FP_WIN64
+    %define FP_SAVE_XMM 1
+%elifdef FP_FORCE_XMM_SAVE
+    %define FP_SAVE_XMM 1
+%endif
+
+%macro XMM_SAVE_WIN64 0
+    %ifdef FP_SAVE_XMM
+        sub     rsp, 168
+        vmovdqu [rsp +   0], xmm6
+        vmovdqu [rsp +  16], xmm7
+        vmovdqu [rsp +  32], xmm8
+        vmovdqu [rsp +  48], xmm9
+        vmovdqu [rsp +  64], xmm10
+        vmovdqu [rsp +  80], xmm11
+        vmovdqu [rsp +  96], xmm12
+        vmovdqu [rsp + 112], xmm13
+        vmovdqu [rsp + 128], xmm14
+        vmovdqu [rsp + 144], xmm15
+    %endif
+%endmacro
+
+%macro XMM_RESTORE_WIN64 0
+    %ifdef FP_SAVE_XMM
+        vmovdqu xmm6,  [rsp +   0]
+        vmovdqu xmm7,  [rsp +  16]
+        vmovdqu xmm8,  [rsp +  32]
+        vmovdqu xmm9,  [rsp +  48]
+        vmovdqu xmm10, [rsp +  64]
+        vmovdqu xmm11, [rsp +  80]
+        vmovdqu xmm12, [rsp +  96]
+        vmovdqu xmm13, [rsp + 112]
+        vmovdqu xmm14, [rsp + 128]
+        vmovdqu xmm15, [rsp + 144]
+        add     rsp, 168
+    %endif
+%endmacro
+
+; -----------------------------------------------------------------------------
+; RODATA — switch to the read-only data section for the library's constants
+; (lookup tables, 1.0, identity matrix, ...). They are never written, and
+; keeping them read-only means a stray write faults immediately instead of
+; silently changing results for every caller on every thread.
+; -----------------------------------------------------------------------------
+%macro RODATA 0
+    %ifdef FP_WIN64
+        section .rdata rdata align=32
+    %else
+        section .rodata align=32
+    %endif
+%endmacro
+
 %endif ; FP_ABI_INC

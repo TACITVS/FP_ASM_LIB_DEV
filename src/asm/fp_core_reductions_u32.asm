@@ -29,6 +29,7 @@ global fp_reduce_add_u32
 fp_reduce_add_u32:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -100,10 +101,12 @@ fp_reduce_add_u32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     xor eax, eax                 ; Return 0 for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -117,6 +120,7 @@ global fp_reduce_mul_u32
 fp_reduce_mul_u32:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -200,10 +204,12 @@ fp_reduce_mul_u32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     mov eax, 1                   ; Return 1 for null pointer (identity for multiply)
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -217,6 +223,7 @@ global fp_reduce_min_u32
 fp_reduce_min_u32:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -294,6 +301,7 @@ fp_reduce_min_u32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .return_uint32_max:
@@ -301,10 +309,12 @@ fp_reduce_min_u32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     mov eax, 0xFFFFFFFF          ; Return UINT32_MAX for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -318,6 +328,7 @@ global fp_reduce_max_u32
 fp_reduce_max_u32:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -395,6 +406,7 @@ fp_reduce_max_u32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .return_zero:
@@ -402,8 +414,10 @@ fp_reduce_max_u32:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     xor eax, eax                 ; Return 0 for null pointer
+    XMM_RESTORE_WIN64
     ret

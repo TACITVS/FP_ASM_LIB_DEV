@@ -26,7 +26,7 @@ default rel
 
 %include "macros.inc"
 
-section .data
+RODATA                              ; immutable constants (abi.inc)
 align 32
 
 ; Identity matrix constant (column-major)

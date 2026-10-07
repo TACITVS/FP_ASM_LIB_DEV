@@ -31,6 +31,7 @@ global fp_reduce_add_u8
 fp_reduce_add_u8:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -122,10 +123,12 @@ fp_reduce_add_u8:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     xor eax, eax                 ; Return 0 for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -179,6 +182,7 @@ global fp_reduce_min_u8
 fp_reduce_min_u8:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -273,6 +277,7 @@ fp_reduce_min_u8:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .return_uint8_max:
@@ -280,10 +285,12 @@ fp_reduce_min_u8:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     mov eax, 0xFF                ; Return UINT8_MAX for null pointer
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -295,6 +302,7 @@ global fp_reduce_max_u8
 fp_reduce_max_u8:
     ABI_ARGS_INT
     ; Null pointer check
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     test rcx, rcx
     jz .error_null
 
@@ -389,6 +397,7 @@ fp_reduce_max_u8:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .return_zero:
@@ -396,8 +405,10 @@ fp_reduce_max_u8:
     vzeroupper
     mov rsp, rbp
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 .error_null:
     xor eax, eax                 ; Return 0 for null pointer
+    XMM_RESTORE_WIN64
     ret

@@ -27,7 +27,9 @@ section .text
 global fp_fold_sumsq_u32
 fp_fold_sumsq_u32:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -113,7 +115,9 @@ fp_fold_sumsq_u32:
 .epilogue:
     vzeroupper
     mov rsp, rbp
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -126,7 +130,10 @@ fp_fold_sumsq_u32:
 global fp_fold_dotp_u32
 fp_fold_dotp_u32:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -223,7 +230,10 @@ fp_fold_dotp_u32:
 .epilogue:
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret
 
 ; ============================================================================
@@ -237,7 +247,10 @@ fp_fold_dotp_u32:
 global fp_fold_sad_u32
 fp_fold_sad_u32:
     ABI_ARGS_INT
+    XMM_SAVE_WIN64                  ; xmm6-15 are callee-saved on Win64
     push rbp
+    push r12                        ; callee-saved (SysV + Win64)
+    push r13                        ; callee-saved (SysV + Win64)
     mov rbp, rsp
     sub rsp, 32
     and rsp, 0xFFFFFFFFFFFFFFE0
@@ -350,5 +363,8 @@ fp_fold_sad_u32:
 
     vzeroupper
     mov rsp, rbp
+    pop r13
+    pop r12
     pop rbp
+    XMM_RESTORE_WIN64
     ret

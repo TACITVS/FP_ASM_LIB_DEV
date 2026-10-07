@@ -11,13 +11,12 @@
 ; =============================================================================
 default rel
 %include "abi.inc"
-section .data
+RODATA                              ; immutable constants (abi.inc)
     ; Removed unused masks
 
 section .text
     global fp_fold_sumsq_i64
     global fp_fold_dotp_i64
-    global fp_fold_dotp_f64
     global fp_fold_sad_i64
 
 ; =============================================================================
@@ -174,9 +173,10 @@ fp_fold_dotp_i64:
 
 ; =============================================================================
 ; double fp_fold_dotp_f64(const double* a, const double* b, size_t n)
-; (Unchanged v3 - Passed tests)
+; Fixed: the tail accumulator xmm0 doubled as a load register in the main
+; loop, so every n >= 16 added a stale a[] element to the result.
 ; =============================================================================
-fp_fold_dotp_f64:
+FP_DISPATCHED fp_fold_dotp_f64
     ABI_ARGS_INT
     push r11
     push r12
@@ -216,6 +216,7 @@ fp_fold_dotp_f64:
     sub  rcx, 16
     jmp  .dotp_f64_loop16
 .dotp_f64_tail:
+    vxorpd xmm0, xmm0, xmm0   ; tail accumulator (ymm0 was a load register in the loop)
     test rcx, rcx
     jz   .dotp_f64_accum
 .dotp_f64_tail_loop:
